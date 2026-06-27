@@ -14,11 +14,14 @@ targets:
       - path: ErrorView.swift
       - path: CriticalAlertManager.swift
       - path: SettingsView.swift
+      - path: NotificationManager.swift
       - path: ContentView.swift
       - path: AlertViewModelV3.swift
       - path: GeoJSONManager.swift
       - path: ukraine_regions.geojson
       - path: LocationManager.swift
+      - path: siren.wav
+      - path: vidbiy.wav
     settings:
       base:
         INFOPLIST_FILE: Info.plist

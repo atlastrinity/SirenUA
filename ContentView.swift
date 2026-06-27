@@ -180,7 +180,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
-                .presentationBackground(.ultraThinMaterial)
+                .presentationBackground(.clear)
         }
         .sheet(isPresented: $showShareSheet) {
             let shareText: String = {

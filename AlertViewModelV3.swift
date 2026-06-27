@@ -16,6 +16,7 @@ class AlertViewModelV3: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var refreshTimer: AnyCancellable?
     private let networkManager = NetworkManager()
+    private var isFirstFetch: Bool = true
 
     init() {
         initializeRegions()
@@ -84,11 +85,22 @@ class AlertViewModelV3: ObservableObject {
                 for i in 0..<self.alerts.count {
                     let regionName = self.alerts[i].name
                     if let isAlertNow = liveData[regionName] {
+                        let wasActive = self.alerts[i].isActive
+                        
                         self.alerts[i].isActive = isAlertNow
                         self.alerts[i].level = isAlertNow ? 3 : 0
                         self.alerts[i].description = isAlertNow ? "Повітряна тривога!" : "Відбій"
+                        
+                        if !self.isFirstFetch {
+                            if !wasActive && isAlertNow {
+                                NotificationManager.shared.sendAlertNotification(for: regionName)
+                            } else if wasActive && !isAlertNow {
+                                NotificationManager.shared.sendClearNotification(for: regionName)
+                            }
+                        }
                     }
                 }
+                self.isFirstFetch = false
                 self.updateStats()
             } catch {
                 self.errorMessage = "Помилка оновлення тривог"

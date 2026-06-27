@@ -10,7 +10,22 @@ struct SettingsView: View {
     @State private var searchRadius = 1.0
 
     var body: some View {
-        NavigationView {
+        VStack(spacing: 0) {
+            // Кастомний навігаційний бар
+            HStack {
+                Spacer()
+                Text("Налаштування")
+                    .font(.headline)
+                    .padding(.leading, 40)
+                Spacer()
+                Button("Готово") {
+                    dismiss()
+                }
+                .fontWeight(.bold)
+            }
+            .padding()
+            .background(Color.clear)
+
             Form {
                 Section(header: Text("Сповіщення")) {
                     Toggle("Увімкнути сповіщення", isOn: $notificationsEnabled)
@@ -57,16 +72,8 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background(Color.clear)
             .environment(\.defaultMinListRowHeight, 50)
-            .navigationTitle("Налаштування")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Готово") {
-                        dismiss()
-                    }
-                }
-            }
         }
+        .background(Color.black.opacity(0.4))
         .preferredColorScheme(.dark)
     }
 }
