@@ -1,68 +1,101 @@
 import XCTest
 @testable import SirenUA
 
-class MockURLProtocol: URLProtocol {
+final class MockURLProtocol: URLProtocol {
     static var mockData: Data?
     static var mockResponse: URLResponse?
     static var mockError: Error?
 
-    override class func canInit(with request: URLRequest) -> Bool { return true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { return request }
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
     override func startLoading() {
         if let error = MockURLProtocol.mockError {
             client?.urlProtocol(self, didFailWithError: error)
-        } else {
-            if let response = MockURLProtocol.mockResponse {
-                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            }
-            if let data = MockURLProtocol.mockData {
-                client?.urlProtocol(self, didLoad: data)
-            }
-            client?.urlProtocolDidFinishLoading(self)
+            return
         }
+
+        if let response = MockURLProtocol.mockResponse {
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        }
+
+        if let data = MockURLProtocol.mockData {
+            client?.urlProtocol(self, didLoad: data)
+        }
+
+        client?.urlProtocolDidFinishLoading(self)
     }
+
     override func stopLoading() {}
 }
 
+@available(iOS 17.0, *)
 final class SirenUATests: XCTestCase {
-    func testAlertParsing() async throws {
+    override func tearDown() {
+        MockURLProtocol.mockData = nil
+        MockURLProtocol.mockResponse = nil
+        MockURLProtocol.mockError = nil
+        super.tearDown()
+    }
+
+    func testLiveAlertParsing() async throws {
         let json = """
         {
-            "last_update": "2023-01-01T00:00:00Z",
-            "states": [
-                {
-                    "id": 1,
-                    "name": "Kyiv",
-                    "state": "alert",
-                    "description": "Air Raid"
+            "source": "test",
+            "cachedat": "2026-06-27T20:00:00Z",
+            "states": {
+                "Київська область": {
+                    "alertnow": true,
+                    "changed": "2026-06-27T19:55:00Z"
                 },
-                {
-                    "id": 2,
-                    "name": "Lviv",
-                    "state": "partial",
-                    "description": "Partial Alert"
+                "Львівська область": {
+                    "alertnow": false,
+                    "changed": "2026-06-27T18:40:00Z"
                 }
-            ]
+            }
         }
         """
-        MockURLProtocol.mockData = json.data(using: .utf8)
-        MockURLProtocol.mockResponse = HTTPURLResponse(url: URL(string: "https://alerts.in.ua/api/air-raid")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-        
+
+        MockURLProtocol.mockData = Data(json.utf8)
+        MockURLProtocol.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://ubilling.net.ua/aerialalerts/")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+
+        let manager = NetworkManager(session: makeMockSession())
+        let alerts = try await manager.fetchLiveAlerts()
+
+        XCTAssertEqual(alerts["Київська область"], true)
+        XCTAssertEqual(alerts["Львівська область"], false)
+        XCTAssertEqual(alerts.count, 2)
+    }
+
+    func testInvalidStatusCodeThrows() async {
+        MockURLProtocol.mockData = Data()
+        MockURLProtocol.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://ubilling.net.ua/aerialalerts/")!,
+            statusCode: 500,
+            httpVersion: nil,
+            headerFields: nil
+        )
+
+        let manager = NetworkManager(session: makeMockSession())
+
+        do {
+            _ = try await manager.fetchLiveAlerts()
+            XCTFail("Expected invalid response error")
+        } catch let error as NetworkError {
+            XCTAssertEqual(error.localizedDescription, NetworkError.invalidResponse.localizedDescription)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    private func makeMockSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
-        let session = URLSession(configuration: config)
-
-        let manager = NetworkManager(session: session)
-        do {
-            let alerts = try await manager.fetchAlerts()
-            XCTAssertEqual(alerts.count, 2, "Should have 2 alerts")
-            XCTAssertEqual(alerts[0].name, "Kyiv")
-            XCTAssertEqual(alerts[0].isActive, true)
-            XCTAssertEqual(alerts[1].name, "Lviv")
-            XCTAssertEqual(alerts[1].isActive, false)
-        } catch {
-            print("TEST FAILED WITH ERROR: \(error)")
-            throw error
-        }
+        return URLSession(configuration: config)
     }
 }
