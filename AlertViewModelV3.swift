@@ -12,6 +12,8 @@ class AlertViewModelV3: ObservableObject {
     @Published var selectedAlert: AlertRegion?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var lastAlertedRegionName: String?
+    @Published var lastViewedTimestamp: Date?
 
     private let networkManager = NetworkManager()
     private var refreshTask: Task<Void, Never>?
@@ -110,6 +112,8 @@ class AlertViewModelV3: ObservableObject {
     }
 
     private func applyLiveAlerts(_ liveData: [String: AerialAlertState]) {
+        var newlyAlertedRegionName: String?
+        
         for index in alerts.indices {
             let regionName = alerts[index].name
             guard let state = liveData[regionName] else { continue }
@@ -124,9 +128,36 @@ class AlertViewModelV3: ObservableObject {
             guard !isFirstFetch else { continue }
             if !wasActive && isAlertNow {
                 NotificationManager.shared.sendAlertNotification(for: regionName)
+                newlyAlertedRegionName = regionName
             } else if wasActive && !isAlertNow {
                 NotificationManager.shared.sendClearNotification(for: regionName)
             }
+        }
+        
+        if let newRegionName = newlyAlertedRegionName {
+            lastAlertedRegionName = newRegionName
+            lastViewedTimestamp = nil
+        } else if lastAlertedRegionName == nil || !(alerts.first(where: { $0.name == lastAlertedRegionName })?.isActive ?? false) {
+            updateLastAlertedRegion()
+        }
+    }
+
+    func updateLastAlertedRegion() {
+        let activeAlerts = alerts.filter { $0.isActive }
+        if let last = activeAlerts.max(by: { ($0.lastChanged ?? "") < ($1.lastChanged ?? "") }) {
+            if lastAlertedRegionName != last.name {
+                lastAlertedRegionName = last.name
+                lastViewedTimestamp = nil
+            }
+        } else {
+            lastAlertedRegionName = nil
+            lastViewedTimestamp = nil
+        }
+    }
+
+    func markLastAlertAsViewed() {
+        if lastAlertedRegionName != nil && lastViewedTimestamp == nil {
+            lastViewedTimestamp = Date()
         }
     }
 
@@ -144,6 +175,7 @@ class AlertViewModelV3: ObservableObject {
         guard let index = alerts.firstIndex(where: { $0.id == id }) else { return }
         alerts[index].isActive = isActive
         updateStats()
+        updateLastAlertedRegion()
     }
 
     func filterAlerts(by isActive: Bool) {

@@ -36,6 +36,13 @@ struct ContentView: View {
     
     // Стан для анімацій (пульсація)
     @State private var isPulsating = false
+    @State private var dummyState = false
+    private let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+    
+    private var shouldBlinkLastAlert: Bool {
+        guard let timestamp = viewModel.lastViewedTimestamp else { return false }
+        return Date().timeIntervalSince(timestamp) >= 60
+    }
     
     // Стан для навігації та модальних вікон
     @State private var showSettings = false
@@ -66,10 +73,22 @@ struct ContentView: View {
                 ForEach(geoManager.regions.filter { region in 
                     viewModel.alerts.contains(where: { $0.name == region.nameUK && $0.isActive })
                 }) { region in
+                    let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
+                    let shouldBlink = isLastAlerted && shouldBlinkLastAlert
+                    
                     ForEach(0..<region.polygons.count, id: \.self) { index in
                         MapPolygon(coordinates: region.polygons[index])
-                            .stroke(isNavigating ? .yellow.opacity(0.15) : (isPulsating ? .yellow : .yellow.opacity(0.4)), lineWidth: 1.5)
-                            .foregroundStyle(isNavigating ? .yellow.opacity(0.05) : (isPulsating ? .yellow.opacity(0.35) : .yellow.opacity(0.05)))
+                            .stroke(
+                                isLastAlerted ? 
+                                    (shouldBlink ? (isPulsating ? .yellow : .yellow.opacity(0.3)) : .yellow) : 
+                                    Color.red.opacity(0.7), 
+                                lineWidth: isLastAlerted ? 2.5 : 1.5
+                            )
+                            .foregroundStyle(
+                                isLastAlerted ? 
+                                    (shouldBlink ? (isPulsating ? .yellow.opacity(0.35) : .yellow.opacity(0.05)) : .yellow.opacity(0.15)) : 
+                                    Color.red.opacity(0.12)
+                            )
                     }
                 }
                 if showRadar && !isNavigating && viewModel.activeAlerts > 0 {
@@ -105,20 +124,6 @@ struct ContentView: View {
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white, lineWidth: 2))
                         .shadow(radius: 5)
-                }
-                
-                // Маркери тривог
-                ForEach(viewModel.alerts) { alert in
-                    Annotation(alert.name, coordinate: alert.coordinate) {
-                        let alertColor = alert.color
-                        Circle()
-                            .fill(alertColor)
-                            .frame(width: 20, height: 20)
-                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                            .shadow(color: alertColor, radius: 10)
-                            .scaleEffect(isPulsating ? 1.2 : 1.0)
-                            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isPulsating)
-                    }
                 }
                 // Знайдене укриття
                 if let shelter = foundShelter {
@@ -183,6 +188,7 @@ struct ContentView: View {
                         },
                         onHistory: {
                             showHistory = true
+                            viewModel.markLastAlertAsViewed()
                         }
                     )
                 }
@@ -250,8 +256,15 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
         }
+        .onReceive(timer) { _ in
+            dummyState.toggle()
+        }
+        .onChange(of: viewModel.lastAlertedRegionName) {
+            viewModel.markLastAlertAsViewed()
+        }
         .onAppear {
             locationManager.requestPermission()
+            viewModel.markLastAlertAsViewed()
             // Запуск безкінечної анімації
             withAnimation(.easeOut(duration: 2.0).repeatForever(autoreverses: false)) {
                 isPulsating = true
@@ -696,7 +709,7 @@ struct AlertHistoryOverlayView: View {
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.top, 40)
+            .padding(.top, 10)
             
             // List of alerts (dimmed background)
             ScrollView {
