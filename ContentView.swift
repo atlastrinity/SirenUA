@@ -48,6 +48,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showShareSheet = false
     @State private var showHistory = false
+    @State private var showActiveAlerts = false
     @State private var isNavigating = false
     @State private var isRoutingToShelter = false
     
@@ -133,6 +134,11 @@ struct ContentView: View {
             // 2. ВЕРХНІЙ БАНЕР (Імітація Dynamic Island)
             TopAlertBannerV4(activeAlerts: viewModel.activeAlerts, isLoading: viewModel.isLoading)
                 .padding(.top, 10)
+                .onTapGesture {
+                    if viewModel.activeAlerts > 0 {
+                        showActiveAlerts = true
+                    }
+                }
             
             // 3. НИЖНЯ ПАНЕЛЬ АБО НАВІГАЦІЯ
             VStack {
@@ -166,6 +172,11 @@ struct ContentView: View {
                         onHistory: {
                             showHistory = true
                             viewModel.markLastAlertAsViewed()
+                        },
+                        onStatusTap: {
+                            if viewModel.activeAlerts > 0 {
+                                showActiveAlerts = true
+                            }
                         }
                     )
                 }
@@ -173,8 +184,15 @@ struct ContentView: View {
             .padding(.bottom, 20)
             
             if showHistory {
-                AlertHistoryOverlayView(alerts: viewModel.alerts) {
+                AlertListOverlayView(title: "ІСТОРІЯ ТРИВОГ", color: .yellow, alerts: viewModel.alerts, filterActiveOnly: false) {
                     showHistory = false
+                }
+                .transition(.opacity.combined(with: .scale))
+            }
+            
+            if showActiveAlerts {
+                AlertListOverlayView(title: "АКТИВНІ ТРИВОГИ", color: .red, alerts: viewModel.alerts, filterActiveOnly: true) {
+                    showActiveAlerts = false
                 }
                 .transition(.opacity.combined(with: .scale))
             }
@@ -226,6 +244,7 @@ struct ContentView: View {
                     .presentationDetents([.height(220)])
                     .presentationBackground(.ultraThinMaterial)
                     .presentationCornerRadius(24)
+                    .presentationBackgroundInteraction(.enabled(upThrough: .height(220)))
                     .preferredColorScheme(.dark)
                 }
             }
@@ -265,28 +284,70 @@ struct ContentView: View {
         guard !isRoutingToShelter else { return }
         isRoutingToShelter = true
 
-        Task {
-            let request = MKLocalSearch.Request()
-            request.naturalLanguageQuery = "укриття"
-            let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
-            let radiusMeters = max(currentRadius, 0.5) * 1000
-            request.region = MKCoordinateRegion(center: centerCoordinate, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
+        let userLoc = centerCoordinate
+        let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
+        let radiusMeters = max(currentRadius, 0.5) * 1000
+        let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
 
-            let search = MKLocalSearch(request: request)
-            let firstItem = try? await search.start().mapItems.first
+        let queries = ["укриття", "бомбосховище", "shelter", "bomb shelter", "метро", "subway"]
+
+        Task {
+            var allItems: [MKMapItem] = []
+            
+            await withTaskGroup(of: [MKMapItem]?.self) { group in
+                for query in queries {
+                    group.addTask {
+                        let request = MKLocalSearch.Request()
+                        request.naturalLanguageQuery = query
+                        request.region = searchRegion
+                        let search = MKLocalSearch(request: request)
+                        return try? await search.start().mapItems
+                    }
+                }
+                
+                for await items in group {
+                    if let items = items {
+                        allItems.append(contentsOf: items)
+                    }
+                }
+            }
+
+            // Фільтрація дублікатів за близькістю координат (~5 метрів)
+            var uniqueItems: [MKMapItem] = []
+            for item in allItems {
+                let coord = item.placemark.coordinate
+                let isDuplicate = uniqueItems.contains { existing in
+                    let extCoord = existing.placemark.coordinate
+                    let latDiff = abs(extCoord.latitude - coord.latitude)
+                    let lonDiff = abs(extCoord.longitude - coord.longitude)
+                    return latDiff < 0.00005 && lonDiff < 0.00005
+                }
+                if !isDuplicate {
+                    uniqueItems.append(item)
+                }
+            }
+
+            // Знаходження найближчого об'єкта до користувача
+            let closestItem = uniqueItems.min { a, b in
+                let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
+                    .distance(from: CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude))
+                let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
+                    .distance(from: CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude))
+                return distA < distB
+            }
 
             await MainActor.run {
                 isRoutingToShelter = false
-                guard let firstItem else { return }
+                guard let closestItem else { return }
 
-                foundShelter = firstItem
-                selectedShelter = firstItem
+                foundShelter = closestItem
+                selectedShelter = closestItem
                 route = nil
 
                 withAnimation(.easeInOut(duration: 1.0)) {
                     cameraPosition = .region(
                         MKCoordinateRegion(
-                            center: firstItem.placemark.coordinate,
+                            center: closestItem.placemark.coordinate,
                             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                         )
                     )
@@ -396,6 +457,7 @@ struct BottomDashboardV4: View {
     var onShare: () -> Void
     var onSettings: () -> Void
     var onHistory: () -> Void
+    var onStatusTap: () -> Void
 
     private var hasActiveAlert: Bool {
         activeAlerts > 0
@@ -447,6 +509,10 @@ struct BottomDashboardV4: View {
                         .foregroundColor(detailColor)
                 }
                 .padding(.top, 4)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onStatusTap()
             }
             
             Spacer()
@@ -660,27 +726,30 @@ struct NavigationOverlay: View {
 extension MKDirectionsTransportType: @retroactive Hashable {}
 
 @available(iOS 17.0, *)
-struct AlertHistoryOverlayView: View {
+struct AlertListOverlayView: View {
+    let title: String
+    let color: Color
     let alerts: [AlertRegion]
+    let filterActiveOnly: Bool
     var onClose: () -> Void
     
     var body: some View {
         VStack(spacing: 10) {
             // Header
             HStack {
-                Text("ІСТОРІЯ ТРИВОГ")
+                Text(title)
                     .font(.system(size: 30, weight: .black, design: .default))
-                    .foregroundColor(.red)
-                    .shadow(color: .red.opacity(0.8), radius: 10, x: 0, y: 0)
+                    .foregroundColor(color)
+                    .shadow(color: color.opacity(0.8), radius: 10, x: 0, y: 0)
                 
                 Spacer()
                 
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.red)
+                        .foregroundColor(color)
                         .padding(10)
-                        .shadow(color: .red.opacity(0.8), radius: 10, x: 0, y: 0)
+                        .shadow(color: color.opacity(0.8), radius: 10, x: 0, y: 0)
                 }
             }
             .padding(.horizontal, 24)
@@ -689,8 +758,8 @@ struct AlertHistoryOverlayView: View {
             // List of alerts (dimmed background)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
-                    // Show active alerts first, then non-active alerts that have a lastChanged timestamp
-                    let sortedAlerts = alerts.sorted { a, b in
+                    let filteredAlerts = filterActiveOnly ? alerts.filter { $0.isActive } : alerts
+                    let sortedAlerts = filteredAlerts.sorted { a, b in
                         if a.isActive != b.isActive {
                             return a.isActive
                         }
@@ -700,28 +769,28 @@ struct AlertHistoryOverlayView: View {
                     ForEach(sortedAlerts) { alert in
                         HStack(alignment: .center, spacing: 12) {
                             Circle()
-                                .fill(alert.isActive ? Color.red : Color.red.opacity(0.4))
+                                .fill(alert.isActive ? color : color.opacity(0.4))
                                 .frame(width: 8, height: 8)
-                                .shadow(color: .red, radius: alert.isActive ? 4 : 0)
+                                .shadow(color: color, radius: alert.isActive ? 4 : 0)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(alert.name)
                                     .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.red)
-                                    .shadow(color: .red.opacity(0.4), radius: 4, x: 0, y: 0)
+                                    .foregroundColor(color)
+                                    .shadow(color: color.opacity(0.4), radius: 4, x: 0, y: 0)
                                 
                                 HStack(spacing: 8) {
                                     Text(alert.isActive ? "АКТИВНА" : "НЕАКТИВНА")
                                         .font(.system(size: 12, weight: .black))
-                                        .foregroundColor(alert.isActive ? .red : .red.opacity(0.6))
+                                        .foregroundColor(alert.isActive ? color : color.opacity(0.6))
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
-                                        .border(alert.isActive ? Color.red : Color.red.opacity(0.6), width: 1)
+                                        .border(alert.isActive ? color : color.opacity(0.6), width: 1)
                                     
                                     if let changed = alert.lastChanged {
                                         Text(changed)
                                             .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(.red.opacity(0.7))
+                                            .foregroundColor(color.opacity(0.7))
                                     }
                                 }
                             }
