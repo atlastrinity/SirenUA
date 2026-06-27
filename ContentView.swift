@@ -677,11 +677,11 @@ struct AlertHistoryOverlayView: View {
     var onClose: () -> Void
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 10) {
             // Header
             HStack {
                 Text("ІСТОРІЯ ТРИВОГ")
-                    .font(.system(size: 26, weight: .black, design: .default))
+                    .font(.system(size: 30, weight: .black, design: .default))
                     .foregroundColor(.red)
                     .shadow(color: .red.opacity(0.8), radius: 10, x: 0, y: 0)
                 
@@ -696,11 +696,11 @@ struct AlertHistoryOverlayView: View {
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.top, 60)
+            .padding(.top, 40)
             
-            // List of alerts (without background)
+            // List of alerts (dimmed background)
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: 10) {
                     // Show active alerts first, then non-active alerts that have a lastChanged timestamp
                     let sortedAlerts = alerts.sorted { a, b in
                         if a.isActive != b.isActive {
@@ -718,13 +718,13 @@ struct AlertHistoryOverlayView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(alert.name)
-                                    .font(.system(size: 18, weight: .bold))
+                                    .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(.red)
                                     .shadow(color: .red.opacity(0.4), radius: 4, x: 0, y: 0)
                                 
                                 HStack(spacing: 8) {
                                     Text(alert.isActive ? "АКТИВНА" : "НЕАКТИВНА")
-                                        .font(.system(size: 11, weight: .black))
+                                        .font(.system(size: 12, weight: .black))
                                         .foregroundColor(alert.isActive ? .red : .red.opacity(0.6))
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -732,7 +732,7 @@ struct AlertHistoryOverlayView: View {
                                     
                                     if let changed = alert.lastChanged {
                                         Text(changed)
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(.red.opacity(0.7))
                                     }
                                 }
@@ -740,13 +740,13 @@ struct AlertHistoryOverlayView: View {
                             Spacer()
                         }
                         .padding(.horizontal, 24)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 4)
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.clear)
+        .background(Color.black.opacity(0.85).ignoresSafeArea())
     }
 }
 
