@@ -1,0 +1,24 @@
+name: SirenUA
+options:
+  bundleIdPrefix: com.sirenua
+targets:
+  SirenUA:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: 
+      - path: Sources/SirenUA
+    settings:
+      base:
+        INFOPLIST_FILE: Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.sirenua.SirenUA
+        SWIFT_VERSION: 5.0
+        DEVELOPMENT_TEAM: ""
+  SirenUATests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: 
+      - path: Tests/SirenUATests
+    dependencies:
+      - target: SirenUA

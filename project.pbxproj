@@ -1,0 +1,350 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A1B1C1D1E2F3A4B5C6D7E8F /* SirenUA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUA.swift; sourceTree = "<group>"; };
+		1A2B2C2D3E4F5A6B7C8D9E0F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1A3C3C3D4E5F6A7B8C9D0E1F2 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		1A4D4D4E5F6A7B8C9D0E1F2A3 /* AlertPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPin.swift; sourceTree = "<group>"; };
+		1A5E5E5F6A7B8C9D0E1F2A3B4 /* AlertViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModel.swift; sourceTree = "<group>"; };
+		1A6F6F6A7B8C9D0E1F2A3B4C5 /* Alert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Alert.swift; sourceTree = "<group>"; };
+		1A7G7G7A7B8C9D0E1F2A3B4C5D /* AlertStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertStatusCard.swift; sourceTree = "<group>"; };
+		1A8H8H8B7C9D0E1F2A3B4C5D6E /* AlertDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertDetailView.swift; sourceTree = "<group>"; };
+		1A9I9I9C8D0E1F2A3B4C5D6E7F8 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
+		1AAJAJAD9E0F1A2B3C4D5E6F7G8H9 /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
+		1ABKBKB10E1F2A3B4C5D6E7F8G9H0I /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		1ACLCLC11F2A3B4C5D6E7F8G9H0I1J /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1ADMDMD12G3A4B5C6D7E8F9H0I1J2K /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1AE1AE1E13H4B5C6D7E8F9H0I1J2K3L = {
+			isa = PBXGroup;
+			children = (
+				1A1B1C1D1E2F3A4B5C6D7E8F /* SirenUA.swift */,
+				1A2B2C2D3E4F5A6B7C8D9E0F /* ContentView.swift */,
+				1A3C3C3D4E5F6A7B8C9D0E1F2 /* MapView.swift */,
+				1A4D4D4E5F6A7B8C9D0E1F2A3 /* AlertPin.swift */,
+				1A5E5E5F6A7B8C9D0E1F2A3B4 /* AlertViewModel.swift */,
+				1A6F6F6A7B8C9D0E1F2A3B4C5 /* Alert.swift */,
+				1A7G7G7A7B8C9D0E1F2A3B4C5D /* AlertStatusCard.swift */,
+				1A8H8H8B7C9D0E1F2A3B4C5D6E /* AlertDetailView.swift */,
+				1A9I9I9C8D0E1F2A3B4C5D6E7F8 /* NetworkManager.swift */,
+				1AAJAJAD9E0F1A2B3C4D5E6F7G8H9 /* CriticalAlertManager.swift */,
+				1ABKBKB10E1F2A3B4C5D6E7F8G9H0I /* SceneDelegate.swift */,
+				1ACLCLC11F2A3B4C5D6E7F8G9H0I1J /* Info.plist */,
+			);
+			name = SirenUA;
+			sourceTree = "<group>";
+		};
+		1AF2AF2F14I5J6K7L8M9N0O1P2Q3R4S = {
+			isa = PBXGroup;
+			children = (
+				1AE1AE1E13H4B5C6D7E8F9H0I1J2K3L /* SirenUA */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1AG3AG3G15K6L7M8N9O0P1Q2R3S4T5U = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1AH4AH4H16M7N8O9P0Q1R2S3T4U5V6W;
+			buildPhases = (
+				1AI5AI5I17N8O9P0Q1R2S3T4U5V6W7X /* Sources */,
+				1AJ6AJ6J18O9P0Q1R2S3T4U5V6W7X8Y /* Frameworks */,
+				1AK7AK7K19P0Q1R2S3T4U5V6W7X8Y9Z /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SirenUA;
+			productName = SirenUA;
+			productReference = 1AL8AL8L1AP1Q2R3S4T5U6V7W8X9Y0Z;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1AM4AM4M20Q1R2S3T4U5V6W7X8Y9Z0A = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					1AG3AG3G15K6L7M8N9O0P1Q2R3S4T5U = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 1AN5AN5N21R2S3T4U5V6W7X8Y9Z0A1B;
+			compatibilityVersion = "Xcode 14.0";
+			mainGroup = 1AF2AF2F14I5J6K7L8M9N0O1P2Q3R4S;
+			productRefGroup = 1AO6AO6O22S3T4U5V6W7X8Y9Z0A1B2C;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1AG3AG3G15K6L7M8N9O0P1Q2R3S4T5U,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1AK7AK7K19P0Q1R2S3T4U5V6W7X8Y9Z /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1AI5AI5I17N8O9P0Q1R2S3T4U5V6W7X /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1AP9AP9A1AQ1R2S3T4U5V6W7X8Y9Z0A /* SirenUA.swift in Sources */,
+				1AQ10AQ0AR2S3T4U5V6W7X8Y9Z0A1B /* ContentView.swift in Sources */,
+				1AR11AR1AS3T4U5V6W7X8Y9Z0A1B2C /* MapView.swift in Sources */,
+				1AS12AS2AT4U5V6W7X8Y9Z0A1B2C3D /* AlertPin.swift in Sources */,
+				1AT13AT3AU5V6W7X8Y9Z0A1B2C3D4E /* AlertViewModel.swift in Sources */,
+				1AU14AU4AV5V6W7X8Y9Z0A1B2C3D4E5F /* Alert.swift in Sources */,
+				1AV15AV5AW5V6W7X8Y9Z0A1B2C3D4E5F6G /* AlertStatusCard.swift in Sources */,
+				1AW16AW6AX5V6W7X8Y9Z0A1B2C3D4E5F6G7H /* AlertDetailView.swift in Sources */,
+				1AX17AX7AY5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I /* NetworkManager.swift in Sources */,
+				1AY18AY8AZ5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I9J /* CriticalAlertManager.swift in Sources */,
+				1AZ19AZ9BA5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I9J0K /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1BA1BA1A23B4C5D6E7F8G9H0I1J2K3L /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		1BB2BB2B24C5D6E7F8G9H0I1J2K3L4M /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		1BC3BC3C25D6E7F8G9H0I1J2K3L4M5N /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SirenUA/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ua.siren.SirenUA;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1BD4BD4D26E7F8G9H0I1J2K3L4M5N6O /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SirenUA/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ua.siren.SirenUA;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1AH4AH4H16M7N8O9P0Q1R2S3T4U5V6W = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1BC3BC3C25D6E7F8G9H0I1J2K3L4M5N /* Debug */,
+				1BD4BD4D26E7F8G9H0I1J2K3L4M5N6O /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1AN5AN5N21R2S3T4U5V6W7X8Y9Z0A1B = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1BA1BA1A23B4C5D6E7F8G9H0I1J2K3L4M /* Debug */,
+				1BB2BB2B24C5D6E7F8G9H0I1J2K3L4M5N /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1AO6AO6O22S3T4U5V6W7X8Y9Z0A1B2C = {
+			isa = PBXGroup;
+			children = (
+				1AG3AG3G15K6L7M8N9O0P1Q2R3S4T5U /* SirenUA */,
+			);
+			sourceTree = "<group>";
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1AM4AM4M20Q1R2S3T4U5V6W7X8Y9Z0A;
+}
