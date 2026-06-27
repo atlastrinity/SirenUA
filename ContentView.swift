@@ -7,12 +7,30 @@ struct ContentView: View {
     @StateObject private var viewModel = AlertViewModelV3()
     @StateObject private var geoManager = GeoJSONManager()
     @StateObject private var locationManager = LocationManager.shared
+    @AppStorage("showRadar") private var showRadar = true
+    @AppStorage("mapType") private var mapType = 0
+    @AppStorage("searchRadius") private var searchRadius = 3.0
     
     var centerCoordinate: CLLocationCoordinate2D {
         locationManager.location?.coordinate ?? CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
     }
+
+    var alertFocusCoordinate: CLLocationCoordinate2D {
+        viewModel.alerts.first(where: { $0.isActive })?.coordinate ?? centerCoordinate
+    }
+
+    private var selectedMapStyle: MapStyle {
+        switch mapType {
+        case 1:
+            return .hybrid
+        case 2:
+            return .imagery
+        default:
+            return .standard(elevation: .realistic)
+        }
+    }
+
     let userCoordinate = CLLocationCoordinate2D(latitude: 50.4450, longitude: 30.5300)
-    let shelterCoordinate = CLLocationCoordinate2D(latitude: 50.4520, longitude: 30.5150)
     
     // Стан для анімацій (пульсація)
     @State private var isPulsating = false
@@ -51,9 +69,9 @@ struct ContentView: View {
                             .foregroundStyle(isNavigating ? .yellow.opacity(0.05) : (isPulsating ? .yellow.opacity(0.35) : .yellow.opacity(0.05)))
                     }
                 }
-                if !isNavigating {
+                if showRadar && !isNavigating && viewModel.activeAlerts > 0 {
                     // Радарні кільця (Епіцентр тривоги)
-                    Annotation("", coordinate: centerCoordinate) {
+                    Annotation("", coordinate: alertFocusCoordinate) {
                         ZStack {
                             Circle()
                                 .stroke(Color.red, lineWidth: 1)
@@ -112,26 +130,33 @@ struct ContentView: View {
                         .stroke(.blue, lineWidth: 5)
                 }
             }
-            .mapStyle(.standard(elevation: .realistic))
+            .mapStyle(selectedMapStyle)
             .colorScheme(.dark)
             .ignoresSafeArea()
             
-            // Темний та червоний градієнт-віньєтка по краях для інтенсивності тривоги
-            RadialGradient(
-                gradient: Gradient(colors: [.clear, .clear, .red.opacity(0.3), .red.opacity(0.8)]),
-                center: .center,
-                startRadius: 150,
-                endRadius: 500
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+            if viewModel.activeAlerts > 0 {
+                RadialGradient(
+                    gradient: Gradient(colors: [.clear, .clear, .red.opacity(0.3), .red.opacity(0.8)]),
+                    center: .center,
+                    startRadius: 150,
+                    endRadius: 500
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
             
             // 2. ВЕРХНІЙ БАНЕР (Імітація Dynamic Island)
-            TopAlertBannerV4()
+            TopAlertBannerV4(activeAlerts: viewModel.activeAlerts, isLoading: viewModel.isLoading)
                 .padding(.top, 10)
             
             // 3. НИЖНЯ ПАНЕЛЬ АБО НАВІГАЦІЯ
             VStack {
+                if let errorMessage = viewModel.errorMessage {
+                    ErrorView(message: errorMessage)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 90)
+                }
+
                 Spacer()
                 if isNavigating {
                     NavigationOverlay(route: route) {
@@ -141,32 +166,11 @@ struct ContentView: View {
                     }
                 } else {
                     BottomDashboardV4(
+                        activeAlerts: viewModel.activeAlerts,
+                        primaryRegionName: viewModel.alerts.first(where: { $0.isActive })?.name,
                         isPulsating: isPulsating,
-                        onFindShelter: {
-                            isRoutingToShelter = true
-                            Task {
-                                let request = MKLocalSearch.Request()
-                                request.naturalLanguageQuery = "Метро Хрещатик"
-                                request.region = MKCoordinateRegion(center: centerCoordinate, latitudinalMeters: 2000, longitudinalMeters: 2000)
-                                
-                                let search = MKLocalSearch(request: request)
-                                if let response = try? await search.start(), let firstItem = response.mapItems.first {
-                                    await MainActor.run {
-                                        self.foundShelter = firstItem
-                                        self.selectedShelter = firstItem
-                                        
-                                        withAnimation(.easeInOut(duration: 2.0)) {
-                                            cameraPosition = .region(
-                                                MKCoordinateRegion(
-                                                    center: firstItem.placemark.coordinate,
-                                                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        },
+                        isSearchingShelter: isRoutingToShelter,
+                        onFindShelter: findNearestShelter,
                         onShare: {
                             showShareSheet = true
                         },
@@ -207,7 +211,7 @@ struct ContentView: View {
                         isNavigating = true
                         selectedShelter = nil
                         
-                        if let route = route {
+                        if route != nil {
                             withAnimation(.easeInOut(duration: 2.0)) {
                                 cameraPosition = .userLocation(followsHeading: true, fallback: .automatic)
                             }
@@ -222,7 +226,11 @@ struct ContentView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
+            viewModel.refreshAlerts()
+        }
         .onAppear {
+            locationManager.requestPermission()
             // Запуск безкінечної анімації
             withAnimation(.easeOut(duration: 2.0).repeatForever(autoreverses: false)) {
                 isPulsating = true
@@ -240,26 +248,43 @@ struct ContentView: View {
                     )
                 }
             }
-            
-            // DEMO: Auto-trigger shelter search to show the UI
-            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                Task {
-                    let request = MKLocalSearch.Request()
-                    request.naturalLanguageQuery = "Метро Хрещатик"
-                    request.region = MKCoordinateRegion(center: centerCoordinate, latitudinalMeters: 2000, longitudinalMeters: 2000)
-                    
-                    let search = MKLocalSearch(request: request)
-                    if let response = try? await search.start(), let firstItem = response.mapItems.first {
-                        await MainActor.run {
-                            self.foundShelter = firstItem
-                            self.selectedShelter = firstItem
-                        }
-                    }
+
+        }
+    }
+    
+    private func findNearestShelter() {
+        guard !isRoutingToShelter else { return }
+        isRoutingToShelter = true
+
+        Task {
+            let request = MKLocalSearch.Request()
+            request.naturalLanguageQuery = "укриття"
+            let radiusMeters = max(searchRadius, 0.5) * 1000
+            request.region = MKCoordinateRegion(center: centerCoordinate, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
+
+            let search = MKLocalSearch(request: request)
+            let firstItem = try? await search.start().mapItems.first
+
+            await MainActor.run {
+                isRoutingToShelter = false
+                guard let firstItem else { return }
+
+                foundShelter = firstItem
+                selectedShelter = firstItem
+                route = nil
+
+                withAnimation(.easeInOut(duration: 1.0)) {
+                    cameraPosition = .region(
+                        MKCoordinateRegion(
+                            center: firstItem.placemark.coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                        )
+                    )
                 }
             }
         }
     }
-    
+
     // Функція для прокладання маршруту
     private func calculateRoute(to destination: MKMapItem) {
         let request = MKDirections.Request()
@@ -315,20 +340,27 @@ struct AlertPinViewV4: View {
 // MARK: - Верхній банер
 @available(iOS 17.0, *)
 struct TopAlertBannerV4: View {
+    let activeAlerts: Int
+    let isLoading: Bool
+
+    private var statusColor: Color {
+        activeAlerts > 0 ? .red : .green
+    }
+
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: "bell.badge.fill")
-                .foregroundColor(.red)
+            Image(systemName: activeAlerts > 0 ? "bell.badge.fill" : "checkmark.shield.fill")
+                .foregroundColor(statusColor)
                 .font(.title2)
-                .symbolEffect(.bounce, options: .repeating)
+                .symbolEffect(.bounce, options: .repeating, value: activeAlerts)
             
             VStack(spacing: 2) {
-                Text("ТРИВОГА")
+                Text(activeAlerts > 0 ? "ТРИВОГА" : "СПОКІЙНО")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.red)
-                Text("00:15:22")
+                    .foregroundColor(statusColor)
+                Text(isLoading ? "ОНОВЛЕННЯ" : "\(activeAlerts) АКТИВНИХ")
                     .font(.system(size: 18, weight: .black, design: .monospaced))
-                    .foregroundColor(.red)
+                    .foregroundColor(statusColor)
             }
         }
         .padding(.horizontal, 30)
@@ -336,19 +368,26 @@ struct TopAlertBannerV4: View {
         .background(Color.black.opacity(0.85))
         .clipShape(Capsule())
         .overlay(
-            Capsule().stroke(Color.red.opacity(0.8), lineWidth: 1.5)
+            Capsule().stroke(statusColor.opacity(0.8), lineWidth: 1.5)
         )
-        .shadow(color: .red.opacity(0.6), radius: 15, x: 0, y: 5)
+        .shadow(color: statusColor.opacity(0.6), radius: 15, x: 0, y: 5)
     }
 }
 
 // MARK: - Нижня скляна панель (Dashboard)
 @available(iOS 17.0, *)
 struct BottomDashboardV4: View {
+    let activeAlerts: Int
+    let primaryRegionName: String?
     var isPulsating: Bool
+    let isSearchingShelter: Bool
     var onFindShelter: () -> Void
     var onShare: () -> Void
     var onSettings: () -> Void
+
+    private var hasActiveAlert: Bool {
+        activeAlerts > 0
+    }
     
     var body: some View {
         HStack(alignment: .top) {
@@ -356,24 +395,24 @@ struct BottomDashboardV4: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Circle()
-                        .fill(Color.red)
+                        .fill(hasActiveAlert ? Color.red : Color.green)
                         .frame(width: 12, height: 12)
-                        .opacity(isPulsating ? 0.3 : 1.0)
+                        .opacity(hasActiveAlert && isPulsating ? 0.3 : 1.0)
                         .animation(.easeInOut(duration: 0.5).repeatForever(), value: isPulsating)
                     
-                    Text("ПОВІТРЯНА\nТРИВОГА")
+                    Text(hasActiveAlert ? "ПОВІТРЯНА\nТРИВОГА" : "ТРИВОГ\nНЕМАЄ")
                         .font(.system(size: 20, weight: .heavy, design: .default))
                         .foregroundColor(.white)
                         .lineLimit(2)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Київ та область")
+                    Text(primaryRegionName ?? "Україна")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
-                    Text("Небезпека: Балістика")
+                    Text(hasActiveAlert ? "Активних областей: \(activeAlerts)" : "Останні дані оновлено")
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.red.opacity(0.8)) // Більш тривожний колір
+                        .foregroundColor(hasActiveAlert ? .red.opacity(0.8) : .green.opacity(0.8))
                 }
                 .padding(.top, 4)
             }
@@ -397,15 +436,22 @@ struct BottomDashboardV4: View {
                 
                 // Головна кнопка "Знайти укриття"
                 Button(action: onFindShelter) {
-                    Text("ЗНАЙТИ НАЙБЛИЖЧЕ\nУКРИТТЯ")
-                        .font(.system(size: 12, weight: .bold))
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.black)
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 16)
-                        .background(Color(red: 0.6, green: 0.7, blue: 0.9)) // Світло-синій
-                        .cornerRadius(12)
+                    HStack(spacing: 8) {
+                        if isSearchingShelter {
+                            ProgressView()
+                                .tint(.black)
+                        }
+                        Text(isSearchingShelter ? "ШУКАЮ\nУКРИТТЯ" : "ЗНАЙТИ НАЙБЛИЖЧЕ\nУКРИТТЯ")
+                            .font(.system(size: 12, weight: .bold))
+                            .multilineTextAlignment(.center)
+                    }
+                    .foregroundColor(.black)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(Color(red: 0.6, green: 0.7, blue: 0.9))
+                    .cornerRadius(12)
                 }
+                .disabled(isSearchingShelter)
             }
         }
         .padding(20)
@@ -416,10 +462,10 @@ struct BottomDashboardV4: View {
         .cornerRadius(28)
         .overlay(
             RoundedRectangle(cornerRadius: 28)
-                .stroke(Color.red.opacity(0.4), lineWidth: 1)
+                .stroke((hasActiveAlert ? Color.red : Color.green).opacity(0.4), lineWidth: 1)
         )
         .padding(.horizontal, 16)
-        .shadow(color: .red.opacity(0.3), radius: 20, x: 0, y: 10)
+        .shadow(color: (hasActiveAlert ? Color.red : Color.green).opacity(0.3), radius: 20, x: 0, y: 10)
     }
 }
 

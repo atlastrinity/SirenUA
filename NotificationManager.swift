@@ -5,8 +5,13 @@ class NotificationManager {
     static let shared = NotificationManager()
     
     private init() {}
+
+    private var notificationsEnabled: Bool {
+        UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
+    }
     
     func requestAuthorization() {
+        guard notificationsEnabled else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if granted {
                 print("Notification permission granted.")
@@ -17,6 +22,7 @@ class NotificationManager {
     }
     
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
+        guard notificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
@@ -36,6 +42,7 @@ class NotificationManager {
     }
     
     func sendClearNotification(for regionName: String) {
+        guard notificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "🟢 Відбій тривоги!"
         content.body = "Відбій повітряної тривоги в: \(regionName)."

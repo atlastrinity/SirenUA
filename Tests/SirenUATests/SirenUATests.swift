@@ -1,3 +1,4 @@
+import CoreLocation
 import XCTest
 @testable import SirenUA
 
@@ -5,11 +6,13 @@ final class MockURLProtocol: URLProtocol {
     static var mockData: Data?
     static var mockResponse: URLResponse?
     static var mockError: Error?
+    static var receivedRequests: [URLRequest] = []
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
+        MockURLProtocol.receivedRequests.append(request)
         if let error = MockURLProtocol.mockError {
             client?.urlProtocol(self, didFailWithError: error)
             return
@@ -35,6 +38,7 @@ final class SirenUATests: XCTestCase {
         MockURLProtocol.mockData = nil
         MockURLProtocol.mockResponse = nil
         MockURLProtocol.mockError = nil
+        MockURLProtocol.receivedRequests = []
         super.tearDown()
     }
 
@@ -93,9 +97,130 @@ final class SirenUATests: XCTestCase {
         }
     }
 
+    func testFetchLiveAlertsSetsExpectedRequestHeaders() async throws {
+        MockURLProtocol.mockData = Data("""
+        {
+            "source": "test",
+            "cachedat": "2026-06-27T20:00:00Z",
+            "states": {}
+        }
+        """.utf8)
+        MockURLProtocol.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://ubilling.net.ua/aerialalerts/")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+
+        let manager = NetworkManager(session: makeMockSession())
+        _ = try await manager.fetchLiveAlerts()
+
+        let request = try XCTUnwrap(MockURLProtocol.receivedRequests.first)
+        XCTAssertEqual(request.url?.absoluteString, "https://ubilling.net.ua/aerialalerts/")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "ios-sirenua")
+    }
+
+    func testMalformedJSONThrowsInvalidResponse() async {
+        MockURLProtocol.mockData = Data("not-json".utf8)
+        MockURLProtocol.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://ubilling.net.ua/aerialalerts/")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+
+        let manager = NetworkManager(session: makeMockSession())
+
+        do {
+            _ = try await manager.fetchLiveAlerts()
+            XCTFail("Expected invalid response error")
+        } catch let error as NetworkError {
+            XCTAssertEqual(error.localizedDescription, NetworkError.invalidResponse.localizedDescription)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testTransportErrorIsPropagated() async {
+        MockURLProtocol.mockError = URLError(.notConnectedToInternet)
+
+        let manager = NetworkManager(session: makeMockSession())
+
+        do {
+            _ = try await manager.fetchLiveAlerts()
+            XCTFail("Expected transport error")
+        } catch let error as URLError {
+            XCTAssertEqual(error.code, .notConnectedToInternet)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testAlertRegionCodableRoundTripPreservesCoordinates() throws {
+        let region = AlertRegion(
+            id: 7,
+            name: "Київська область",
+            isActive: true,
+            level: 3,
+            description: "Повітряна тривога!",
+            coordinate: CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+        )
+
+        let data = try JSONEncoder().encode(region)
+        let decoded = try JSONDecoder().decode(AlertRegion.self, from: data)
+
+        XCTAssertEqual(decoded.id, region.id)
+        XCTAssertEqual(decoded.name, region.name)
+        XCTAssertEqual(decoded.isActive, region.isActive)
+        XCTAssertEqual(decoded.level, region.level)
+        XCTAssertEqual(decoded.description, region.description)
+        XCTAssertEqual(decoded.coordinate.latitude, region.coordinate.latitude, accuracy: 0.0001)
+        XCTAssertEqual(decoded.coordinate.longitude, region.coordinate.longitude, accuracy: 0.0001)
+    }
+
+    func testAlertRegionEqualityUsesIDOnly() {
+        let first = AlertRegion(
+            id: 1,
+            name: "Київська область",
+            isActive: true,
+            level: 3,
+            description: "Повітряна тривога!",
+            coordinate: CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+        )
+        let second = AlertRegion(
+            id: 1,
+            name: "Львівська область",
+            isActive: false,
+            level: 0,
+            description: "Немає тривоги",
+            coordinate: CLLocationCoordinate2D(latitude: 49.8397, longitude: 24.0297)
+        )
+
+        XCTAssertEqual(first, second)
+    }
+
+    func testAlertRegionIconsMatchLevels() {
+        XCTAssertEqual(makeRegion(level: 0).icon, "info.circle.fill")
+        XCTAssertEqual(makeRegion(level: 1).icon, "exclamationmark.triangle.fill")
+        XCTAssertEqual(makeRegion(level: 2).icon, "bell.fill")
+        XCTAssertEqual(makeRegion(level: 3).icon, "speaker.wave.3.fill")
+    }
+
     private func makeMockSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
         return URLSession(configuration: config)
+    }
+
+    private func makeRegion(level: Int) -> AlertRegion {
+        AlertRegion(
+            id: level,
+            name: "Тестова область",
+            isActive: level > 0,
+            level: level,
+            description: "Тест",
+            coordinate: CLLocationCoordinate2D(latitude: 50.0, longitude: 30.0)
+        )
     }
 }

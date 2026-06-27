@@ -2,12 +2,12 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
-    @State private var notificationsEnabled = true
-    @State private var autoRefreshEnabled = true
-    @State private var refreshInterval = 5
-    @State private var showRadar = true
-    @State private var mapType = 0
-    @State private var searchRadius = 1.0
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage("autoRefreshEnabled") private var autoRefreshEnabled = true
+    @AppStorage("refreshInterval") private var refreshInterval = 30
+    @AppStorage("showRadar") private var showRadar = true
+    @AppStorage("mapType") private var mapType = 0
+    @AppStorage("searchRadius") private var searchRadius = 3.0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,7 +32,7 @@ struct SettingsView: View {
                     Toggle("Автооновлення", isOn: $autoRefreshEnabled)
 
                     if autoRefreshEnabled {
-                        Stepper("Інтервал: \(refreshInterval) хв", value: $refreshInterval, in: 1...60)
+                        Stepper("Інтервал: \(refreshInterval) сек", value: $refreshInterval, in: 15...300, step: 15)
                     }
                 }
                 .listRowBackground(Color.clear)

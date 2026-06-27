@@ -1,9 +1,9 @@
 import Foundation
 import SwiftUI
 import CoreLocation
-import Combine
 
 @available(iOS 17.0, *)
+@MainActor
 class AlertViewModelV3: ObservableObject {
     @Published var alerts: [AlertRegion] = []
     @Published var activeAlerts: Int = 0
@@ -13,15 +13,27 @@ class AlertViewModelV3: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
-    private var cancellables = Set<AnyCancellable>()
-    private var refreshTimer: AnyCancellable?
     private let networkManager = NetworkManager()
+    private var refreshTask: Task<Void, Never>?
     private var isFirstFetch: Bool = true
+    private var isFetching: Bool = false
+
+    private var autoRefreshEnabled: Bool {
+        UserDefaults.standard.object(forKey: "autoRefreshEnabled") as? Bool ?? true
+    }
+
+    private var refreshInterval: Int {
+        max(UserDefaults.standard.object(forKey: "refreshInterval") as? Int ?? 30, 15)
+    }
 
     init() {
         initializeRegions()
-        fetchLiveAlerts()
-        setupTimer()
+        refreshAlerts()
+        setupRefreshLoop()
+    }
+
+    deinit {
+        refreshTask?.cancel()
     }
 
     private func initializeRegions() {
@@ -66,47 +78,53 @@ class AlertViewModelV3: ObservableObject {
         updateStats()
     }
 
-    private func setupTimer() {
-        refreshTimer = Timer.publish(every: 30, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.fetchLiveAlerts()
+    private func setupRefreshLoop() {
+        refreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                try? await Task.sleep(for: .seconds(self.refreshInterval))
+                guard self.autoRefreshEnabled else { continue }
+                await self.fetchLiveAlerts()
             }
+        }
     }
 
-    private func fetchLiveAlerts() {
-        Task { @MainActor in
-            isLoading = true
-            errorMessage = nil
-            do {
-                let liveData = try await networkManager.fetchLiveAlerts()
-                
-                // Update existing regions based on API response
-                for i in 0..<self.alerts.count {
-                    let regionName = self.alerts[i].name
-                    if let isAlertNow = liveData[regionName] {
-                        let wasActive = self.alerts[i].isActive
-                        
-                        self.alerts[i].isActive = isAlertNow
-                        self.alerts[i].level = isAlertNow ? 3 : 0
-                        self.alerts[i].description = isAlertNow ? "Повітряна тривога!" : "Відбій"
-                        
-                        if !self.isFirstFetch {
-                            if !wasActive && isAlertNow {
-                                NotificationManager.shared.sendAlertNotification(for: regionName)
-                            } else if wasActive && !isAlertNow {
-                                NotificationManager.shared.sendClearNotification(for: regionName)
-                            }
-                        }
-                    }
-                }
-                self.isFirstFetch = false
-                self.updateStats()
-            } catch {
-                self.errorMessage = "Помилка оновлення тривог"
-                print("Error fetching alerts: \(error)")
+    private func fetchLiveAlerts() async {
+        guard !isFetching else { return }
+        isFetching = true
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let liveData = try await networkManager.fetchLiveAlerts()
+            applyLiveAlerts(liveData)
+            isFirstFetch = false
+            updateStats()
+        } catch {
+            errorMessage = "Помилка оновлення тривог: \(error.localizedDescription)"
+            print("Error fetching alerts: \(error)")
+        }
+
+        isLoading = false
+        isFetching = false
+    }
+
+    private func applyLiveAlerts(_ liveData: [String: Bool]) {
+        for index in alerts.indices {
+            let regionName = alerts[index].name
+            guard let isAlertNow = liveData[regionName] else { continue }
+
+            let wasActive = alerts[index].isActive
+            alerts[index].isActive = isAlertNow
+            alerts[index].level = isAlertNow ? 3 : 0
+            alerts[index].description = isAlertNow ? "Повітряна тривога!" : "Немає тривоги"
+
+            guard !isFirstFetch else { continue }
+            if !wasActive && isAlertNow {
+                NotificationManager.shared.sendAlertNotification(for: regionName)
+            } else if wasActive && !isAlertNow {
+                NotificationManager.shared.sendClearNotification(for: regionName)
             }
-            isLoading = false
         }
     }
 
@@ -116,8 +134,7 @@ class AlertViewModelV3: ObservableObject {
     }
 
     func refreshAlerts() {
-        // Called when user manually triggers refresh
-        fetchLiveAlerts()
+        Task { await fetchLiveAlerts() }
     }
 
     func updateAlertStatus(id: Int, isActive: Bool) {
