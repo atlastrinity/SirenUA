@@ -55,6 +55,7 @@ struct ContentView: View {
     // Стан для знайденого укриття та маршруту
     @State private var foundShelter: MKMapItem? = nil
     @State private var selectedShelter: MKMapItem? = nil
+    @State private var allFoundShelters: [MKMapItem] = []
     @State private var route: MKRoute? = nil
     
     // Початкова камера - зблизька на Київ
@@ -103,10 +104,10 @@ struct ContentView: View {
                         .overlay(Circle().stroke(Color.white, lineWidth: 2))
                         .shadow(radius: 5)
                 }
-                // Знайдене укриття
-                if let shelter = foundShelter {
+                // Усі знайдені укриття в радіусі
+                ForEach(allFoundShelters, id: \.self) { shelter in
                     Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
-                        .tint(.blue)
+                        .tint(selectedShelter == shelter ? .green : .blue)
                         .tag(shelter)
                 }
                 
@@ -131,14 +132,109 @@ struct ContentView: View {
                 .allowsHitTesting(false)
             }
             
-            // 2. ВЕРХНІЙ БАНЕР (Імітація Dynamic Island)
-            TopAlertBannerV4(activeAlerts: viewModel.activeAlerts, isLoading: viewModel.isLoading)
-                .padding(.top, 10)
-                .onTapGesture {
-                    if viewModel.activeAlerts > 0 {
-                        showActiveAlerts = true
+            // 2. ВЕРХНІЙ БАНЕР ТА КНОПКИ КЕРУВАННЯ КАМЕРОЮ
+            HStack(alignment: .center) {
+                // Ліва кнопка: Показати всі тривоги (центрування на Україну)
+                Button(action: {
+                    let activeNames = Set(viewModel.alerts.filter { $0.isActive }.map { $0.name })
+                    let activeRegions = geoManager.regions.filter { activeNames.contains($0.nameUK) }
+                    
+                    var allCoordinates: [CLLocationCoordinate2D] = []
+                    for region in activeRegions {
+                        for polygon in region.polygons {
+                            allCoordinates.append(contentsOf: polygon)
+                        }
                     }
+                    
+                    if allCoordinates.isEmpty {
+                        allCoordinates = viewModel.alerts.filter { $0.isActive }.map { $0.coordinate }
+                    }
+                    
+                    if !allCoordinates.isEmpty {
+                        let lats = allCoordinates.map { $0.latitude }
+                        let lons = allCoordinates.map { $0.longitude }
+                        if let minLat = lats.min(), let maxLat = lats.max(),
+                           let minLon = lons.min(), let maxLon = lons.max() {
+                            let centerLat = (minLat + maxLat) / 2.0
+                            let centerLon = (minLon + maxLon) / 2.0
+                            
+                            // Розрахунок дельти з безпечним відступом 30%
+                            let latDelta = max(maxLat - minLat, 1.0) * 1.3
+                            let lonDelta = max(maxLon - minLon, 1.5) * 1.3
+                            
+                            withAnimation(.easeInOut(duration: 2.0)) {
+                                cameraPosition = .region(
+                                    MKCoordinateRegion(
+                                        center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                                        span: MKCoordinateSpan(
+                                            latitudeDelta: min(latDelta, 8.0),
+                                            longitudeDelta: min(lonDelta, 13.0)
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        // Якщо активних тривог немає, показуємо всю Україну
+                        withAnimation(.easeInOut(duration: 2.0)) {
+                            cameraPosition = .region(
+                                MKCoordinateRegion(
+                                    center: CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656),
+                                    span: MKCoordinateSpan(latitudeDelta: 7.5, longitudeDelta: 12.5)
+                                )
+                            )
+                        }
+                    }
+                }) {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.red)
+                        .padding(10)
+                        .background(Color.red.opacity(0.15))
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.red.opacity(0.4), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                 }
+                .padding(.leading, 16)
+                
+                Spacer()
+                
+                // Центр: Баннер тривог
+                TopAlertBannerV4(activeAlerts: viewModel.activeAlerts, isLoading: viewModel.isLoading)
+                    .onTapGesture {
+                        if viewModel.activeAlerts > 0 {
+                            showActiveAlerts = true
+                        }
+                    }
+                
+                Spacer()
+                
+                // Права кнопка: Показати мою локацію
+                Button(action: {
+                    let coord = locationManager.location?.coordinate ?? userCoordinate
+                    withAnimation(.easeInOut(duration: 1.0)) {
+                        cameraPosition = .region(
+                            MKCoordinateRegion(
+                                center: coord,
+                                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                            )
+                        )
+                    }
+                }) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.red)
+                        .padding(10)
+                        .background(Color.red.opacity(0.15))
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.red.opacity(0.4), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                }
+                .padding(.trailing, 16)
+            }
+            .padding(.top, 10)
             
             // 3. НИЖНЯ ПАНЕЛЬ АБО НАВІГАЦІЯ
             VStack {
@@ -182,6 +278,8 @@ struct ContentView: View {
                 }
             }
             .padding(.bottom, 20)
+            
+
             
             if showHistory {
                 AlertListOverlayView(title: "ІСТОРІЯ ТРИВОГ", color: .yellow, alerts: viewModel.alerts, filterActiveOnly: false) {
@@ -259,6 +357,9 @@ struct ContentView: View {
         }
         .onChange(of: viewModel.lastAlertedRegionName) {
             viewModel.markLastAlertAsViewed()
+        }
+        .onChange(of: selectedShelter) {
+            route = nil
         }
         .onAppear {
             locationManager.requestPermission()
@@ -338,6 +439,7 @@ struct ContentView: View {
 
             await MainActor.run {
                 isRoutingToShelter = false
+                allFoundShelters = uniqueItems
                 guard let closestItem else { return }
 
                 foundShelter = closestItem
