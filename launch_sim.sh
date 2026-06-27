@@ -1,5 +1,4 @@
 #!/bin/bash
-xcodegen generate
 xcodebuild -project SirenUA.xcodeproj -scheme SirenUA -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build > build_log.txt 2>&1
 if [ $? -eq 0 ]; then
     echo "✅ Build succeeded!"

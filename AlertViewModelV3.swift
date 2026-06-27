@@ -17,6 +17,7 @@ class AlertViewModelV3: ObservableObject {
 
     private let networkManager = NetworkManager()
     private var refreshTask: Task<Void, Never>?
+    private var threatRefreshTask: Task<Void, Never>?
     private var isFirstFetch: Bool = true
     private var isFetching: Bool = false
 
@@ -27,15 +28,25 @@ class AlertViewModelV3: ObservableObject {
     private var refreshInterval: Int {
         max(UserDefaults.standard.object(forKey: "refreshInterval") as? Int ?? 30, 15)
     }
+    
+    var isPremium: Bool {
+        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+    }
+    
+    var threatServerURL: String {
+        UserDefaults.standard.object(forKey: "threatServerURL") as? String ?? "http://localhost:8080"
+    }
 
     init() {
         initializeRegions()
         refreshAlerts()
         setupRefreshLoop()
+        setupThreatRefreshLoop()
     }
 
     deinit {
         refreshTask?.cancel()
+        threatRefreshTask?.cancel()
     }
 
     private func initializeRegions() {
@@ -89,6 +100,41 @@ class AlertViewModelV3: ObservableObject {
                 await self.fetchLiveAlerts()
             }
         }
+    }
+
+    private func setupThreatRefreshLoop() {
+        threatRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                try? await Task.sleep(for: .seconds(30))
+                guard self.isPremium else { continue }
+                await self.fetchThreats()
+            }
+        }
+    }
+    
+    private func fetchThreats() async {
+        guard isPremium else { return }
+        do {
+            let threatData = try await networkManager.fetchThreats(serverURL: threatServerURL)
+            applyThreats(threatData)
+        } catch {
+            print("Threat fetch error: \(error.localizedDescription)")
+        }
+    }
+    
+    private func applyThreats(_ threatData: [String: ThreatInfo]) {
+        for index in alerts.indices {
+            let regionName = alerts[index].name
+            guard let threat = threatData[regionName] else { continue }
+            alerts[index].threatLevel = threat.level == "none" ? nil : threat.level
+            alerts[index].threatType = threat.type
+            alerts[index].threatDetail = threat.detail
+        }
+    }
+    
+    func refreshThreats() {
+        Task { await fetchThreats() }
     }
 
     private func fetchLiveAlerts() async {

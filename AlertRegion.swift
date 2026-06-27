@@ -14,6 +14,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var description: String
     let coordinate: CLLocationCoordinate2D
     var lastChanged: String?
+    var threatLevel: String?   // "none", "low", "medium", "high", "critical"
+    var threatType: String?    // "mig31k", "shahed", "cruise_missile", etc
+    var threatDetail: String?  // Опис загрози українською
 
     var icon: String {
         switch level {
@@ -33,7 +36,7 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         }
     }
 
-    init(id: Int, name: String, isActive: Bool, level: Int, description: String, coordinate: CLLocationCoordinate2D, lastChanged: String? = nil) {
+    init(id: Int, name: String, isActive: Bool, level: Int, description: String, coordinate: CLLocationCoordinate2D, lastChanged: String? = nil, threatLevel: String? = nil, threatType: String? = nil, threatDetail: String? = nil) {
         self.id = id
         self.name = name
         self.isActive = isActive
@@ -41,6 +44,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         self.description = description
         self.coordinate = coordinate
         self.lastChanged = lastChanged
+        self.threatLevel = threatLevel
+        self.threatType = threatType
+        self.threatDetail = threatDetail
     }
 
     // Custom Codable conformance for CLLocationCoordinate2D

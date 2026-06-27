@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage("mapType") private var mapType = 0
     @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
     @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
+    @AppStorage("premiumEnabled") private var premiumEnabled = false
+    @AppStorage("threatServerURL") private var threatServerURL = "https://eb3e-185-94-219-55.ngrok-free.app"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,6 +58,14 @@ struct SettingsView: View {
                             Text("Радіус пошуку авто: \(drivingSearchRadius, specifier: "%.1f") км")
                             Slider(value: $drivingSearchRadius, in: 1.0...20.0, step: 1.0)
                         }
+                    }
+                }
+                .listRowBackground(Color.clear)
+
+                Section(header: Text("Premium Моніторинг")) {
+                    Toggle("SirenUA Premium (Загрози)", isOn: $premiumEnabled)
+                    if premiumEnabled {
+                        TextField("Сервер загроз", text: $threatServerURL)
                     }
                 }
                 .listRowBackground(Color.clear)

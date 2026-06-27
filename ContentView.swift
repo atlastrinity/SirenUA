@@ -82,15 +82,37 @@ struct ContentView: View {
                         MapPolygon(coordinates: region.polygons[index])
                             .stroke(
                                 isLastAlerted ? 
-                                    .yellow : 
-                                    .yellow.opacity(0.4), 
+                                    .red : 
+                                    .red.opacity(0.4), 
                                 lineWidth: isLastAlerted ? 2.5 : 1.5
                             )
                             .foregroundStyle(
                                 isLastAlerted ? 
-                                    (shouldBlink ? (isPulsating ? .yellow.opacity(0.55) : .yellow.opacity(0.15)) : .yellow.opacity(0.35)) : 
-                                    .yellow.opacity(0.20)
+                                    (shouldBlink ? (isPulsating ? .red.opacity(0.55) : .red.opacity(0.15)) : .red.opacity(0.35)) : 
+                                    .red.opacity(0.20)
                             )
+                    }
+                }
+
+                // Полігони областей з рівнем загрози (Premium)
+                if viewModel.isPremium {
+                    ForEach(geoManager.regions.filter { region in
+                        guard let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }) else { return false }
+                        return !alert.isActive && alert.threatLevel != nil
+                    }) { region in
+                        let alert = viewModel.alerts.first(where: { $0.name == region.nameUK })
+                        let level = alert?.threatLevel ?? "none"
+                        
+                        let strokeColor: Color = (level == "high" || level == "critical") ? .red : .orange
+                        let fillColor: Color = (level == "high" || level == "critical") ? 
+                            (isPulsating ? .red.opacity(0.45) : .red.opacity(0.15)) : 
+                            .orange.opacity(0.25)
+                        
+                        ForEach(0..<region.polygons.count, id: \.self) { index in
+                            MapPolygon(coordinates: region.polygons[index])
+                                .stroke(strokeColor, lineWidth: 2)
+                                .foregroundStyle(fillColor)
+                        }
                     }
                 }
                 
