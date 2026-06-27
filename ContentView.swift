@@ -40,6 +40,7 @@ struct ContentView: View {
     // Стан для навігації та модальних вікон
     @State private var showSettings = false
     @State private var showShareSheet = false
+    @State private var showHistory = false
     @State private var isNavigating = false
     @State private var isRoutingToShelter = false
     
@@ -179,11 +180,21 @@ struct ContentView: View {
                         },
                         onSettings: {
                             showSettings = true
+                        },
+                        onHistory: {
+                            showHistory = true
                         }
                     )
                 }
             }
             .padding(.bottom, 20)
+            
+            if showHistory {
+                AlertHistoryOverlayView(alerts: viewModel.alerts) {
+                    showHistory = false
+                }
+                .transition(.opacity.combined(with: .scale))
+            }
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
@@ -396,6 +407,7 @@ struct BottomDashboardV4: View {
     var onFindShelter: () -> Void
     var onShare: () -> Void
     var onSettings: () -> Void
+    var onHistory: () -> Void
 
     private var hasActiveAlert: Bool {
         activeAlerts > 0
@@ -463,6 +475,9 @@ struct BottomDashboardV4: View {
                 
                 // Маленькі іконки дій
                 HStack(spacing: 20) {
+                    SmallIconButtonV4(iconName: "clock.fill") {
+                        onHistory()
+                    }
                     SmallIconButtonV4(iconName: "square.and.arrow.up") {
                         onShare()
                     }
@@ -655,4 +670,83 @@ struct NavigationOverlay: View {
 }
 
 extension MKDirectionsTransportType: @retroactive Hashable {}
+
+@available(iOS 17.0, *)
+struct AlertHistoryOverlayView: View {
+    let alerts: [AlertRegion]
+    var onClose: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Text("ІСТОРІЯ ТРИВОГ")
+                    .font(.system(size: 26, weight: .black, design: .default))
+                    .foregroundColor(.red)
+                    .shadow(color: .red.opacity(0.8), radius: 10, x: 0, y: 0)
+                
+                Spacer()
+                
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.red)
+                        .padding(10)
+                        .shadow(color: .red.opacity(0.8), radius: 10, x: 0, y: 0)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 60)
+            
+            // List of alerts (without background)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    // Show active alerts first, then non-active alerts that have a lastChanged timestamp
+                    let sortedAlerts = alerts.sorted { a, b in
+                        if a.isActive != b.isActive {
+                            return a.isActive
+                        }
+                        return (a.lastChanged ?? "") > (b.lastChanged ?? "")
+                    }
+                    
+                    ForEach(sortedAlerts) { alert in
+                        HStack(alignment: .center, spacing: 12) {
+                            Circle()
+                                .fill(alert.isActive ? Color.red : Color.red.opacity(0.4))
+                                .frame(width: 8, height: 8)
+                                .shadow(color: .red, radius: alert.isActive ? 4 : 0)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(alert.name)
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.red)
+                                    .shadow(color: .red.opacity(0.4), radius: 4, x: 0, y: 0)
+                                
+                                HStack(spacing: 8) {
+                                    Text(alert.isActive ? "АКТИВНА" : "НЕАКТИВНА")
+                                        .font(.system(size: 11, weight: .black))
+                                        .foregroundColor(alert.isActive ? .red : .red.opacity(0.6))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .border(alert.isActive ? Color.red : Color.red.opacity(0.6), width: 1)
+                                    
+                                    if let changed = alert.lastChanged {
+                                        Text(changed)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.red.opacity(0.7))
+                                    }
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 8)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.clear)
+    }
+}
 

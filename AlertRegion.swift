@@ -13,6 +13,7 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var level: Int
     var description: String
     let coordinate: CLLocationCoordinate2D
+    var lastChanged: String?
 
     var icon: String {
         switch level {
@@ -32,18 +33,19 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         }
     }
 
-    init(id: Int, name: String, isActive: Bool, level: Int, description: String, coordinate: CLLocationCoordinate2D) {
+    init(id: Int, name: String, isActive: Bool, level: Int, description: String, coordinate: CLLocationCoordinate2D, lastChanged: String? = nil) {
         self.id = id
         self.name = name
         self.isActive = isActive
         self.level = level
         self.description = description
         self.coordinate = coordinate
+        self.lastChanged = lastChanged
     }
 
     // Custom Codable conformance for CLLocationCoordinate2D
     enum CodingKeys: String, CodingKey {
-        case id, name, isActive, level, description
+        case id, name, isActive, level, description, lastChanged
         case latitude, longitude
     }
 
@@ -54,6 +56,7 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         isActive = try container.decode(Bool.self, forKey: .isActive)
         level = try container.decode(Int.self, forKey: .level)
         description = try container.decode(String.self, forKey: .description)
+        lastChanged = try container.decodeIfPresent(String.self, forKey: .lastChanged)
 
         let lat = try container.decode(Double.self, forKey: .latitude)
         let lon = try container.decode(Double.self, forKey: .longitude)
@@ -67,6 +70,7 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         try container.encode(isActive, forKey: .isActive)
         try container.encode(level, forKey: .level)
         try container.encode(description, forKey: .description)
+        try container.encodeIfPresent(lastChanged, forKey: .lastChanged)
         try container.encode(coordinate.latitude, forKey: .latitude)
         try container.encode(coordinate.longitude, forKey: .longitude)
     }

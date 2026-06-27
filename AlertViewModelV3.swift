@@ -109,15 +109,17 @@ class AlertViewModelV3: ObservableObject {
         isFetching = false
     }
 
-    private func applyLiveAlerts(_ liveData: [String: Bool]) {
+    private func applyLiveAlerts(_ liveData: [String: AerialAlertState]) {
         for index in alerts.indices {
             let regionName = alerts[index].name
-            guard let isAlertNow = liveData[regionName] else { continue }
+            guard let state = liveData[regionName] else { continue }
 
+            let isAlertNow = state.alertnow
             let wasActive = alerts[index].isActive
             alerts[index].isActive = isAlertNow
             alerts[index].level = isAlertNow ? 3 : 0
             alerts[index].description = isAlertNow ? "Повітряна тривога!" : "Немає тривоги"
+            alerts[index].lastChanged = state.changed
 
             guard !isFirstFetch else { continue }
             if !wasActive && isAlertNow {

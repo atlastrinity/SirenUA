@@ -10,8 +10,8 @@ class NetworkManager {
         self.session = session
     }
 
-    /// Fetches the live alerts and returns a dictionary mapping Region Name to isAlertNow (Bool)
-    func fetchLiveAlerts() async throws -> [String: Bool] {
+    /// Fetches the live alerts and returns a dictionary mapping Region Name to AerialAlertState
+    func fetchLiveAlerts() async throws -> [String: AerialAlertState] {
         guard let url = URL(string: baseURL) else {
             throw NetworkError.invalidURL
         }
@@ -28,11 +28,7 @@ class NetworkManager {
 
         do {
             let alertData = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
-            var result = [String: Bool]()
-            for (region, state) in alertData.states {
-                result[region] = state.alertnow
-            }
-            return result
+            return alertData.states
         } catch {
             print("DECODING ERROR: \(error)")
             throw NetworkError.invalidResponse

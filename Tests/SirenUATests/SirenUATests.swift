@@ -71,8 +71,10 @@ final class SirenUATests: XCTestCase {
         let manager = NetworkManager(session: makeMockSession())
         let alerts = try await manager.fetchLiveAlerts()
 
-        XCTAssertEqual(alerts["Київська область"], true)
-        XCTAssertEqual(alerts["Львівська область"], false)
+        XCTAssertEqual(alerts["Київська область"]?.alertnow, true)
+        XCTAssertEqual(alerts["Київська область"]?.changed, "2026-06-27T19:55:00Z")
+        XCTAssertEqual(alerts["Львівська область"]?.alertnow, false)
+        XCTAssertEqual(alerts["Львівська область"]?.changed, "2026-06-27T18:40:00Z")
         XCTAssertEqual(alerts.count, 2)
     }
 
