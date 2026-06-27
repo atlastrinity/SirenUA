@@ -40,8 +40,8 @@ struct ContentView: View {
     private let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
     
     private var shouldBlinkLastAlert: Bool {
-        guard let timestamp = viewModel.lastViewedTimestamp else { return false }
-        return Date().timeIntervalSince(timestamp) >= 60
+        guard let timestamp = viewModel.lastViewedTimestamp else { return true }
+        return Date().timeIntervalSince(timestamp) < 60
     }
     
     // Стан для навігації та модальних вікон
@@ -72,7 +72,7 @@ struct ContentView: View {
                 // Полігони областей з активною тривогою
                 ForEach(geoManager.regions.filter { region in 
                     viewModel.alerts.contains(where: { $0.name == region.nameUK && $0.isActive })
-                }) { region in
+                                }) { region in
                     let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
                     let shouldBlink = isLastAlerted && shouldBlinkLastAlert
                     
@@ -80,38 +80,15 @@ struct ContentView: View {
                         MapPolygon(coordinates: region.polygons[index])
                             .stroke(
                                 isLastAlerted ? 
-                                    (shouldBlink ? (isPulsating ? .yellow : .yellow.opacity(0.3)) : .yellow) : 
-                                    Color.red.opacity(0.7), 
+                                    .yellow : 
+                                    .yellow.opacity(0.4), 
                                 lineWidth: isLastAlerted ? 2.5 : 1.5
                             )
                             .foregroundStyle(
                                 isLastAlerted ? 
-                                    (shouldBlink ? (isPulsating ? .yellow.opacity(0.35) : .yellow.opacity(0.05)) : .yellow.opacity(0.15)) : 
-                                    Color.red.opacity(0.12)
+                                    (shouldBlink ? (isPulsating ? .yellow.opacity(0.55) : .yellow.opacity(0.15)) : .yellow.opacity(0.35)) : 
+                                    .yellow.opacity(0.20)
                             )
-                    }
-                }
-                if showRadar && !isNavigating && viewModel.activeAlerts > 0 {
-                    // Радарні кільця (Епіцентр тривоги)
-                    Annotation("", coordinate: alertFocusCoordinate) {
-                        ZStack {
-                            Circle()
-                                .stroke(Color.red, lineWidth: 1)
-                                .frame(width: isPulsating ? 400 : 50)
-                                .opacity(isPulsating ? 0 : 0.8)
-                            Circle()
-                                .stroke(Color.red, lineWidth: 2)
-                                .frame(width: isPulsating ? 250 : 20)
-                                .opacity(isPulsating ? 0 : 1)
-                            Circle()
-                                .fill(Color.red.opacity(0.2))
-                                .frame(width: 250)
-                            
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 12, height: 12)
-                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                        }
                     }
                 }
                 
@@ -257,7 +234,9 @@ struct ContentView: View {
             viewModel.refreshAlerts()
         }
         .onReceive(timer) { _ in
-            dummyState.toggle()
+            withAnimation(.easeInOut(duration: 0.8)) {
+                isPulsating.toggle()
+            }
         }
         .onChange(of: viewModel.lastAlertedRegionName) {
             viewModel.markLastAlertAsViewed()
@@ -265,10 +244,6 @@ struct ContentView: View {
         .onAppear {
             locationManager.requestPermission()
             viewModel.markLastAlertAsViewed()
-            // Запуск безкінечної анімації
-            withAnimation(.easeOut(duration: 2.0).repeatForever(autoreverses: false)) {
-                isPulsating = true
-            }
             
             // Автовіддалення карти через пару секунд, щоб показати інші області
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
