@@ -3,15 +3,16 @@ import CoreLocation
 
 @available(iOS 17.0, *)
 class NetworkManager {
-    private let baseURL = "https://alerts.in.ua/api"
+    private let baseURL = "https://ubilling.net.ua/aerialalerts/"
     private let session: URLSession
 
     init(session: URLSession = .shared) {
         self.session = session
     }
 
-    func fetchAlerts() async throws -> [AlertRegion] {
-        guard let url = URL(string: "\(baseURL)/air-raid") else {
+    /// Fetches the live alerts and returns a dictionary mapping Region Name to isAlertNow (Bool)
+    func fetchLiveAlerts() async throws -> [String: Bool] {
+        guard let url = URL(string: baseURL) else {
             throw NetworkError.invalidURL
         }
 
@@ -21,27 +22,17 @@ class NetworkManager {
 
         let (data, response) = try await session.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw NetworkError.invalidResponse
         }
 
         do {
-            let alertData = try JSONDecoder().decode(AlertResponse.self, from: data)
-            return alertData.states.map { alertState in
-                AlertRegion(
-                    id: alertState.id,
-                    name: alertState.name,
-                    isActive: alertState.state == "alert",
-                    level: Int.random(in: 1...4),
-                    description: alertState.description ?? "No description",
-                    coordinate: CLLocationCoordinate2D(latitude: 50.0 + Double.random(in: -10...10),
-                                                     longitude: 30.0 + Double.random(in: -20...20))
-                )
+            let alertData = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
+            var result = [String: Bool]()
+            for (region, state) in alertData.states {
+                result[region] = state.alertnow
             }
+            return result
         } catch {
             print("DECODING ERROR: \(error)")
             throw NetworkError.invalidResponse
@@ -49,17 +40,15 @@ class NetworkManager {
     }
 }
 
-@available(iOS 17.0, *)
-struct AlertResponse: Codable {
-    let states: [AlertState]
-    let last_update: String
+struct AerialAlertsResponse: Codable {
+    let source: String
+    let cachedat: String
+    let states: [String: AerialAlertState]
+}
 
-    struct AlertState: Codable {
-        let id: Int
-        let name: String
-        let state: String
-        let description: String?
-    }
+struct AerialAlertState: Codable {
+    let alertnow: Bool
+    let changed: String
 }
 
 enum NetworkError: LocalizedError {

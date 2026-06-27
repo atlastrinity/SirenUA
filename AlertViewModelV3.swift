@@ -14,44 +14,88 @@ class AlertViewModelV3: ObservableObject {
     @Published var errorMessage: String?
 
     private var cancellables = Set<AnyCancellable>()
+    private var refreshTimer: AnyCancellable?
+    private let networkManager = NetworkManager()
 
     init() {
-        loadInitialData()
+        initializeRegions()
+        fetchLiveAlerts()
+        setupTimer()
     }
 
-    private func loadInitialData() {
-        // Generate test alerts for major Ukrainian cities
-        let cities = [
-            ("Київська область", 50.4501, 30.5234),
-            ("Львівська область", 49.8397, 24.0297),
-            ("Одеська область", 46.4825, 30.7233),
-            ("Харківська область", 49.9935, 36.2304),
+    private func initializeRegions() {
+        let regions = [
+            ("Вінницька область", 49.2331, 28.4682),
+            ("Волинська область", 50.7412, 25.3201),
             ("Дніпропетровська область", 48.4647, 35.0462),
-            ("Запорізька область", 47.8580, 35.1428)
+            ("Донецька область", 48.0159, 37.8028),
+            ("Житомирська область", 50.2547, 28.6587),
+            ("Закарпатська область", 48.6208, 22.2879),
+            ("Запорізька область", 47.8388, 35.1396),
+            ("Івано-Франківська область", 48.9226, 24.7111),
+            ("Київська область", 50.4501, 30.5234),
+            ("м. Київ", 50.4501, 30.5234),
+            ("Кіровоградська область", 48.5079, 32.2623),
+            ("Луганська область", 48.5740, 39.3078),
+            ("Львівська область", 49.8397, 24.0297),
+            ("Миколаївська область", 46.9750, 31.9946),
+            ("Одеська область", 46.4825, 30.7233),
+            ("Полтавська область", 49.5883, 34.5514),
+            ("Рівненська область", 50.6199, 26.2516),
+            ("Сумська область", 50.9077, 34.7981),
+            ("Тернопільська область", 49.5535, 25.5948),
+            ("Харківська область", 49.9935, 36.2304),
+            ("Херсонська область", 46.6354, 32.6169),
+            ("Хмельницька область", 49.4230, 26.9871),
+            ("Черкаська область", 49.4444, 32.0598),
+            ("Чернівецька область", 48.2915, 25.9352),
+            ("Чернігівська область", 51.4982, 31.2893)
         ]
 
-        for (name, lat, lon) in cities {
-            let isActive = Bool.random()
-            let level = isActive ? Int.random(in: 1...4) : 0
-            let description = isActive ? "Повітряна тривога: $level рівень небезпеки" : "Тривога минула"
-
-            alerts.append(AlertRegion(
-                id: Int.random(in: 1...10000),
-                name: name,
-                isActive: isActive,
-                level: level,
-                description: description,
-                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon)
-            ))
+        alerts = regions.enumerated().map { index, region in
+            AlertRegion(
+                id: index,
+                name: region.0,
+                isActive: false,
+                level: 0,
+                description: "Немає тривоги",
+                coordinate: CLLocationCoordinate2D(latitude: region.1, longitude: region.2)
+            )
         }
-
         updateStats()
     }
 
-    func updateAlertStatus(id: Int, isActive: Bool) {
-        guard let index = alerts.firstIndex(where: { $0.id == id }) else { return }
-        alerts[index].isActive = isActive
-        updateStats()
+    private func setupTimer() {
+        refreshTimer = Timer.publish(every: 30, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.fetchLiveAlerts()
+            }
+    }
+
+    private func fetchLiveAlerts() {
+        Task { @MainActor in
+            isLoading = true
+            errorMessage = nil
+            do {
+                let liveData = try await networkManager.fetchLiveAlerts()
+                
+                // Update existing regions based on API response
+                for i in 0..<self.alerts.count {
+                    let regionName = self.alerts[i].name
+                    if let isAlertNow = liveData[regionName] {
+                        self.alerts[i].isActive = isAlertNow
+                        self.alerts[i].level = isAlertNow ? 3 : 0
+                        self.alerts[i].description = isAlertNow ? "Повітряна тривога!" : "Відбій"
+                    }
+                }
+                self.updateStats()
+            } catch {
+                self.errorMessage = "Помилка оновлення тривог"
+                print("Error fetching alerts: \(error)")
+            }
+            isLoading = false
+        }
     }
 
     private func updateStats() {
@@ -60,13 +104,15 @@ class AlertViewModelV3: ObservableObject {
     }
 
     func refreshAlerts() {
-        isLoading = true
-        errorMessage = nil
+        // Called when user manually triggers refresh
+        fetchLiveAlerts()
+    }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.loadInitialData()
-            self.isLoading = false
-        }
+    func updateAlertStatus(id: Int, isActive: Bool) {
+        // Used for manual testing/overrides if needed
+        guard let index = alerts.firstIndex(where: { $0.id == id }) else { return }
+        alerts[index].isActive = isActive
+        updateStats()
     }
 
     func filterAlerts(by isActive: Bool) {
@@ -97,5 +143,3 @@ class AlertViewModelV3: ObservableObject {
         alerts.filter { $0.isActive && $0.level == level }
     }
 }
-
-

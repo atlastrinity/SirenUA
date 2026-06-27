@@ -10,8 +10,8 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     let id: Int
     let name: String
     var isActive: Bool
-    let level: Int
-    let description: String
+    var level: Int
+    var description: String
     let coordinate: CLLocationCoordinate2D
 
     var icon: String {

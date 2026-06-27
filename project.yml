@@ -13,12 +13,12 @@ targets:
       - path: AlertRegion.swift
       - path: ErrorView.swift
       - path: CriticalAlertManager.swift
-      - path: ContentViewV3.swift
-      - path: ContentViewV4.swift
-      - path: MapViewV3.swift
+      - path: SettingsView.swift
+      - path: ContentView.swift
       - path: AlertViewModelV3.swift
       - path: GeoJSONManager.swift
       - path: ukraine_regions.geojson
+      - path: LocationManager.swift
     settings:
       base:
         INFOPLIST_FILE: Info.plist

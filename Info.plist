@@ -56,5 +56,7 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ми використовуємо вашу локацію, щоб будувати маршрут до найближчого укриття та вести вас по ньому.</string>
 </dict>
 </plist>

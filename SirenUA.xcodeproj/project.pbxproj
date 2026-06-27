@@ -7,19 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		008031CE6543A9BD46E4676D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90759A30093B1A3F204305BA /* LocationManager.swift */; };
 		0390D5CEF00DCC7E481ED37F /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0836417699F5DB11CE053C89 /* GeoJSONManager.swift */; };
-		33F0D424E979B8EFA8450D84 /* ContentViewV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 895ABCB2BD5B33C1D9C7E578 /* ContentViewV4.swift */; };
 		3C5F4758D1AAD3C01C0CAC1A /* SirenUAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */; };
 		4150606EFEFAE1B048C89808 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57524983A54543295295769B /* CriticalAlertManager.swift */; };
 		5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */; };
 		566BF718898919AD76FE4389 /* AlertViewModelV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */; };
 		7BE902717F6C080990D8EC93 /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8BEB1A6752CC7FE419CA3EE7 /* ukraine_regions.geojson */; };
+		7EC8E93C350F383508F030CD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9503132B99EBF99C0FCD16C6 /* SettingsView.swift */; };
 		9849F41A9745CBEAE1A2DD38 /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D164CFBADE1B1D7CD707F2A /* NetworkManager.swift */; };
 		ABA1CA9AD1BAF4B3C056C122 /* AlertRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */; };
 		B99D6027028FE8FDFE0A0608 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0AC254823F2504EDD23C4E /* ErrorView.swift */; };
-		D07E546DDCB1A3F8DABFBE7D /* MapViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D7ACD041D1A1F8BA18886AA /* MapViewV3.swift */; };
+		BB2556807B8A265DA67E7EE9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5764D540766941105F61A3 /* ContentView.swift */; };
 		F1A71207EDABCC25CDB730E6 /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */; };
-		F7FF05C0FA1375442151E02F /* ContentViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD3B48A97218E932306D36D /* ContentViewV3.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,16 +36,16 @@
 		0836417699F5DB11CE053C89 /* GeoJSONManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJSONManager.swift; sourceTree = "<group>"; };
 		0D164CFBADE1B1D7CD707F2A /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
 		1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegionDetailView.swift; sourceTree = "<group>"; };
-		1D7ACD041D1A1F8BA18886AA /* MapViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewV3.swift; sourceTree = "<group>"; };
 		3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
 		36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegion.swift; sourceTree = "<group>"; };
 		5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUATests.swift; sourceTree = "<group>"; };
 		57524983A54543295295769B /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
+		6C5764D540766941105F61A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUAApp.swift; sourceTree = "<group>"; };
-		895ABCB2BD5B33C1D9C7E578 /* ContentViewV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV4.swift; sourceTree = "<group>"; };
 		8BEB1A6752CC7FE419CA3EE7 /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		90759A30093B1A3F204305BA /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		9503132B99EBF99C0FCD16C6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BBD3B48A97218E932306D36D /* ContentViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV3.swift; sourceTree = "<group>"; };
 		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE0AC254823F2504EDD23C4E /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -75,13 +75,13 @@
 				36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */,
 				1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */,
 				3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */,
-				BBD3B48A97218E932306D36D /* ContentViewV3.swift */,
-				895ABCB2BD5B33C1D9C7E578 /* ContentViewV4.swift */,
+				6C5764D540766941105F61A3 /* ContentView.swift */,
 				57524983A54543295295769B /* CriticalAlertManager.swift */,
 				DE0AC254823F2504EDD23C4E /* ErrorView.swift */,
 				0836417699F5DB11CE053C89 /* GeoJSONManager.swift */,
-				1D7ACD041D1A1F8BA18886AA /* MapViewV3.swift */,
+				90759A30093B1A3F204305BA /* LocationManager.swift */,
 				0D164CFBADE1B1D7CD707F2A /* NetworkManager.swift */,
+				9503132B99EBF99C0FCD16C6 /* SettingsView.swift */,
 				85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */,
 				8BEB1A6752CC7FE419CA3EE7 /* ukraine_regions.geojson */,
 				18DE5B617B7269F367C75942 /* SirenUATests */,
@@ -181,13 +181,13 @@
 				ABA1CA9AD1BAF4B3C056C122 /* AlertRegion.swift in Sources */,
 				F1A71207EDABCC25CDB730E6 /* AlertRegionDetailView.swift in Sources */,
 				566BF718898919AD76FE4389 /* AlertViewModelV3.swift in Sources */,
-				F7FF05C0FA1375442151E02F /* ContentViewV3.swift in Sources */,
-				33F0D424E979B8EFA8450D84 /* ContentViewV4.swift in Sources */,
+				BB2556807B8A265DA67E7EE9 /* ContentView.swift in Sources */,
 				4150606EFEFAE1B048C89808 /* CriticalAlertManager.swift in Sources */,
 				B99D6027028FE8FDFE0A0608 /* ErrorView.swift in Sources */,
 				0390D5CEF00DCC7E481ED37F /* GeoJSONManager.swift in Sources */,
-				D07E546DDCB1A3F8DABFBE7D /* MapViewV3.swift in Sources */,
+				008031CE6543A9BD46E4676D /* LocationManager.swift in Sources */,
 				9849F41A9745CBEAE1A2DD38 /* NetworkManager.swift in Sources */,
+				7EC8E93C350F383508F030CD /* SettingsView.swift in Sources */,
 				3C5F4758D1AAD3C01C0CAC1A /* SirenUAApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

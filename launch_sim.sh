@@ -4,13 +4,13 @@ xcodebuild -project SirenUA.xcodeproj -scheme SirenUA -sdk iphonesimulator -dest
 if [ $? -eq 0 ]; then
     echo "✅ Build succeeded!"
     # Install app to booted simulator
-    app_path=$(find DerivedData -name "SirenUA.app" | head -n 1)
+    app_path=$(find DerivedData -name "SirenUA.app" | grep "iphonesimulator" | head -n 1)
     if [ -n "$app_path" ]; then
         xcrun simctl install booted "$app_path"
         xcrun simctl launch booted com.sirenua.SirenUA
     else
         # Try finding it in default Xcode derived data
-        app_path=$(find ~/Library/Developer/Xcode/DerivedData -name "SirenUA.app" | head -n 1)
+        app_path=$(find ~/Library/Developer/Xcode/DerivedData -name "SirenUA.app" | grep "iphonesimulator" | head -n 1)
         xcrun simctl install booted "$app_path"
         xcrun simctl launch booted com.sirenua.SirenUA
     fi

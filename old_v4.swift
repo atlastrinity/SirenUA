@@ -5,7 +5,6 @@ import UIKit
 @available(iOS 17.0, *)
 struct ContentViewV4: View {
     @StateObject private var viewModel = AlertViewModelV3()
-    @StateObject private var geoManager = GeoJSONManager()
     
     // Координати для Києва (як на макеті)
     let centerCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
@@ -20,11 +19,6 @@ struct ContentViewV4: View {
     @State private var showShareSheet = false
     @State private var isRoutingToShelter = false
     
-    // Стан для знайденого укриття та маршруту
-    @State private var foundShelter: MKMapItem? = nil
-    @State private var selectedShelter: MKMapItem? = nil
-    @State private var route: MKRoute? = nil
-    
     // Початкова камера - зблизька на Київ
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
@@ -36,18 +30,7 @@ struct ContentViewV4: View {
     var body: some View {
         ZStack(alignment: .top) {
             // 1. ШАР КАРТИ
-            Map(position: $cameraPosition, selection: $selectedShelter) {
-                
-                // Полігони областей з активною тривогою
-                ForEach(geoManager.regions.filter { region in 
-                    viewModel.alerts.contains(where: { $0.name == region.nameUK && $0.isActive })
-                }) { region in
-                    ForEach(0..<region.polygons.count, id: \.self) { index in
-                        MapPolygon(coordinates: region.polygons[index])
-                            .stroke(isPulsating ? .yellow : .yellow.opacity(0.3), style: StrokeStyle(lineWidth: 3, dash: [10, 10]))
-                            .foregroundStyle(isPulsating ? .yellow.opacity(0.1) : .yellow.opacity(0.03))
-                    }
-                }
+            Map(position: $cameraPosition) {
                 
                 // Радарні кільця (Епіцентр тривоги)
                 Annotation("", coordinate: centerCoordinate) {
@@ -82,33 +65,27 @@ struct ContentViewV4: View {
                         .shadow(radius: 5)
                 }
                 
-                // Маркери тривог
-                ForEach(viewModel.alerts) { alert in
-                    Annotation(alert.name, coordinate: alert.coordinate) {
-                        let alertColor = alert.color
-                        Circle()
-                            .fill(alertColor)
-                            .frame(width: 20, height: 20)
-                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                            .shadow(color: alertColor, radius: 10)
-                            .scaleEffect(isPulsating ? 1.2 : 1.0)
-                            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isPulsating)
-                    }
-                }
-                // Знайдене укриття
-                if let shelter = foundShelter {
-                    Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
-                        .tint(.blue)
-                        .tag(shelter)
+                // Маркер укриття
+                Annotation("Укриття", coordinate: shelterCoordinate) {
+                    Image(systemName: "shield.fill")
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Color.blue)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
                 }
                 
-                // Маршрут
-                if let route = route {
-                    MapPolyline(route)
-                        .stroke(.blue, lineWidth: 5)
+                // Інші області з тривогами (з viewModel)
+                ForEach(viewModel.alerts) { alert in
+                    if alert.isActive && alert.name != "Київ" {
+                        Annotation(alert.name, coordinate: alert.coordinate) {
+                            AlertPinViewV4(alert: alert, isPulsating: isPulsating)
+                        }
+                    }
                 }
             }
             .mapStyle(.standard(elevation: .realistic))
+            // Затемнюємо карту для акценту на небезпеці (Dark Mode)
             .colorScheme(.dark)
             .ignoresSafeArea()
             
@@ -133,27 +110,13 @@ struct ContentViewV4: View {
                     isPulsating: isPulsating,
                     onFindShelter: {
                         isRoutingToShelter = true
-                        Task {
-                            let request = MKLocalSearch.Request()
-                            request.naturalLanguageQuery = "метро укриття"
-                            request.region = MKCoordinateRegion(center: centerCoordinate, latitudinalMeters: 5000, longitudinalMeters: 5000)
-                            
-                            let search = MKLocalSearch(request: request)
-                            if let response = try? await search.start(), let firstItem = response.mapItems.first {
-                                await MainActor.run {
-                                    self.foundShelter = firstItem
-                                    self.selectedShelter = firstItem
-                                    
-                                    withAnimation(.easeInOut(duration: 2.0)) {
-                                        cameraPosition = .region(
-                                            MKCoordinateRegion(
-                                                center: firstItem.placemark.coordinate,
-                                                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                                            )
-                                        )
-                                    }
-                                }
-                            }
+                        withAnimation(.easeInOut(duration: 2.0)) {
+                            cameraPosition = .region(
+                                MKCoordinateRegion(
+                                    center: shelterCoordinate,
+                                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                                )
+                            )
                         }
                     },
                     onShare: {
@@ -170,28 +133,7 @@ struct ContentViewV4: View {
             SettingsView()
         }
         .sheet(isPresented: $showShareSheet) {
-            let shareText: String = {
-                if let shelter = foundShelter {
-                    let lat = shelter.placemark.coordinate.latitude
-                    let lon = shelter.placemark.coordinate.longitude
-                    let name = shelter.name ?? ""
-                    return "Увага! Повітряна тривога. Знайдено найближче укриття: \(name), координати: \(lat), \(lon)"
-                } else {
-                    return "Увага! Повітряна тривога. Знайдіть найближче безпечне місце."
-                }
-            }()
-            ShareSheet(activityItems: [shareText])
-        }
-        .sheet(isPresented: Binding(
-            get: { selectedShelter != nil },
-            set: { if !$0 { selectedShelter = nil } }
-        )) {
-            if let shelter = selectedShelter {
-                ShelterDetailView(shelter: shelter, route: route, onRouteRequested: {
-                    calculateRoute(to: shelter)
-                })
-                .presentationDetents([.height(250)])
-            }
+            ShareSheet(activityItems: ["Увага! Повітряна тривога. Знайдіть найближче укриття: \(shelterCoordinate.latitude), \(shelterCoordinate.longitude)"])
         }
         .onAppear {
             // Запуск безкінечної анімації
@@ -209,30 +151,6 @@ struct ContentViewV4: View {
                             span: MKCoordinateSpan(latitudeDelta: 8.0, longitudeDelta: 8.0)
                         )
                     )
-                }
-            }
-        }
-    }
-    
-    // Функція для прокладання маршруту
-    private func calculateRoute(to destination: MKMapItem) {
-        let request = MKDirections.Request()
-        // Симулюємо нашу позицію як центр Києва
-        let sourcePlacemark = MKPlacemark(coordinate: centerCoordinate)
-        request.source = MKMapItem(placemark: sourcePlacemark)
-        request.destination = destination
-        request.transportType = .walking // Або .automobile
-
-        Task {
-            let directions = MKDirections(request: request)
-            if let response = try? await directions.calculate() {
-                await MainActor.run {
-                    self.route = response.routes.first
-                    withAnimation {
-                        if let rect = self.route?.polyline.boundingMapRect {
-                            cameraPosition = .rect(rect.insetBy(dx: -500, dy: -500))
-                        }
-                    }
                 }
             }
         }
@@ -406,72 +324,6 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-// Вигляд деталей укриття
-@available(iOS 17.0, *)
-struct ShelterDetailView: View {
-    let shelter: MKMapItem
-    let route: MKRoute?
-    let onRouteRequested: () -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(shelter.name ?? "Невідоме укриття")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-            
-            if let address = shelter.placemark.title {
-                Text(address)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            if let route = route {
-                HStack {
-                    Image(systemName: "figure.walk")
-                        .foregroundColor(.blue)
-                    Text("Відстань: \(String(format: "%.0f", route.distance)) м")
-                    Spacer()
-                    Text("Час: \(String(format: "%.0f", route.expectedTravelTime / 60)) хв")
-                }
-                .font(.subheadline)
-                .padding(.top, 5)
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 15) {
-                Button(action: onRouteRequested) {
-                    Text(route == nil ? "Побудувати маршрут" : "Оновити маршрут")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                }
-                
-                if route != nil {
-                    Button(action: {
-                        let launchOptions = [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking]
-                        shelter.openInMaps(launchOptions: launchOptions)
-                    }) {
-                        Text("Йти (Maps)")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .cornerRadius(12)
-                    }
-                }
-            }
-        }
-        .padding(24)
-        .background(Color(UIColor.systemBackground))
-    }
 }
 
 #Preview {
