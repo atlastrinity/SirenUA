@@ -4,6 +4,11 @@ import CoreLocation
 @available(iOS 17.0, *)
 class NetworkManager {
     private let baseURL = "https://alerts.in.ua/api"
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
 
     func fetchAlerts() async throws -> [AlertRegion] {
         guard let url = URL(string: "\(baseURL)/air-raid") else {
@@ -14,7 +19,7 @@ class NetworkManager {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("ios-sirenua", forHTTPHeaderField: "User-Agent")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -24,8 +29,8 @@ class NetworkManager {
             throw NetworkError.invalidResponse
         }
 
-        // Parse response
-        if let alertData = try? JSONDecoder().decode(AlertResponse.self, from: data) {
+        do {
+            let alertData = try JSONDecoder().decode(AlertResponse.self, from: data)
             return alertData.states.map { alertState in
                 AlertRegion(
                     id: alertState.id,
@@ -37,9 +42,10 @@ class NetworkManager {
                                                      longitude: 30.0 + Double.random(in: -20...20))
                 )
             }
+        } catch {
+            print("DECODING ERROR: \(error)")
+            throw NetworkError.invalidResponse
         }
-
-        throw NetworkError.invalidResponse
     }
 }
 

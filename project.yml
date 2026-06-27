@@ -7,7 +7,16 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources: 
-      - path: Sources/SirenUA
+      - path: SirenUAApp.swift
+      - path: AlertRegionDetailView.swift
+      - path: NetworkManager.swift
+      - path: AlertRegion.swift
+      - path: ErrorView.swift
+      - path: CriticalAlertManager.swift
+      - path: ContentViewV3.swift
+      - path: ContentViewV4.swift
+      - path: MapViewV3.swift
+      - path: AlertViewModelV3.swift
     settings:
       base:
         INFOPLIST_FILE: Info.plist
@@ -22,3 +31,6 @@ targets:
       - path: Tests/SirenUATests
     dependencies:
       - target: SirenUA
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES

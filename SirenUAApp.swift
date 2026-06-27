@@ -5,7 +5,7 @@ import SwiftUI
 struct SirenUAApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentViewV3()
+            ContentViewV4()
         }
     }
 }

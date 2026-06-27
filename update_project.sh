@@ -21,6 +21,7 @@ cat > SirenUA.xcodeproj/project.pbxproj << 'EOF'
 		B1 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2 /* ErrorView.swift */; };
 		B3 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4 /* CriticalAlertManager.swift */; };
 		B5 /* ContentViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6 /* ContentViewV3.swift */; };
+		B54 /* ContentViewV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64 /* ContentViewV4.swift */; };
 		B7 /* MapViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8 /* MapViewV3.swift */; };
 		B9 /* AlertViewModelV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA /* AlertViewModelV3.swift */; };
 /* End PBXBuildFile section */
@@ -33,6 +34,7 @@ cat > SirenUA.xcodeproj/project.pbxproj << 'EOF'
 		B2 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		B4 /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
 		B6 /* ContentViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV3.swift; sourceTree = "<group>"; };
+		B64 /* ContentViewV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV4.swift; sourceTree = "<group>"; };
 		B8 /* MapViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewV3.swift; sourceTree = "<group>"; };
 		BA /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
 		BF /* SirenUA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -67,6 +69,7 @@ cat > SirenUA.xcodeproj/project.pbxproj << 'EOF'
 				B2 /* ErrorView.swift */,
 				B4 /* CriticalAlertManager.swift */,
 				B6 /* ContentViewV3.swift */,
+				B64 /* ContentViewV4.swift */,
 				B8 /* MapViewV3.swift */,
 				BA /* AlertViewModelV3.swift */,
 			);
@@ -155,6 +158,7 @@ cat > SirenUA.xcodeproj/project.pbxproj << 'EOF'
 				B1 /* ErrorView.swift in Sources */,
 				B3 /* CriticalAlertManager.swift in Sources */,
 				B5 /* ContentViewV3.swift in Sources */,
+				B54 /* ContentViewV4.swift in Sources */,
 				B7 /* MapViewV3.swift in Sources */,
 				B9 /* AlertViewModelV3.swift in Sources */,
 			);
@@ -365,7 +369,7 @@ EOF
 echo "Project file updated with new files!"
 
 # Build the project
-xcodebuild -project SirenUA.xcodeproj -scheme SirenUA -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' build 2>&1 | tail -30
+xcodebuild -project SirenUA.xcodeproj -scheme SirenUA -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build 2>&1 | tail -30
 
 if [ $? -eq 0 ]; then
     echo "✅ Build succeeded!"
