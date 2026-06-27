@@ -213,10 +213,12 @@ struct ContentView: View {
                         
                         if route != nil {
                             withAnimation(.easeInOut(duration: 2.0)) {
-                                cameraPosition = .userLocation(followsHeading: true, fallback: .automatic)
+                                let coord = locationManager.location?.coordinate ?? userCoordinate
+                                cameraPosition = .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
                             }
                         } else {
-                            cameraPosition = .userLocation(fallback: .automatic)
+                            let coord = locationManager.location?.coordinate ?? userCoordinate
+                            cameraPosition = .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
                         }
                     })
                     .presentationDetents([.height(220)])
