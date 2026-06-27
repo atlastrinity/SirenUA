@@ -373,7 +373,8 @@ xcodebuild -project SirenUA.xcodeproj -scheme SirenUA -sdk iphonesimulator -dest
 
 if [ $? -eq 0 ]; then
     echo "✅ Build succeeded!"
-    # Launch the app
+    # Install and Launch the app
+    xcrun simctl install booted /Users/dev/Library/Developer/Xcode/DerivedData/SirenUA-*/Build/Products/Debug-iphonesimulator/SirenUA.app 2>/dev/null || echo "Install skipped"
     xcrun simctl launch booted com.sirenua.app 2>/dev/null || echo "App launched!"
 else
     echo "❌ Build failed!"

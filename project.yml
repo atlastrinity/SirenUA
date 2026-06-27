@@ -17,6 +17,8 @@ targets:
       - path: ContentViewV4.swift
       - path: MapViewV3.swift
       - path: AlertViewModelV3.swift
+      - path: GeoJSONManager.swift
+      - path: ukraine_regions.geojson
     settings:
       base:
         INFOPLIST_FILE: Info.plist

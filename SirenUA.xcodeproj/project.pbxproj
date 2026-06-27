@@ -3,171 +3,296 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1 /* SirenUAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2 /* SirenUAApp.swift */; };
-		AB /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC /* AlertRegionDetailView.swift */; };
-		AD /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE /* NetworkManager.swift */; };
-		AF /* AlertRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0 /* AlertRegion.swift */; };
-		B1 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2 /* ErrorView.swift */; };
-		B3 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4 /* CriticalAlertManager.swift */; };
-		B5 /* ContentViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6 /* ContentViewV3.swift */; };
-		B54 /* ContentViewV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64 /* ContentViewV4.swift */; };
-		B7 /* MapViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8 /* MapViewV3.swift */; };
-		B9 /* AlertViewModelV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA /* AlertViewModelV3.swift */; };
+		0390D5CEF00DCC7E481ED37F /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0836417699F5DB11CE053C89 /* GeoJSONManager.swift */; };
+		33F0D424E979B8EFA8450D84 /* ContentViewV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 895ABCB2BD5B33C1D9C7E578 /* ContentViewV4.swift */; };
+		3C5F4758D1AAD3C01C0CAC1A /* SirenUAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */; };
+		4150606EFEFAE1B048C89808 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57524983A54543295295769B /* CriticalAlertManager.swift */; };
+		5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */; };
+		566BF718898919AD76FE4389 /* AlertViewModelV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */; };
+		7BE902717F6C080990D8EC93 /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8BEB1A6752CC7FE419CA3EE7 /* ukraine_regions.geojson */; };
+		9849F41A9745CBEAE1A2DD38 /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D164CFBADE1B1D7CD707F2A /* NetworkManager.swift */; };
+		ABA1CA9AD1BAF4B3C056C122 /* AlertRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */; };
+		B99D6027028FE8FDFE0A0608 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0AC254823F2504EDD23C4E /* ErrorView.swift */; };
+		D07E546DDCB1A3F8DABFBE7D /* MapViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D7ACD041D1A1F8BA18886AA /* MapViewV3.swift */; };
+		F1A71207EDABCC25CDB730E6 /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */; };
+		F7FF05C0FA1375442151E02F /* ContentViewV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD3B48A97218E932306D36D /* ContentViewV3.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F08055A8B2905AE93EDD2FAA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3334E6041B77B4CFD34C545C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D39A6B242D4A85E6D3CD2867;
+			remoteInfo = SirenUA;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
-		A2 /* SirenUAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUAApp.swift; sourceTree = "<group>"; };
-		AC /* AlertRegionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegionDetailView.swift; sourceTree = "<group>"; };
-		AE /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
-		B0 /* AlertRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegion.swift; sourceTree = "<group>"; };
-		B2 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
-		B4 /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
-		B6 /* ContentViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV3.swift; sourceTree = "<group>"; };
-		B64 /* ContentViewV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV4.swift; sourceTree = "<group>"; };
-		B8 /* MapViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewV3.swift; sourceTree = "<group>"; };
-		BA /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
-		BF /* SirenUA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0836417699F5DB11CE053C89 /* GeoJSONManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJSONManager.swift; sourceTree = "<group>"; };
+		0D164CFBADE1B1D7CD707F2A /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
+		1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegionDetailView.swift; sourceTree = "<group>"; };
+		1D7ACD041D1A1F8BA18886AA /* MapViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewV3.swift; sourceTree = "<group>"; };
+		3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
+		36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegion.swift; sourceTree = "<group>"; };
+		5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUATests.swift; sourceTree = "<group>"; };
+		57524983A54543295295769B /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
+		85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUAApp.swift; sourceTree = "<group>"; };
+		895ABCB2BD5B33C1D9C7E578 /* ContentViewV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV4.swift; sourceTree = "<group>"; };
+		8BEB1A6752CC7FE419CA3EE7 /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBD3B48A97218E932306D36D /* ContentViewV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewV3.swift; sourceTree = "<group>"; };
+		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE0AC254823F2504EDD23C4E /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		C0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin PBXGroup section */
-		C1 = {
+		18DE5B617B7269F367C75942 /* SirenUATests */ = {
 			isa = PBXGroup;
 			children = (
-				C2 /* SirenUA */,
-				C3 /* Products */,
+				5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */,
 			);
+			name = SirenUATests;
+			path = Tests/SirenUATests;
 			sourceTree = "<group>";
 		};
-		C2 /* SirenUA */ = {
+		902EDB3201BBFAE7BF8E3479 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A2 /* SirenUAApp.swift */,
-				AC /* AlertRegionDetailView.swift */,
-				AE /* NetworkManager.swift */,
-				B0 /* AlertRegion.swift */,
-				B2 /* ErrorView.swift */,
-				B4 /* CriticalAlertManager.swift */,
-				B6 /* ContentViewV3.swift */,
-				B64 /* ContentViewV4.swift */,
-				B8 /* MapViewV3.swift */,
-				BA /* AlertViewModelV3.swift */,
-			);
-			sourceTree = "<group>";
-		};
-		C3 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				BF /* SirenUA.app */,
+				ACB2942349EA5F82FA78C53B /* SirenUA.app */,
+				BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B78475888FF0DA172BCAF01B = {
+			isa = PBXGroup;
+			children = (
+				36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */,
+				1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */,
+				3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */,
+				BBD3B48A97218E932306D36D /* ContentViewV3.swift */,
+				895ABCB2BD5B33C1D9C7E578 /* ContentViewV4.swift */,
+				57524983A54543295295769B /* CriticalAlertManager.swift */,
+				DE0AC254823F2504EDD23C4E /* ErrorView.swift */,
+				0836417699F5DB11CE053C89 /* GeoJSONManager.swift */,
+				1D7ACD041D1A1F8BA18886AA /* MapViewV3.swift */,
+				0D164CFBADE1B1D7CD707F2A /* NetworkManager.swift */,
+				85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */,
+				8BEB1A6752CC7FE419CA3EE7 /* ukraine_regions.geojson */,
+				18DE5B617B7269F367C75942 /* SirenUATests */,
+				902EDB3201BBFAE7BF8E3479 /* Products */,
+			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		C4 /* SirenUA */ = {
+		6FED4E7D2C5E3F833E549231 /* SirenUATests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C5 /* Build configuration list for PBXNativeTarget "SirenUA" */;
+			buildConfigurationList = B8D01FC8916CF43F6A0DDF10 /* Build configuration list for PBXNativeTarget "SirenUATests" */;
 			buildPhases = (
-				C6 /* Sources */,
-				C0 /* Frameworks */,
-				C7 /* Resources */,
+				A2445DC40B5AC706535D391C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				012A4B0B7F4E104802B3BD91 /* PBXTargetDependency */,
+			);
+			name = SirenUATests;
+			packageProductDependencies = (
+			);
+			productName = SirenUATests;
+			productReference = BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D39A6B242D4A85E6D3CD2867 /* SirenUA */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 05F1C3AAF3B762FB3FEC715E /* Build configuration list for PBXNativeTarget "SirenUA" */;
+			buildPhases = (
+				554AB01A9DD75E57745827E7 /* Sources */,
+				79F8D7B3AB6FEF0DAEEB33DE /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = SirenUA;
+			packageProductDependencies = (
+			);
 			productName = SirenUA;
-			productReference = BF /* SirenUA.app */;
+			productReference = ACB2942349EA5F82FA78C53B /* SirenUA.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		C8 /* Project object */ = {
+		3334E6041B77B4CFD34C545C /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					C4 = {
-						CreatedOnToolsVersion = 15.0;
+					D39A6B242D4A85E6D3CD2867 = {
+						DevelopmentTeam = "";
 					};
 				};
 			};
-			buildConfigurationList = C9 /* Build configuration list for PBXProject "SirenUA" */;
-			compatibilityVersion = "Xcode 14.0";
+			buildConfigurationList = 539069778AA97DABE169DFC8 /* Build configuration list for PBXProject "SirenUA" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = C1;
-			productRefGroup = C3 /* Products */;
+			mainGroup = B78475888FF0DA172BCAF01B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 902EDB3201BBFAE7BF8E3479 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C4 /* SirenUA */,
+				D39A6B242D4A85E6D3CD2867 /* SirenUA */,
+				6FED4E7D2C5E3F833E549231 /* SirenUATests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		C7 /* Resources */ = {
+		79F8D7B3AB6FEF0DAEEB33DE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7BE902717F6C080990D8EC93 /* ukraine_regions.geojson in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		C6 /* Sources */ = {
+		554AB01A9DD75E57745827E7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1 /* SirenUAApp.swift in Sources */,
-				AB /* AlertRegionDetailView.swift in Sources */,
-				AD /* NetworkManager.swift in Sources */,
-				AF /* AlertRegion.swift in Sources */,
-				B1 /* ErrorView.swift in Sources */,
-				B3 /* CriticalAlertManager.swift in Sources */,
-				B5 /* ContentViewV3.swift in Sources */,
-				B54 /* ContentViewV4.swift in Sources */,
-				B7 /* MapViewV3.swift in Sources */,
-				B9 /* AlertViewModelV3.swift in Sources */,
+				ABA1CA9AD1BAF4B3C056C122 /* AlertRegion.swift in Sources */,
+				F1A71207EDABCC25CDB730E6 /* AlertRegionDetailView.swift in Sources */,
+				566BF718898919AD76FE4389 /* AlertViewModelV3.swift in Sources */,
+				F7FF05C0FA1375442151E02F /* ContentViewV3.swift in Sources */,
+				33F0D424E979B8EFA8450D84 /* ContentViewV4.swift in Sources */,
+				4150606EFEFAE1B048C89808 /* CriticalAlertManager.swift in Sources */,
+				B99D6027028FE8FDFE0A0608 /* ErrorView.swift in Sources */,
+				0390D5CEF00DCC7E481ED37F /* GeoJSONManager.swift in Sources */,
+				D07E546DDCB1A3F8DABFBE7D /* MapViewV3.swift in Sources */,
+				9849F41A9745CBEAE1A2DD38 /* NetworkManager.swift in Sources */,
+				3C5F4758D1AAD3C01C0CAC1A /* SirenUAApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2445DC40B5AC706535D391C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		012A4B0B7F4E104802B3BD91 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D39A6B242D4A85E6D3CD2867 /* SirenUA */;
+			targetProxy = F08055A8B2905AE93EDD2FAA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		CA /* Debug */ = {
+		033A83DFAD8452A010828CE2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.SirenUATests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SirenUA.app/SirenUA";
+			};
+			name = Release;
+		};
+		1135663D2D010C7C41D97C28 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.SirenUA;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		13B997D2C035E1868F2866BE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.SirenUA;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9B5E3A36FDE326E7215128CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.SirenUATests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SirenUA.app/SirenUA";
+			};
+			name = Debug;
+		};
+		B7F380FF1C5D74DD47B1ABEB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -202,8 +327,8 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
 					"$(inherited)",
+					"DEBUG=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -211,24 +336,25 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
-		CB /* Release */ = {
+		FA827AFDA02AE8D5D2107111 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -266,94 +392,47 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		CC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.app;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		CD /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.app;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C5 /* Build configuration list for PBXNativeTarget "SirenUA" */ = {
+		05F1C3AAF3B762FB3FEC715E /* Build configuration list for PBXNativeTarget "SirenUA" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CC /* Debug */,
-				CD /* Release */,
+				13B997D2C035E1868F2866BE /* Debug */,
+				1135663D2D010C7C41D97C28 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		C9 /* Build configuration list for PBXProject "SirenUA" */ = {
+		539069778AA97DABE169DFC8 /* Build configuration list for PBXProject "SirenUA" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CA /* Debug */,
-				CB /* Release */,
+				B7F380FF1C5D74DD47B1ABEB /* Debug */,
+				FA827AFDA02AE8D5D2107111 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
+		};
+		B8D01FC8916CF43F6A0DDF10 /* Build configuration list for PBXNativeTarget "SirenUATests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B5E3A36FDE326E7215128CF /* Debug */,
+				033A83DFAD8452A010828CE2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = C8 /* Project object */;
+	rootObject = 3334E6041B77B4CFD34C545C /* Project object */;
 }
