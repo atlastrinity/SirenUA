@@ -9,7 +9,9 @@ struct ContentView: View {
     @StateObject private var locationManager = LocationManager.shared
     @AppStorage("showRadar") private var showRadar = true
     @AppStorage("mapType") private var mapType = 0
-    @AppStorage("searchRadius") private var searchRadius = 3.0
+    @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
+    @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
+    @State private var transportType: MKDirectionsTransportType = .walking
     
     var centerCoordinate: CLLocationCoordinate2D {
         locationManager.location?.coordinate ?? CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
@@ -170,6 +172,7 @@ struct ContentView: View {
                         primaryRegionName: viewModel.alerts.first(where: { $0.isActive })?.name,
                         isPulsating: isPulsating,
                         isSearchingShelter: isRoutingToShelter,
+                        transportType: $transportType,
                         onFindShelter: findNearestShelter,
                         onShare: {
                             showShareSheet = true
@@ -214,11 +217,16 @@ struct ContentView: View {
                         if route != nil {
                             withAnimation(.easeInOut(duration: 2.0)) {
                                 let coord = locationManager.location?.coordinate ?? userCoordinate
-                                cameraPosition = .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
+                                cameraPosition = .userLocation(
+                                    followsHeading: true,
+                                    fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
+                                )
                             }
                         } else {
                             let coord = locationManager.location?.coordinate ?? userCoordinate
-                            cameraPosition = .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
+                            cameraPosition = .userLocation(
+                                fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
+                            )
                         }
                     })
                     .presentationDetents([.height(220)])
@@ -261,7 +269,8 @@ struct ContentView: View {
         Task {
             let request = MKLocalSearch.Request()
             request.naturalLanguageQuery = "укриття"
-            let radiusMeters = max(searchRadius, 0.5) * 1000
+            let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
+            let radiusMeters = max(currentRadius, 0.5) * 1000
             request.region = MKCoordinateRegion(center: centerCoordinate, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
 
             let search = MKLocalSearch(request: request)
@@ -294,7 +303,7 @@ struct ContentView: View {
         let sourcePlacemark = MKPlacemark(coordinate: centerCoordinate)
         request.source = MKMapItem(placemark: sourcePlacemark)
         request.destination = destination
-        request.transportType = .walking // Або .automobile
+        request.transportType = transportType
 
         Task {
             let directions = MKDirections(request: request)
@@ -383,6 +392,7 @@ struct BottomDashboardV4: View {
     let primaryRegionName: String?
     var isPulsating: Bool
     let isSearchingShelter: Bool
+    @Binding var transportType: MKDirectionsTransportType
     var onFindShelter: () -> Void
     var onShare: () -> Void
     var onSettings: () -> Void
@@ -391,18 +401,38 @@ struct BottomDashboardV4: View {
         activeAlerts > 0
     }
     
+    private var statusColor: Color {
+        hasActiveAlert ? .red : .green
+    }
+    
+    private var circleOpacity: Double {
+        hasActiveAlert && isPulsating ? 0.3 : 1.0
+    }
+    
+    private var statusText: String {
+        hasActiveAlert ? "ПОВІТРЯНА\nТРИВОГА" : "ТРИВОГ\nНЕМАЄ"
+    }
+    
+    private var detailText: String {
+        hasActiveAlert ? "Активних областей: \(activeAlerts)" : "Останні дані оновлено"
+    }
+    
+    private var detailColor: Color {
+        hasActiveAlert ? Color.red.opacity(0.8) : Color.green.opacity(0.8)
+    }
+    
     var body: some View {
         HStack(alignment: .top) {
             // Ліва частина: Статус
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Circle()
-                        .fill(hasActiveAlert ? Color.red : Color.green)
+                        .fill(statusColor)
                         .frame(width: 12, height: 12)
-                        .opacity(hasActiveAlert && isPulsating ? 0.3 : 1.0)
+                        .opacity(circleOpacity)
                         .animation(.easeInOut(duration: 0.5).repeatForever(), value: isPulsating)
                     
-                    Text(hasActiveAlert ? "ПОВІТРЯНА\nТРИВОГА" : "ТРИВОГ\nНЕМАЄ")
+                    Text(statusText)
                         .font(.system(size: 20, weight: .heavy, design: .default))
                         .foregroundColor(.white)
                         .lineLimit(2)
@@ -412,9 +442,9 @@ struct BottomDashboardV4: View {
                     Text(primaryRegionName ?? "Україна")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
-                    Text(hasActiveAlert ? "Активних областей: \(activeAlerts)" : "Останні дані оновлено")
+                    Text(detailText)
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(hasActiveAlert ? .red.opacity(0.8) : .green.opacity(0.8))
+                        .foregroundColor(detailColor)
                 }
                 .padding(.top, 4)
             }
@@ -423,11 +453,16 @@ struct BottomDashboardV4: View {
             
             // Права частина: Кнопки
             VStack(alignment: .trailing, spacing: 12) {
+                // Транспорт
+                Picker("Транспорт", selection: $transportType) {
+                    Image(systemName: "figure.walk").tag(MKDirectionsTransportType.walking)
+                    Image(systemName: "car").tag(MKDirectionsTransportType.automobile)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 120)
+                
                 // Маленькі іконки дій
                 HStack(spacing: 20) {
-                    SmallIconButtonV4(iconName: "arrow.triangle.turn.up.right.diamond.fill") {
-                        onFindShelter()
-                    }
                     SmallIconButtonV4(iconName: "square.and.arrow.up") {
                         onShare()
                     }
@@ -464,10 +499,10 @@ struct BottomDashboardV4: View {
         .cornerRadius(28)
         .overlay(
             RoundedRectangle(cornerRadius: 28)
-                .stroke((hasActiveAlert ? Color.red : Color.green).opacity(0.4), lineWidth: 1)
+                .stroke(statusColor.opacity(0.4), lineWidth: 1)
         )
         .padding(.horizontal, 16)
-        .shadow(color: (hasActiveAlert ? Color.red : Color.green).opacity(0.3), radius: 20, x: 0, y: 10)
+        .shadow(color: statusColor.opacity(0.3), radius: 20, x: 0, y: 10)
     }
 }
 
@@ -618,3 +653,6 @@ struct NavigationOverlay: View {
         .padding()
     }
 }
+
+extension MKDirectionsTransportType: @retroactive Hashable {}
+

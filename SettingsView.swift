@@ -7,7 +7,8 @@ struct SettingsView: View {
     @AppStorage("refreshInterval") private var refreshInterval = 30
     @AppStorage("showRadar") private var showRadar = true
     @AppStorage("mapType") private var mapType = 0
-    @AppStorage("searchRadius") private var searchRadius = 3.0
+    @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
+    @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,9 +47,15 @@ struct SettingsView: View {
                         Text("Супутник").tag(2)
                     }
                     
-                    VStack(alignment: .leading) {
-                        Text("Радіус пошуку укриттів: \(searchRadius, specifier: "%.1f") км")
-                        Slider(value: $searchRadius, in: 0.5...5.0, step: 0.5)
+                    VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading) {
+                            Text("Радіус пошуку пішки: \(walkingSearchRadius, specifier: "%.1f") км")
+                            Slider(value: $walkingSearchRadius, in: 0.5...3.0, step: 0.5)
+                        }
+                        VStack(alignment: .leading) {
+                            Text("Радіус пошуку авто: \(drivingSearchRadius, specifier: "%.1f") км")
+                            Slider(value: $drivingSearchRadius, in: 1.0...20.0, step: 1.0)
+                        }
                     }
                 }
                 .listRowBackground(Color.clear)
