@@ -5,12 +5,46 @@ struct SettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("autoRefreshEnabled") private var autoRefreshEnabled = true
     @AppStorage("refreshInterval") private var refreshInterval = 30
-    @AppStorage("showRadar") private var showRadar = true
     @AppStorage("mapType") private var mapType = 0
     @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
     @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
-    @AppStorage("premiumEnabled") private var premiumEnabled = false
+    @AppStorage("premiumEnabled") private var premiumEnabled = true
     @AppStorage("threatServerURL") private var threatServerURL = "https://eb3e-185-94-219-55.ngrok-free.app"
+    @AppStorage("allRegionsTracked") private var allRegionsTracked = true
+    @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
+
+    // Список усіх 25 областей
+    private let allRegionsList = [
+        "Вінницька область", "Волинська область", "Дніпропетровська область",
+        "Донецька область", "Житомирська область", "Закарпатська область",
+        "Запорізька область", "Івано-Франківська область", "Київська область",
+        "м. Київ", "Кіровоградська область", "Луганська область",
+        "Львівська область", "Миколаївська область", "Одеська область",
+        "Полтавська область", "Рівненська область", "Сумська область",
+        "Тернопільська область", "Харківська область", "Херсонська область",
+        "Хмельницька область", "Черкаська область", "Чернівецька область",
+        "Чернігівська область"
+    ]
+
+    private func isTracked(_ name: String) -> Bool {
+        if trackedRegionsString.isEmpty && allRegionsTracked {
+            return true
+        }
+        let list = trackedRegionsString.components(separatedBy: ";")
+        return list.contains(name)
+    }
+
+    private func setTracked(_ name: String, isOn: Bool) {
+        var list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        if isOn {
+            if !list.contains(name) {
+                list.append(name)
+            }
+        } else {
+            list.removeAll { $0 == name }
+        }
+        trackedRegionsString = list.joined(separator: ";")
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,8 +75,6 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
 
                 Section(header: Text("Карта та Навігація")) {
-                    Toggle("Показувати радар тривоги", isOn: $showRadar)
-                    
                     Picker("Тип карти", selection: $mapType) {
                         Text("Стандартна").tag(0)
                         Text("Гібридна").tag(1)
@@ -65,7 +97,38 @@ struct SettingsView: View {
                 Section(header: Text("Premium Моніторинг")) {
                     Toggle("SirenUA Premium (Загрози)", isOn: $premiumEnabled)
                     if premiumEnabled {
-                        TextField("Сервер загроз", text: $threatServerURL)
+                        HStack {
+                            Text("Сервер:")
+                                .foregroundColor(.gray)
+                            TextField("http://localhost:8080", text: $threatServerURL)
+                                .autocorrectionDisabled()
+                        }
+                    }
+                }
+                .listRowBackground(Color.clear)
+
+                Section(header: Text("Області для попереджень")) {
+                    Toggle("Усі області", isOn: Binding(
+                        get: { allRegionsTracked },
+                        set: { trackingAll in
+                            allRegionsTracked = trackingAll
+                            if trackingAll {
+                                trackedRegionsString = allRegionsList.joined(separator: ";")
+                            } else {
+                                trackedRegionsString = ""
+                            }
+                        }
+                    ))
+                    
+                    if !allRegionsTracked {
+                        ForEach(allRegionsList, id: \.self) { region in
+                            Toggle(region, isOn: Binding(
+                                get: { isTracked(region) },
+                                set: { isOn in
+                                    setTracked(region, isOn: isOn)
+                                }
+                            ))
+                        }
                     }
                 }
                 .listRowBackground(Color.clear)

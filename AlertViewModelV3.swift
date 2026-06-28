@@ -30,14 +30,18 @@ class AlertViewModelV3: ObservableObject {
     }
     
     var isPremium: Bool {
-        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? true
     }
     
     var threatServerURL: String {
-        UserDefaults.standard.object(forKey: "threatServerURL") as? String ?? "http://localhost:8080"
+        UserDefaults.standard.object(forKey: "threatServerURL") as? String ?? "https://eb3e-185-94-219-55.ngrok-free.app"
     }
 
     init() {
+        // Примусово встановлюємо ngrok сервер для тестів на реальних телефонах
+        UserDefaults.standard.set("https://eb3e-185-94-219-55.ngrok-free.app", forKey: "threatServerURL")
+        UserDefaults.standard.set(true, forKey: "premiumEnabled")
+        
         initializeRegions()
         refreshAlerts()
         setupRefreshLoop()
@@ -106,9 +110,10 @@ class AlertViewModelV3: ObservableObject {
         threatRefreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
+                if self.isPremium {
+                    await self.fetchThreats()
+                }
                 try? await Task.sleep(for: .seconds(30))
-                guard self.isPremium else { continue }
-                await self.fetchThreats()
             }
         }
     }
@@ -142,6 +147,11 @@ class AlertViewModelV3: ObservableObject {
         isFetching = true
         isLoading = true
         errorMessage = nil
+
+        // Одразу оновлюємо і загрози при оновленні тривог
+        if isPremium {
+            await fetchThreats()
+        }
 
         do {
             let liveData = try await networkManager.fetchLiveAlerts()

@@ -83,13 +83,13 @@ struct ContentView: View {
                             .stroke(
                                 isLastAlerted ? 
                                     .red : 
-                                    .red.opacity(0.4), 
-                                lineWidth: isLastAlerted ? 2.5 : 1.5
+                                    .red.opacity(0.6), 
+                                lineWidth: isLastAlerted ? 3.0 : 2.0
                             )
                             .foregroundStyle(
                                 isLastAlerted ? 
-                                    (shouldBlink ? (isPulsating ? .red.opacity(0.55) : .red.opacity(0.15)) : .red.opacity(0.35)) : 
-                                    .red.opacity(0.20)
+                                    (shouldBlink ? (isPulsating ? .red.opacity(0.75) : .red.opacity(0.35)) : .red.opacity(0.55)) : 
+                                    .red.opacity(0.45)
                             )
                     }
                 }
@@ -103,14 +103,14 @@ struct ContentView: View {
                         let alert = viewModel.alerts.first(where: { $0.name == region.nameUK })
                         let level = alert?.threatLevel ?? "none"
                         
-                        let strokeColor: Color = (level == "high" || level == "critical") ? .red : .orange
+                        let strokeColor: Color = (level == "high" || level == "critical") ? .red : .yellow
                         let fillColor: Color = (level == "high" || level == "critical") ? 
-                            (isPulsating ? .red.opacity(0.45) : .red.opacity(0.15)) : 
-                            .orange.opacity(0.25)
+                            (isPulsating ? .red.opacity(0.55) : .red.opacity(0.25)) : 
+                            .yellow.opacity(0.40)
                         
                         ForEach(0..<region.polygons.count, id: \.self) { index in
                             MapPolygon(coordinates: region.polygons[index])
-                                .stroke(strokeColor, lineWidth: 2)
+                                .stroke(strokeColor, lineWidth: 2.5)
                                 .foregroundStyle(fillColor)
                         }
                     }
