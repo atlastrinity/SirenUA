@@ -10,6 +10,8 @@ struct SettingsView: View {
     @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
     @AppStorage("premiumEnabled") private var premiumEnabled = true
     @AppStorage("threatServerURL") private var threatServerURL = "https://eb3e-185-94-219-55.ngrok-free.app"
+    @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
+    @AppStorage("premiumUseVoiceAnnouncements") private var premiumUseVoiceAnnouncements = true
     @AppStorage("allRegionsTracked") private var allRegionsTracked = true
     @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
 
@@ -97,6 +99,9 @@ struct SettingsView: View {
                 Section(header: Text("Premium Моніторинг")) {
                     Toggle("SirenUA Premium (Загрози)", isOn: $premiumEnabled)
                     if premiumEnabled {
+                        Toggle("Деталізація сповіщень", isOn: $premiumDetailedNotifications)
+                        Toggle("Голосове озвучення (TTS)", isOn: $premiumUseVoiceAnnouncements)
+                        
                         HStack {
                             Text("Сервер:")
                                 .foregroundColor(.gray)

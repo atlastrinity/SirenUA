@@ -19,6 +19,7 @@ class AlertViewModelV3: ObservableObject {
     private var refreshTask: Task<Void, Never>?
     private var threatRefreshTask: Task<Void, Never>?
     private var isFirstFetch: Bool = true
+    private var isFirstThreatFetch: Bool = true
     private var isFetching: Bool = false
 
     private var autoRefreshEnabled: Bool {
@@ -142,11 +143,17 @@ class AlertViewModelV3: ObservableObject {
             
             // Якщо з'явилася нова загроза і немає активної тривоги
             if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
-                let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                let speakMsg = "Увага! Загроза \(typeDesc) в \(regionName)!"
-                NotificationManager.shared.speakText(speakMsg)
+                if !isFirstThreatFetch {
+                    let useVoice = UserDefaults.standard.object(forKey: "premiumUseVoiceAnnouncements") as? Bool ?? true
+                    if useVoice {
+                        let typeDesc = getThreatTypeDescription(threat.type ?? "")
+                        let speakMsg = "Увага! Загроза \(typeDesc) в \(regionName)!"
+                        NotificationManager.shared.speakText(speakMsg)
+                    }
+                }
             }
         }
+        isFirstThreatFetch = false
     }
     
     private func getThreatTypeDescription(_ type: String) -> String {

@@ -57,13 +57,17 @@ class NotificationManager {
         guard notificationsEnabled else { return }
         guard shouldNotify(for: regionName) else { return }
         
-        // Озвучуємо подію голосом залежно від типу файлу
-        let isClear = filename.contains("vidbiy")
-        let speechMsg = isClear ? 
-            "Увага! Відбій повітряної тривоги в \(regionName)." : 
-            "Увага! Повітряна тривога в \(regionName). Прямуйте в укриття!"
+        let useVoice = UserDefaults.standard.object(forKey: "premiumUseVoiceAnnouncements") as? Bool ?? true
         
-        speakText(speechMsg)
+        if useVoice {
+            // Озвучуємо подію голосом залежно від типу файлу
+            let isClear = filename.contains("vidbiy")
+            let speechMsg = isClear ? 
+                "Увага! Відбій повітряної тривоги в \(regionName)." : 
+                "Увага! Повітряна тривога в \(regionName). Прямуйте в укриття!"
+            
+            speakText(speechMsg)
+        }
         
         // Відтворюємо звук у фоновому потоці
         DispatchQueue.global(qos: .userInitiated).async {

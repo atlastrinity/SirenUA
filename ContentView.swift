@@ -72,6 +72,27 @@ struct ContentView: View {
             // 1. ШАР КАРТИ
             Map(position: $cameraPosition, selection: $selectedShelter) {
                 
+                // Полігони областей з рівнем загрози (Premium)
+                ForEach(geoManager.regions.filter { region in
+                    guard let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }) else { return false }
+                    return !alert.isActive && alert.threatLevel != nil
+                }) { region in
+                    if let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }),
+                       let level = alert.threatLevel {
+                        
+                        let strokeColor: Color = (level == "high" || level == "critical") ? .red.opacity(0.8) : .yellow.opacity(0.8)
+                        let fillColor: Color = (level == "high" || level == "critical") ? 
+                            (isPulsating ? .red.opacity(0.55) : .red.opacity(0.25)) : 
+                            .yellow.opacity(0.40)
+                        
+                        ForEach(0..<region.mkPolygons.count, id: \.self) { index in
+                            MapPolygon(region.mkPolygons[index])
+                                .stroke(strokeColor, lineWidth: 1.0)
+                                .foregroundStyle(fillColor)
+                        }
+                    }
+                }
+
                 // Полігони областей з активною тривогою
                 ForEach(geoManager.regions.filter { region in 
                     viewModel.alerts.contains(where: { $0.name == region.nameUK && $0.isActive })
@@ -79,41 +100,17 @@ struct ContentView: View {
                     let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
                     let shouldBlink = isLastAlerted && shouldBlinkLastAlert
                     
-                    ForEach(0..<region.polygons.count, id: \.self) { index in
-                        MapPolygon(coordinates: region.polygons[index])
+                    ForEach(0..<region.mkPolygons.count, id: \.self) { index in
+                        MapPolygon(region.mkPolygons[index])
                             .stroke(
-                                isLastAlerted ? 
-                                    .red : 
-                                    .red.opacity(0.6), 
-                                lineWidth: isLastAlerted ? 3.0 : 2.0
+                                isLastAlerted ? .red : .red.opacity(0.8), 
+                                lineWidth: isLastAlerted ? 1.8 : 1.2
                             )
                             .foregroundStyle(
                                 isLastAlerted ? 
-                                    (shouldBlink ? (isPulsating ? .red.opacity(0.75) : .red.opacity(0.35)) : .red.opacity(0.55)) : 
-                                    .red.opacity(0.45)
+                                    (shouldBlink ? (isPulsating ? .red.opacity(0.60) : .red.opacity(0.25)) : .red.opacity(0.45)) : 
+                                    .red.opacity(0.35)
                             )
-                    }
-                }
-
-                // Полігони областей з рівнем загрози (Premium)
-                if viewModel.isPremium {
-                    ForEach(geoManager.regions.filter { region in
-                        guard let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }) else { return false }
-                        return !alert.isActive && alert.threatLevel != nil
-                    }) { region in
-                        let alert = viewModel.alerts.first(where: { $0.name == region.nameUK })
-                        let level = alert?.threatLevel ?? "none"
-                        
-                        let strokeColor: Color = (level == "high" || level == "critical") ? .red : .yellow
-                        let fillColor: Color = (level == "high" || level == "critical") ? 
-                            (isPulsating ? .red.opacity(0.65) : .red.opacity(0.35)) : 
-                            .yellow.opacity(0.60)
-                        
-                        ForEach(0..<region.polygons.count, id: \.self) { index in
-                            MapPolygon(coordinates: region.polygons[index])
-                                .stroke(strokeColor, lineWidth: 3.5)
-                                .foregroundStyle(fillColor)
-                        }
                     }
                 }
                 
@@ -172,15 +169,37 @@ struct ContentView: View {
                 }
             }
             
-            if viewModel.activeAlerts > 0 {
-                RadialGradient(
-                    gradient: Gradient(colors: [.clear, .clear, .red.opacity(0.3), .red.opacity(0.8)]),
-                    center: .center,
-                    startRadius: 150,
-                    endRadius: 500
-                )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            // Динамічна верхня та нижня підсвітка екрану (червона - тривога, жовта - загроза)
+            Group {
+                let hasAlerts = viewModel.activeAlerts > 0
+                let hasThreats = viewModel.alerts.contains { !($0.isActive) && $0.threatLevel != nil }
+                
+                if hasAlerts || hasThreats {
+                    let glowColor = hasAlerts ? Color.red : Color.yellow
+                    
+                    VStack {
+                        // Верхнє світіння
+                        LinearGradient(
+                            colors: [glowColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 140)
+                        .ignoresSafeArea()
+                        
+                        Spacer()
+                        
+                        // Нижнє світіння
+                        LinearGradient(
+                            colors: [.clear, glowColor.opacity(hasAlerts ? 0.40 : 0.25)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 180)
+                        .ignoresSafeArea()
+                    }
+                    .allowsHitTesting(false)
+                }
             }
             
             // 2. ВЕРХНІЙ БАНЕР ТА КНОПКИ КЕРУВАННЯ КАМЕРОЮ
@@ -330,8 +349,6 @@ struct ContentView: View {
             }
             .padding(.bottom, 20)
             
-
-            
             if showHistory {
                 AlertListOverlayView(title: "ІСТОРІЯ ТРИВОГ", color: .yellow, alerts: viewModel.alerts, filterActiveOnly: false) {
                     showHistory = false
@@ -373,6 +390,7 @@ struct ContentView: View {
                         calculateRoute(to: shelter)
                     }, onStartNavigation: {
                         isNavigating = true
+                        // Тут ми зберігаємо selectedShelter = nil, але route НЕ зникає через оновлену логіку onChange
                         selectedShelter = nil
                         
                         if route != nil {
@@ -409,8 +427,11 @@ struct ContentView: View {
         .onChange(of: viewModel.lastAlertedRegionName) {
             viewModel.markLastAlertAsViewed()
         }
-        .onChange(of: selectedShelter) {
-            route = nil
+        .onChange(of: selectedShelter) { oldValue, newValue in
+            // Очищуємо маршрут лише тоді, коли користувач дійсно скасував вибір сховища вручну
+            if newValue == nil && !isNavigating {
+                route = nil
+            }
         }
         .onAppear {
             locationManager.requestPermission()

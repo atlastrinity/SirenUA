@@ -49,13 +49,16 @@ class GeoJSONManager: ObservableObject {
                     
                     // Extract geometry (can be Polygon or MultiPolygon)
                     var featurePolygons: [[CLLocationCoordinate2D]] = []
+                    var featureMKPolygons: [MKPolygon] = []
                     
                     for geometry in feature.geometry {
                         if let polygon = geometry as? MKPolygon {
                             featurePolygons.append(extractCoordinates(from: polygon))
+                            featureMKPolygons.append(polygon)
                         } else if let multiPolygon = geometry as? MKMultiPolygon {
                             for polygon in multiPolygon.polygons {
                                 featurePolygons.append(extractCoordinates(from: polygon))
+                                featureMKPolygons.append(polygon)
                             }
                         }
                     }
@@ -74,7 +77,7 @@ class GeoJSONManager: ObservableObject {
                         }
                     }
                     
-                    let region = RegionPolygon(name: nameEn, nameUK: nameUk, polygons: featurePolygons, center: centerCoord)
+                    let region = RegionPolygon(name: nameEn, nameUK: nameUk, polygons: featurePolygons, mkPolygons: featureMKPolygons, center: centerCoord)
                     parsedRegions.append(region)
                 }
             }
