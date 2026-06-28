@@ -51,6 +51,7 @@ struct ContentView: View {
     @State private var showActiveAlerts = false
     @State private var isNavigating = false
     @State private var isRoutingToShelter = false
+    @State private var selectedRegionForDetail: AlertRegion? = nil
     
     // Стан для знайденого укриття та маршруту
     @State private var foundShelter: MKMapItem? = nil
@@ -105,12 +106,12 @@ struct ContentView: View {
                         
                         let strokeColor: Color = (level == "high" || level == "critical") ? .red : .yellow
                         let fillColor: Color = (level == "high" || level == "critical") ? 
-                            (isPulsating ? .red.opacity(0.55) : .red.opacity(0.25)) : 
-                            .yellow.opacity(0.40)
+                            (isPulsating ? .red.opacity(0.65) : .red.opacity(0.35)) : 
+                            .yellow.opacity(0.60)
                         
                         ForEach(0..<region.polygons.count, id: \.self) { index in
                             MapPolygon(coordinates: region.polygons[index])
-                                .stroke(strokeColor, lineWidth: 2.5)
+                                .stroke(strokeColor, lineWidth: 3.5)
                                 .foregroundStyle(fillColor)
                         }
                     }
@@ -126,6 +127,29 @@ struct ContentView: View {
                         .overlay(Circle().stroke(Color.white, lineWidth: 2))
                         .shadow(radius: 5)
                 }
+                
+                // Інтерактивні маркери центрів областей (для кліку та перегляду деталей тривоги/загрози)
+                ForEach(geoManager.regions) { region in
+                    if let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }),
+                       (alert.isActive || (viewModel.isPremium && alert.threatLevel != nil)) {
+                        
+                        Annotation(region.nameUK, coordinate: region.center) {
+                            Button(action: {
+                                selectedRegionForDetail = alert
+                            }) {
+                                Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : "bell.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(6)
+                                    .background(alert.isActive ? Color.red : Color.yellow)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                                    .shadow(radius: 4)
+                            }
+                        }
+                    }
+                }
+                
                 // Усі знайдені укриття в радіусі
                 ForEach(allFoundShelters, id: \.self) { shelter in
                     Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
@@ -142,6 +166,11 @@ struct ContentView: View {
             .mapStyle(selectedMapStyle)
             .colorScheme(.dark)
             .ignoresSafeArea()
+            .sheet(item: $selectedRegionForDetail) { region in
+                if #available(iOS 17.0, *) {
+                    AlertRegionDetailView(region: region)
+                }
+            }
             
             if viewModel.activeAlerts > 0 {
                 RadialGradient(

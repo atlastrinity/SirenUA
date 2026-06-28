@@ -6,6 +6,40 @@ struct AlertRegionDetailView: View {
     let region: AlertRegion
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmed = false
+    
+    private var isThreatActive: Bool {
+        !region.isActive && region.threatLevel != nil
+    }
+    
+    private var statusTitle: String {
+        if region.isActive {
+            return "АКТИВНА ТРИВОГА"
+        } else if isThreatActive {
+            return "Є ЗАГРОЗА (PREMIUM)"
+        } else {
+            return "ТРИВОГУ СКАСОВАНО"
+        }
+    }
+    
+    private var themeColor: Color {
+        if region.isActive {
+            return .red
+        } else if isThreatActive {
+            return .yellow
+        } else {
+            return .green
+        }
+    }
+    
+    private var themeGradient: LinearGradient {
+        if region.isActive {
+            return LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing)
+        } else if isThreatActive {
+            return LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing)
+        } else {
+            return LinearGradient(colors: [.green, .blue], startPoint: .leading, endPoint: .trailing)
+        }
+    }
 
     var body: some View {
         NavigationView {
@@ -14,38 +48,18 @@ struct AlertRegionDetailView: View {
                     // Status indicator with glassmorphism
                     HStack {
                         Circle()
-                            .fill(region.isActive ? Color.red : Color.green)
+                            .fill(themeColor)
                             .frame(width: 20, height: 20)
                             .animation(.easeInOut(duration: 0.3), value: region.isActive)
 
-                        Text(region.isActive ? "ACTIVE ALERT" : "ALERT ENDED")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: region.isActive ? [.red, .orange] : [.green, .blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                        Text(statusTitle)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundStyle(themeGradient)
 
                         Spacer()
 
                         // Action buttons
                         HStack(spacing: 12) {
-                            // Confirm button
-                            Button(action: {
-                                isConfirmed = true
-                            }) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundStyle(.green)
-                                    .frame(width: 44, height: 44)
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(14)
-                                    .shadow(radius: 8)
-                            }
-                            .buttonStyle(.plain)
-
                             // Close button
                             Button(action: {
                                 dismiss()
@@ -81,24 +95,19 @@ struct AlertRegionDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "location.fill")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(themeColor)
                                 .font(.system(size: 14))
-                            Text("Region")
+                            Text("Область")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
 
                         Text(region.name)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: region.isActive ? [.red, .orange] : [.green, .blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .foregroundStyle(themeGradient)
                     }
                     .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.ultraThinMaterial)
                     .cornerRadius(20)
                     .shadow(radius: 15)
@@ -114,70 +123,77 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Alert level badge
+                    // Alert/Threat level badge
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "info.circle.fill")
-                                .foregroundStyle(.purple)
+                                .foregroundStyle(themeColor)
                                 .font(.system(size: 14))
-                            Text("Alert Level")
+                            Text(isThreatActive ? "Рівень загрози" : "Рівень тривоги")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text("Level \(region.level)")
+                        Text(isThreatActive ? "Загроза: \(region.threatLevel?.uppercased() ?? "LOW")" : "Рівень \(region.level)")
                             .font(.system(size: 16, weight: .bold))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(
                                 LinearGradient(
-                                    colors: region.isActive ? [.red.opacity(0.2), .orange.opacity(0.2)] : [.green.opacity(0.2), .blue.opacity(0.2)],
+                                    colors: [themeColor.opacity(0.2), themeColor.opacity(0.1)],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
-                            .foregroundStyle(region.isActive ? .red : .green)
+                            .foregroundStyle(themeColor)
                             .cornerRadius(12)
                     }
                     .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.ultraThinMaterial)
                     .cornerRadius(20)
                     .shadow(radius: 15)
 
-                    // Last updated
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "clock.fill")
-                                .foregroundStyle(.orange)
-                                .font(.system(size: 14))
-                            Text("Last Updated")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.secondary)
+                    // Threat Detail (from Telegram bot)
+                    if let detail = region.threatDetail {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "bell.badge.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Що відомо (Telegram)")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text(detail)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.primary)
+                                .lineSpacing(4)
                         }
-
-                        Text(formattedDate)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(.primary)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .shadow(radius: 15)
                     }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(20)
-                    .shadow(radius: 15)
 
-                    // Warning message (if active)
-                    if region.isActive && !isConfirmed {
+                    // Warning message (if active alert or active threat)
+                    if (region.isActive || isThreatActive) && !isConfirmed {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack(spacing: 12) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 28))
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(themeColor)
 
-                                Text("⚠️ Warning")
+                                Text(region.isActive ? "⚠️ Тривога!" : "⚠️ Попередження")
                                     .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(themeColor)
                             }
 
-                            Text("Air raid alert is currently active in this region. Seek shelter immediately.")
+                            Text(region.isActive ? 
+                                 "У цій області оголошено повітряну тривогу. Негайно прямуйте в укриття!" : 
+                                 "Виявлено загрозу початку повітряної тривоги (пуск ракет/рух БПЛА). Будьте готові прослідувати в безпечне місце.")
                                 .font(.system(size: 15))
                                 .foregroundStyle(.secondary)
                                 .lineSpacing(4)
@@ -187,51 +203,26 @@ struct AlertRegionDetailView: View {
                                 Button(action: {
                                     isConfirmed = true
                                 }) {
-                                    Text("I've Taken Shelter")
+                                    Text(region.isActive ? "Я в безпеці" : "Зрозуміло")
                                         .font(.system(size: 14, weight: .semibold))
                                         .frame(maxWidth: .infinity)
                                         .padding()
-                                        .background(Color.red)
-                                        .foregroundStyle(.white)
-                                        .cornerRadius(12)
-                                }
-
-                                Button(action: {
-                                    // Share location
-                                }) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.system(size: 16))
-                                        .frame(width: 50, height: 50)
-                                        .background(.ultraThinMaterial)
+                                        .background(themeColor)
+                                        .foregroundStyle(.black)
                                         .cornerRadius(12)
                                 }
                             }
                         }
                         .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [.red.opacity(0.1), .orange.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .background(themeColor.opacity(0.1))
                         .cornerRadius(20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                .stroke(themeColor.opacity(0.3), lineWidth: 1)
                         )
                     }
                 }
                 .padding()
-            }
-            .navigationTitle("Alert Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
             }
         }
     }

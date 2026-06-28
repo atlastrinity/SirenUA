@@ -7,6 +7,8 @@ struct RegionPolygon: Identifiable {
     let name: String
     let nameUK: String
     let polygons: [[CLLocationCoordinate2D]]
+    let mkPolygons: [MKPolygon]  // Зберігаємо оригінальні MKPolygon для надійного рендерингу
+    let center: CLLocationCoordinate2D
 }
 
 @available(iOS 17.0, *)
@@ -57,8 +59,22 @@ class GeoJSONManager: ObservableObject {
                             }
                         }
                     }
+                    // Розраховуємо центр для розміщення маркера
+                    var centerCoord = CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656)
+                    let flatCoords = featurePolygons.flatMap { $0 }
+                    if !flatCoords.isEmpty {
+                        let lats = flatCoords.map { $0.latitude }
+                        let lons = flatCoords.map { $0.longitude }
+                        if let minLat = lats.min(), let maxLat = lats.max(),
+                           let minLon = lons.min(), let maxLon = lons.max() {
+                            centerCoord = CLLocationCoordinate2D(
+                                latitude: (minLat + maxLat) / 2.0,
+                                longitude: (minLon + maxLon) / 2.0
+                            )
+                        }
+                    }
                     
-                    let region = RegionPolygon(name: nameEn, nameUK: nameUk, polygons: featurePolygons)
+                    let region = RegionPolygon(name: nameEn, nameUK: nameUk, polygons: featurePolygons, center: centerCoord)
                     parsedRegions.append(region)
                 }
             }

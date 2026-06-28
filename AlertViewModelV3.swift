@@ -132,9 +132,33 @@ class AlertViewModelV3: ObservableObject {
         for index in alerts.indices {
             let regionName = alerts[index].name
             guard let threat = threatData[regionName] else { continue }
-            alerts[index].threatLevel = threat.level == "none" ? nil : threat.level
+            
+            let oldThreatLevel = alerts[index].threatLevel
+            let newThreatLevel = threat.level == "none" ? nil : threat.level
+            
+            alerts[index].threatLevel = newThreatLevel
             alerts[index].threatType = threat.type
             alerts[index].threatDetail = threat.detail
+            
+            // Якщо з'явилася нова загроза і немає активної тривоги
+            if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
+                let typeDesc = getThreatTypeDescription(threat.type ?? "")
+                let speakMsg = "Увага! Загроза \(typeDesc) в \(regionName)!"
+                NotificationManager.shared.speakText(speakMsg)
+            }
+        }
+    }
+    
+    private func getThreatTypeDescription(_ type: String) -> String {
+        switch type {
+        case "mig31k":
+            return "атаки аеробалістичними ракетами Кинджал"
+        case "shahed":
+            return "ударних безпілотників Шахед"
+        case "cruise_missile":
+            return "крилатих ракет"
+        default:
+            return "повітряної атаки"
         }
     }
     
