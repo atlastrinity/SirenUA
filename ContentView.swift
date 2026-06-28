@@ -68,7 +68,26 @@ struct ContentView: View {
     )
     
     var body: some View {
-        ZStack(alignment: .top) {
+        // Розраховуємо персоналізовану тему на основі обраних користувачем областей
+        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
+        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
+        let trackedList = trackedString.components(separatedBy: ";")
+        
+        let isRegionFiltered: (String) -> Bool = { name in
+            allTracked || trackedList.contains(name)
+        }
+        
+        let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
+        let activeTrackedThreats = viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
+        
+        let hasAlerts = !activeTrackedAlerts.isEmpty
+        let hasThreats = !activeTrackedThreats.isEmpty
+        
+        let themeColor: Color = hasAlerts ? .red : (hasThreats ? .yellow : .green)
+        let themeActiveCount: Int = hasAlerts ? activeTrackedAlerts.count : (hasThreats ? activeTrackedThreats.count : 0)
+        let themeStatusText: String = hasAlerts ? "ТРИВОГА" : (hasThreats ? "ЗАГРОЗА" : "СПОКІЙНО")
+
+        return ZStack(alignment: .top) {
             // 1. ШАР КАРТИ
             Map(position: $cameraPosition, selection: $selectedShelter) {
                 
@@ -171,17 +190,12 @@ struct ContentView: View {
             
             // Динамічна верхня та нижня підсвітка екрану (червона - тривога, жовта - загроза)
             Group {
-                let hasAlerts = viewModel.activeAlerts > 0
-                let hasThreats = viewModel.alerts.contains { !($0.isActive) && $0.threatLevel != nil }
-                
                 if hasAlerts || hasThreats {
-                    let glowColor = hasAlerts ? Color.red : Color.yellow
-                    
                     ZStack {
                         // Верхнє світіння (ідеально притиснуте до верху)
                         VStack {
                             LinearGradient(
-                                colors: [glowColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
+                                colors: [themeColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -193,7 +207,7 @@ struct ContentView: View {
                         VStack {
                             Spacer()
                             LinearGradient(
-                                colors: [.clear, glowColor.opacity(hasAlerts ? 0.40 : 0.25)],
+                                colors: [.clear, themeColor.opacity(hasAlerts ? 0.40 : 0.25)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -206,10 +220,12 @@ struct ContentView: View {
             }
             
             // 2. ВЕРХНІЙ БАНЕР ТА КНОПКИ КЕРУВАННЯ КАМЕРОЮ
+
             HStack(alignment: .center) {
                 // Ліва кнопка: Показати всі тривоги (центрування на Україну)
                 Button(action: {
-                    let activeNames = Set(viewModel.alerts.filter { $0.isActive }.map { $0.name })
+                    let relevantAlerts = activeTrackedAlerts + activeTrackedThreats
+                    let activeNames = Set(relevantAlerts.map { $0.name })
                     let activeRegions = geoManager.regions.filter { activeNames.contains($0.nameUK) }
                     
                     var allCoordinates: [CLLocationCoordinate2D] = []
@@ -220,7 +236,7 @@ struct ContentView: View {
                     }
                     
                     if allCoordinates.isEmpty {
-                        allCoordinates = viewModel.alerts.filter { $0.isActive }.map { $0.coordinate }
+                        allCoordinates = relevantAlerts.map { $0.coordinate }
                     }
                     
                     if !allCoordinates.isEmpty {
@@ -261,12 +277,12 @@ struct ContentView: View {
                 }) {
                     Image(systemName: "map.fill")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.red)
+                        .foregroundColor(themeColor)
                         .padding(10)
-                        .background(Color.red.opacity(0.15))
+                        .background(themeColor.opacity(0.15))
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.red.opacity(0.4), lineWidth: 1))
+                        .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
                         .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                 }
                 .padding(.leading, 16)
@@ -274,12 +290,17 @@ struct ContentView: View {
                 Spacer()
                 
                 // Центр: Баннер тривог
-                TopAlertBannerV4(activeAlerts: viewModel.activeAlerts, isLoading: viewModel.isLoading)
-                    .onTapGesture {
-                        if viewModel.activeAlerts > 0 {
-                            showActiveAlerts = true
-                        }
+                TopAlertBannerV4(
+                    statusColor: themeColor,
+                    statusText: themeStatusText,
+                    activeCount: themeActiveCount,
+                    isLoading: viewModel.isLoading
+                )
+                .onTapGesture {
+                    if themeActiveCount > 0 {
+                        showActiveAlerts = true
                     }
+                }
                 
                 Spacer()
                 
@@ -297,12 +318,12 @@ struct ContentView: View {
                 }) {
                     Image(systemName: "location.fill")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.red)
+                        .foregroundColor(themeColor)
                         .padding(10)
-                        .background(Color.red.opacity(0.15))
+                        .background(themeColor.opacity(0.15))
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.red.opacity(0.4), lineWidth: 1))
+                        .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
                         .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                 }
                 .padding(.trailing, 16)
@@ -588,25 +609,23 @@ struct AlertPinViewV4: View {
 // MARK: - Верхній банер
 @available(iOS 17.0, *)
 struct TopAlertBannerV4: View {
-    let activeAlerts: Int
+    let statusColor: Color
+    let statusText: String
+    let activeCount: Int
     let isLoading: Bool
-
-    private var statusColor: Color {
-        activeAlerts > 0 ? .red : .green
-    }
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: activeAlerts > 0 ? "bell.badge.fill" : "checkmark.shield.fill")
+            Image(systemName: statusColor == .red ? "bell.badge.fill" : (statusColor == .yellow ? "exclamationmark.triangle.fill" : "checkmark.shield.fill"))
                 .foregroundColor(statusColor)
                 .font(.title2)
-                .symbolEffect(.bounce, options: .repeating, value: activeAlerts)
+                .symbolEffect(.bounce, options: .repeating, value: activeCount)
             
             VStack(spacing: 2) {
-                Text(activeAlerts > 0 ? "ТРИВОГА" : "СПОКІЙНО")
+                Text(statusText)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(statusColor)
-                Text(isLoading ? "ОНОВЛЕННЯ" : "\(activeAlerts) АКТИВНИХ")
+                Text(isLoading ? "ОНОВЛЕННЯ" : "\(activeCount) АКТИВНИХ")
                     .font(.system(size: 18, weight: .black, design: .monospaced))
                     .foregroundColor(statusColor)
             }
@@ -618,7 +637,7 @@ struct TopAlertBannerV4: View {
         .overlay(
             Capsule().stroke(statusColor.opacity(0.8), lineWidth: 1.5)
         )
-        .shadow(color: statusColor.opacity(0.6), radius: 15, x: 0, y: 5)
+        .shadow(color: statusColor.opacity(0.4), radius: 15, x: 0, y: 5)
     }
 }
 
@@ -738,17 +757,16 @@ struct BottomDashboardV4: View {
             }
         }
         .padding(20)
-        // Ефект "Матового скла"
+        // Ефект надпрозорого преміального скла (Glassmorphism)
         .background(.ultraThinMaterial)
-        // Більш темний фон для контрасту
-        .background(Color.black.opacity(0.6))
+        .background(Color.white.opacity(0.04))
         .cornerRadius(28)
         .overlay(
             RoundedRectangle(cornerRadius: 28)
-                .stroke(statusColor.opacity(0.4), lineWidth: 1)
+                .stroke(Color.white.opacity(0.18), lineWidth: 0.8)
         )
         .padding(.horizontal, 16)
-        .shadow(color: statusColor.opacity(0.3), radius: 20, x: 0, y: 10)
+        .shadow(color: .black.opacity(0.25), radius: 15, x: 0, y: 8)
     }
 }
 

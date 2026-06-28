@@ -22,12 +22,14 @@ targets:
       - path: LocationManager.swift
       - path: siren.wav
       - path: vidbiy.wav
+      - path: Assets.xcassets
     settings:
       base:
         INFOPLIST_FILE: Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.sirenua.SirenUA
         SWIFT_VERSION: 5.0
         DEVELOPMENT_TEAM: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   SirenUATests:
     type: bundle.unit-test
     platform: iOS

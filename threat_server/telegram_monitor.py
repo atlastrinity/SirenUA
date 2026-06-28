@@ -17,6 +17,13 @@ TELEGRAM_API_ID = 20294647
 TELEGRAM_API_HASH = "454a9c055308a8d118608bb6b032bc30"
 SESSION_NAME = "sirenua_bot_session"
 
+# Цільові канали для автоматичного прослуховування
+TARGET_CHANNELS = [
+    "kpszsu",            # Повітряні Сили ЗСУ
+    "monitor",           # Найшвидша аналітика радарів
+    "vanek_nikolaev"     # Николаевский Ванек
+]
+
 # Ключові слова загроз
 CRITICAL_KEYWORDS = [r"масований\s*(ракетний\s*)?удар", r"масований\s*обстріл", r"комбінований\s*удар"]
 HIGH_KEYWORDS = [
@@ -96,9 +103,6 @@ class TelegramThreatMonitor:
             return
 
         text = message.text
-        # Додамо авто-відповідь у приватних чатах для підтвердження отримання
-        if message.is_private:
-            await message.reply("Отримав повідомлення, аналізую загрози...")
 
         # Перевірка на зняття загрози
         is_clear = any(re.search(kw, text, re.IGNORECASE) for kw in CLEAR_KEYWORDS)
@@ -115,15 +119,11 @@ class TelegramThreatMonitor:
                 self.threat_manager.clear_all()
                 msg = "✅ Всі загрози скасовано (відбій тривог)"
             
-            if message.is_private:
-                await message.reply(msg)
             print(msg)
             return
 
         level = self._detect_threat_level(text)
         if not level:
-            if message.is_private:
-                await message.reply("Загрози не виявлено в тексті.")
             return
 
         threat_type = self._detect_threat_type(text)
@@ -133,8 +133,6 @@ class TelegramThreatMonitor:
             regions = list(ALL_REGIONS)
             
         if not regions:
-            if message.is_private:
-                await message.reply("Виявлено загрозу, але не вдалося визначити область.")
             return
 
         detail = f"{THREAT_TYPES.get(threat_type, 'Загроза')}: {text[:80]}"
@@ -143,8 +141,6 @@ class TelegramThreatMonitor:
             self._schedule_auto_clear(region)
 
         msg = f"🔴 Рівень {level.upper()} встановлено для {len(regions)} областей."
-        if message.is_private:
-            await message.reply(msg)
         print(msg)
 
     def _detect_threat_level(self, text: str) -> Optional[str]:

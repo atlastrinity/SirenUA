@@ -10,6 +10,7 @@
 		008031CE6543A9BD46E4676D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90759A30093B1A3F204305BA /* LocationManager.swift */; };
 		0390D5CEF00DCC7E481ED37F /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0836417699F5DB11CE053C89 /* GeoJSONManager.swift */; };
 		3C5F4758D1AAD3C01C0CAC1A /* SirenUAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */; };
+		3F3AE6245F4AAE5CC433F5C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 64439F1DEB98EFDE61659332 /* Assets.xcassets */; };
 		4150606EFEFAE1B048C89808 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57524983A54543295295769B /* CriticalAlertManager.swift */; };
 		5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */; };
 		566BF718898919AD76FE4389 /* AlertViewModelV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */; };
@@ -44,6 +45,7 @@
 		36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegion.swift; sourceTree = "<group>"; };
 		5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUATests.swift; sourceTree = "<group>"; };
 		57524983A54543295295769B /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
+		64439F1DEB98EFDE61659332 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6C5764D540766941105F61A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		85BFD526A65A3AB5EF3299A9 /* SirenUAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUAApp.swift; sourceTree = "<group>"; };
 		8945D4CCA8BA4159E25B00F8 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				36A1181FDA5F6B4701C368E1 /* AlertRegion.swift */,
 				1B4319BA4498694778F02674 /* AlertRegionDetailView.swift */,
 				3235BE06D221CF52D9C24714 /* AlertViewModelV3.swift */,
+				64439F1DEB98EFDE61659332 /* Assets.xcassets */,
 				6C5764D540766941105F61A3 /* ContentView.swift */,
 				57524983A54543295295769B /* CriticalAlertManager.swift */,
 				DE0AC254823F2504EDD23C4E /* ErrorView.swift */,
@@ -144,7 +147,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2650;
 			};
 			buildConfigurationList = 539069778AA97DABE169DFC8 /* Build configuration list for PBXProject "SirenUA" */;
 			developmentRegion = en;
@@ -171,6 +174,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F3AE6245F4AAE5CC433F5C7 /* Assets.xcassets in Resources */,
 				D7E64366F4E51B80F964B777 /* siren.wav in Resources */,
 				7BE902717F6C080990D8EC93 /* ukraine_regions.geojson in Resources */,
 				B4C35B34E77792CFF071107F /* vidbiy.wav in Resources */,
@@ -222,7 +226,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -279,7 +282,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -331,6 +333,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -350,6 +353,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -393,6 +397,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -405,6 +410,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
