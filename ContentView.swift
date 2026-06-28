@@ -80,14 +80,14 @@ struct ContentView: View {
                     if let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }),
                        let level = alert.threatLevel {
                         
-                        let strokeColor: Color = (level == "high" || level == "critical") ? .red.opacity(0.8) : .yellow.opacity(0.8)
+                        let strokeColor: Color = (level == "high" || level == "critical") ? .red.opacity(0.5) : .yellow.opacity(0.5)
                         let fillColor: Color = (level == "high" || level == "critical") ? 
-                            (isPulsating ? .red.opacity(0.55) : .red.opacity(0.25)) : 
-                            .yellow.opacity(0.40)
+                            (isPulsating ? .red.opacity(0.50) : .red.opacity(0.20)) : 
+                            .yellow.opacity(0.35)
                         
                         ForEach(0..<region.mkPolygons.count, id: \.self) { index in
                             MapPolygon(region.mkPolygons[index])
-                                .stroke(strokeColor, lineWidth: 1.0)
+                                .stroke(strokeColor, lineWidth: 0.5)
                                 .foregroundStyle(fillColor)
                         }
                     }
@@ -103,8 +103,8 @@ struct ContentView: View {
                     ForEach(0..<region.mkPolygons.count, id: \.self) { index in
                         MapPolygon(region.mkPolygons[index])
                             .stroke(
-                                isLastAlerted ? .red : .red.opacity(0.8), 
-                                lineWidth: isLastAlerted ? 1.8 : 1.2
+                                .red.opacity(0.6), 
+                                lineWidth: 0.7
                             )
                             .foregroundStyle(
                                 isLastAlerted ? 
@@ -177,27 +177,30 @@ struct ContentView: View {
                 if hasAlerts || hasThreats {
                     let glowColor = hasAlerts ? Color.red : Color.yellow
                     
-                    VStack {
-                        // Верхнє світіння
-                        LinearGradient(
-                            colors: [glowColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 140)
-                        .ignoresSafeArea()
+                    ZStack {
+                        // Верхнє світіння (ідеально притиснуте до верху)
+                        VStack {
+                            LinearGradient(
+                                colors: [glowColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 160)
+                            Spacer()
+                        }
                         
-                        Spacer()
-                        
-                        // Нижнє світіння
-                        LinearGradient(
-                            colors: [.clear, glowColor.opacity(hasAlerts ? 0.40 : 0.25)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 180)
-                        .ignoresSafeArea()
+                        // Нижнє світіння (ідеально притиснуте до низу)
+                        VStack {
+                            Spacer()
+                            LinearGradient(
+                                colors: [.clear, glowColor.opacity(hasAlerts ? 0.40 : 0.25)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 200)
+                        }
                     }
+                    .ignoresSafeArea()
                     .allowsHitTesting(false)
                 }
             }
