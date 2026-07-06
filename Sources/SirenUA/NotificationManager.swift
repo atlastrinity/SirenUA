@@ -26,9 +26,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     private var notificationQueue: [PendingNotification] = []
     private var isProcessingQueue = false
 
-    /// Sound throttle: prevent the same sound from overlapping within 8 seconds
-    private var lastPlayedTimes: [String: Date] = [:]
-    private static let soundThrottle: TimeInterval = 8.0
+    /// Sound throttle: prevent notification sounds from overlapping within 20 seconds globally
+    private var lastPlayedTime: Date?
+    private static let soundThrottle: TimeInterval = 20.0
 
     // MARK: - Firebase Topic Mapping
 
@@ -87,7 +87,22 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound, .badge, .list])
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                completionHandler([.banner, .sound, .badge, .list])
+                return
+            }
+            let now = Date()
+            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < Self.soundThrottle {
+                notifLogger.debug("Foreground notification sound suppressed (within 20 seconds)")
+                completionHandler([.banner, .badge, .list])
+            } else {
+                if notification.request.content.sound != nil {
+                    self.lastPlayedTime = now
+                }
+                completionHandler([.banner, .sound, .badge, .list])
+            }
+        }
     }
 
     private var syncTask: Task<Void, Never>? = nil
@@ -161,10 +176,27 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         guard notificationsEnabled else { return }
         guard shouldNotify(for: regionName) else { return }
 
-        playSound(named: soundName, for: regionName)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let now = Date()
+            let playSoundForThis: Bool
+            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < Self.soundThrottle {
+                playSoundForThis = false
+                notifLogger.debug("Notification sound for \(regionName) throttled globally (within 20 seconds)")
+            } else {
+                playSoundForThis = true
+                self.lastPlayedTime = now
+            }
 
-        DispatchQueue.main.async {
-            self.notificationQueue.append(PendingNotification(title: title, body: body, soundName: soundName))
+            if playSoundForThis {
+                self.playSound(named: soundName, for: regionName)
+            }
+
+            self.notificationQueue.append(PendingNotification(
+                title: title,
+                body: body,
+                soundName: playSoundForThis ? soundName : ""
+            ))
             self.processQueue()
         }
     }
@@ -177,7 +209,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let content       = UNMutableNotificationContent()
         content.title     = item.title
         content.body      = item.body
-        content.sound     = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
+        if !item.soundName.isEmpty {
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
+        } else {
+            content.sound = nil
+        }
 
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
 
@@ -195,13 +231,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     private func playSound(named filename: String, for regionName: String) {
         guard notificationsEnabled, shouldNotify(for: regionName) else { return }
-
-        let now = Date()
-        if let last = lastPlayedTimes[filename], now.timeIntervalSince(last) < Self.soundThrottle {
-            notifLogger.debug("Sound \(filename) throttled")
-            return
-        }
-        lastPlayedTimes[filename] = now
 
         DispatchQueue.global(qos: .userInitiated).async {
             guard let path = Bundle.main.path(forResource: filename, ofType: nil) else {
