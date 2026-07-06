@@ -107,7 +107,8 @@ class TelegramThreatMonitor:
                         text = text_div.get_text()
                         
                         # Logging every single read message to console for transparency
-                        print(f"📖 [{channel}] Отримано нове повідомлення (ID: {current_id}): \"{text.strip().replace('\n', ' ')[:80]}...\"")
+                        short_text = text.strip().replace('\n', ' ')[:80]
+                        print(f"📖 [{channel}] Отримано нове повідомлення (ID: {current_id}): \"{short_text}...\"")
                         await self._process_message(text, channel)
         except Exception as e:
             # Silent fallback for network request errors
@@ -147,12 +148,50 @@ class TelegramThreatMonitor:
             print(f"💡 [{channel}] Рівень {level.upper()} розпізнано, але не знайдено відповідних областей")
             return
 
-        detail = f"{THREAT_TYPES.get(threat_type, 'Загроза')}: {text.strip().replace('\n', ' ')[:80]}..."
         for region in regions:
+            detail = self._build_region_detail(text, region, threat_type)
             self.threat_manager.set_threat(region, level, threat_type, detail)
             self._schedule_auto_clear(region)
 
         print(f"🔴 [{channel}] Рівень {level.upper()} встановлено для {len(regions)} областей: {', '.join(regions)}")
+
+    def _build_region_detail(self, text: str, region: str, threat_type: str) -> str:
+        prefix = THREAT_TYPES.get(threat_type, "Загроза")
+        keywords = ALL_REGIONS.get(region, {}).get("keywords", [])
+        
+        # Clean multiple spaces
+        text = re.sub(r' +', ' ', text).strip()
+        
+        # Split text into lines
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        relevant_parts = []
+        
+        for line in lines:
+            if any(re.search(kw, line, re.IGNORECASE) for kw in keywords):
+                relevant_parts.append(line)
+            else:
+                # Split line into sentences to find local matches
+                sentences = re.split(r'(?<=[.!?])\s+', line)
+                for sentence in sentences:
+                    if any(re.search(kw, sentence, re.IGNORECASE) for kw in keywords):
+                        relevant_parts.append(sentence)
+                        
+        if relevant_parts:
+            # Deduplicate parts
+            unique_parts = []
+            for part in relevant_parts:
+                if part not in unique_parts:
+                    unique_parts.append(part)
+            content = " ".join(unique_parts)
+            if len(content) > 160:
+                content = content[:157] + "..."
+            return f"{prefix}: {content}"
+            
+        # Fallback for generic/global threats (e.g. Mig-31K takeoff)
+        cleaned_text = text.replace('\n', ' ')
+        if len(cleaned_text) > 120:
+            cleaned_text = cleaned_text[:117] + "..."
+        return f"{prefix}: {cleaned_text}"
 
     def _detect_threat_level(self, text: str):
         if any(re.search(kw, text, re.IGNORECASE) for kw in CRITICAL_KEYWORDS):
