@@ -565,7 +565,7 @@ struct ServerStatusRow: View {
                 .background(Color.green.opacity(0.12))
                 .cornerRadius(6)
                 
-            case .offline(let error):
+            case .offline:
                 HStack(spacing: 6) {
                     Circle()
                         .fill(Color.red)
