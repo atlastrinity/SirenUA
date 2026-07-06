@@ -93,7 +93,7 @@ final class SirenUATests: XCTestCase {
             _ = try await manager.fetchLiveAlerts()
             XCTFail("Expected invalid response error")
         } catch let error as NetworkError {
-            XCTAssertEqual(error.localizedDescription, NetworkError.invalidResponse.localizedDescription)
+            XCTAssertEqual(error.localizedDescription, NetworkError.invalidResponse(statusCode: 500).localizedDescription)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -120,7 +120,7 @@ final class SirenUATests: XCTestCase {
         let request = try XCTUnwrap(MockURLProtocol.receivedRequests.first)
         XCTAssertEqual(request.url?.absoluteString, "https://ubilling.net.ua/aerialalerts/")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "ios-sirenua")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "ios-sirenua/4.2")
     }
 
     func testMalformedJSONThrowsInvalidResponse() async {
@@ -138,7 +138,13 @@ final class SirenUATests: XCTestCase {
             _ = try await manager.fetchLiveAlerts()
             XCTFail("Expected invalid response error")
         } catch let error as NetworkError {
-            XCTAssertEqual(error.localizedDescription, NetworkError.invalidResponse.localizedDescription)
+            switch error {
+            case .decodingFailed:
+                // Success: correct error type
+                break
+            default:
+                XCTFail("Expected decodingFailed, got: \(error)")
+            }
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

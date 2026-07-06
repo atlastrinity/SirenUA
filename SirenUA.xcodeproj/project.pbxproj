@@ -16,6 +16,7 @@
 		3D16E1A13F301CF850EEDEE8 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F0013A9A66BAEA943D110B2 /* LocationManager.swift */; };
 		49466FA86A652C232591F891 /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD053B9754B66B36FE55849E /* GeoJSONManager.swift */; };
 		5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */; };
+		53FE660B5C6B05FD97C2E3C3 /* MapComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */; };
 		59FB00679BD0DCE007DEDEE3 /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 091089E57CCE3C6765599515 /* AlertRegionDetailView.swift */; };
 		6641B169DC12DCDDC2B1AF8F /* vidbiy.wav in Resources */ = {isa = PBXBuildFile; fileRef = 53632C2C3EF10CCFEBFEFEF9 /* vidbiy.wav */; };
 		6666B1AB2B572913D0B5AF33 /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC910745AFC030C9AA4221 /* StoreKitManager.swift */; };
@@ -23,7 +24,6 @@
 		76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */; };
 		7877DCE88DFB4E8DFC918AE5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */; };
 		8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F207912A937C87B6D7143563 /* ContentView.swift */; };
-		D93974F2D5ACB6B3F7C82F10 /* MapComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48ADBDC6A7EFDD74D0BE51CD /* MapComponents.swift */; };
 		C0F781FEC3AD217C5038F12C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 75B406C5353E9D61FB78753B /* FirebaseMessaging */; };
 		DFD5CFBE2F924CA3EBAF8C12 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */; };
 		E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */; };
@@ -57,19 +57,19 @@
 		68EC910745AFC030C9AA4221 /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOS16FallbackView.swift; sourceTree = "<group>"; };
 		75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
-		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapComponents.swift; sourceTree = "<group>"; };
+		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8F2BECB950730B1B0C48EE56 /* siren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = siren.wav; sourceTree = "<group>"; };
 		8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C04391E80219E2B099533C21 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C620D89A60507FFC74C69528 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
 		CD053B9754B66B36FE55849E /* GeoJSONManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJSONManager.swift; sourceTree = "<group>"; };
 		D030500F1F4D0B8471A88103 /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
 		EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = warning.wav; sourceTree = "<group>"; };
 		F207912A937C87B6D7143563 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		48ADBDC6A7EFDD74D0BE51CD /* MapComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapComponents.swift; sourceTree = "<group>"; };
 		FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -112,7 +112,6 @@
 				8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */,
 				8BA16504A891512121DBF64D /* Assets.xcassets */,
 				F207912A937C87B6D7143563 /* ContentView.swift */,
-				48ADBDC6A7EFDD74D0BE51CD /* MapComponents.swift */,
 				1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */,
 				3C09ADEA4D52330CA8C514F0 /* ErrorView.swift */,
 				CD053B9754B66B36FE55849E /* GeoJSONManager.swift */,
@@ -120,6 +119,7 @@
 				C04391E80219E2B099533C21 /* Info.plist */,
 				6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */,
 				3F0013A9A66BAEA943D110B2 /* LocationManager.swift */,
+				7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */,
 				C620D89A60507FFC74C69528 /* NetworkManager.swift */,
 				75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */,
 				350F86D91B43A65872F753FF /* SettingsView.swift */,
@@ -192,7 +192,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2650;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					D39A6B242D4A85E6D3CD2867 = {
 						DevelopmentTeam = B7WVJ3B4B7;
@@ -249,11 +249,11 @@
 				360CC8F390534947DC52FC7E /* AlertViewModelV3.swift in Sources */,
 				7877DCE88DFB4E8DFC918AE5 /* AppDelegate.swift in Sources */,
 				8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */,
-				D93974F2D5ACB6B3F7C82F10 /* MapComponents.swift in Sources */,
 				DFD5CFBE2F924CA3EBAF8C12 /* CriticalAlertManager.swift in Sources */,
 				2E6D12A84049E12DAD1085CD /* ErrorView.swift in Sources */,
 				49466FA86A652C232591F891 /* GeoJSONManager.swift in Sources */,
 				3D16E1A13F301CF850EEDEE8 /* LocationManager.swift in Sources */,
+				53FE660B5C6B05FD97C2E3C3 /* MapComponents.swift in Sources */,
 				EA5C79F241ACC26C7F16F20C /* NetworkManager.swift in Sources */,
 				E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */,
 				E7E9910F0D8585C65D4354B0 /* SettingsView.swift in Sources */,
@@ -286,7 +286,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -349,7 +348,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -401,7 +399,6 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -421,7 +418,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -465,7 +461,6 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -478,7 +473,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
