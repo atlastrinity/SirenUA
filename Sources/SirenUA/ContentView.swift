@@ -549,7 +549,7 @@ struct ContentView: View {
                         )
                     }
                 }
-                return
+                return;
             }
 
             // ──────────────────────────────────────────────
@@ -611,7 +611,7 @@ struct ContentView: View {
 
             // Filter items strictly within the selected radius
             let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
-            var strictRadiusItems = uniqueItems.filter { item in
+            let strictRadiusItems = uniqueItems.filter { item in
                 let itemLocation = CLLocation(
                     latitude: item.placemark.coordinate.latitude,
                     longitude: item.placemark.coordinate.longitude
@@ -621,7 +621,7 @@ struct ContentView: View {
             mapLogger.info("Items within strict radius (\(radiusMeters)m): \(strictRadiusItems.count)")
 
             // Знаходження найближчого об'єкта до користувача
-            var closestItem = strictRadiusItems.min { a, b in
+            let closestItem = strictRadiusItems.min { a, b in
                 let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
                     .distance(from: userLocation)
                 let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
@@ -629,37 +629,22 @@ struct ContentView: View {
                 return distA < distB
             }
 
-            // Розумний фолбек: якщо в обраному радіусі нічого не знайдено, беремо найближчий знайдений об'єкт
-            if closestItem == nil, !uniqueItems.isEmpty {
-                let absoluteClosest = uniqueItems.min { a, b in
-                    let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
-                        .distance(from: userLocation)
-                    let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
-                        .distance(from: userLocation)
-                    return distA < distB
-                }
-
-                if let fallbackItem = absoluteClosest {
-                    let fallbackDistance = CLLocation(
-                        latitude: fallbackItem.placemark.coordinate.latitude,
-                        longitude: fallbackItem.placemark.coordinate.longitude
-                    ).distance(from: userLocation)
-                    mapLogger.info("Fallback shelter at \(Int(fallbackDistance))m: \(fallbackItem.name ?? "unknown")")
-                    closestItem = fallbackItem
-                    strictRadiusItems = [fallbackItem]
-                }
-            }
-
             await MainActor.run {
                 isRoutingToShelter = false
-                allFoundShelters = strictRadiusItems
                 
-                guard let closestItem else { 
-                    print("[ShelterSearch] Помилка: жодного укриття не знайдено взагалі.")
-                    return 
+                guard let closestItem else {
+                    mapLogger.warning("No shelter found within strict radius of \(currentRadius) km")
+                    allFoundShelters = []
+                    foundShelter = nil
+                    selectedShelter = nil
+                    route = nil
+                    routeErrorMessage = "Не знайдено жодного укриття у радіусі \(String(format: "%.1f", currentRadius)) км. Спробуйте збільшити радіус у налаштуваннях."
+                    isCalculatingRoute = false
+                    return
                 }
 
-                print("[ShelterSearch] Знайдено найближче укриття: \(closestItem.name ?? "Без назви") (\(closestItem.placemark.coordinate.latitude), \(closestItem.placemark.coordinate.longitude))")
+                mapLogger.info("Closest strict shelter found: \(closestItem.name ?? "unnamed")")
+                allFoundShelters = strictRadiusItems
                 foundShelter = closestItem
                 selectedShelter = closestItem
                 route = nil
