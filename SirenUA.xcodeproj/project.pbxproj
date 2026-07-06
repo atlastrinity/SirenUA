@@ -17,6 +17,7 @@
 		49466FA86A652C232591F891 /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD053B9754B66B36FE55849E /* GeoJSONManager.swift */; };
 		5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */; };
 		53FE660B5C6B05FD97C2E3C3 /* MapComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */; };
+		53FE660B5C6B05FD97C2E3C4 /* ShelterItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1F55AFEC9A9333F2269F7B /* ShelterItem.swift */; };
 		59FB00679BD0DCE007DEDEE3 /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 091089E57CCE3C6765599515 /* AlertRegionDetailView.swift */; };
 		6641B169DC12DCDDC2B1AF8F /* vidbiy.wav in Resources */ = {isa = PBXBuildFile; fileRef = 53632C2C3EF10CCFEBFEFEF9 /* vidbiy.wav */; };
 		6666B1AB2B572913D0B5AF33 /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC910745AFC030C9AA4221 /* StoreKitManager.swift */; };
@@ -58,6 +59,7 @@
 		6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOS16FallbackView.swift; sourceTree = "<group>"; };
 		75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapComponents.swift; sourceTree = "<group>"; };
+		7C1F55AFEC9A9333F2269F7B /* ShelterItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterItem.swift; sourceTree = "<group>"; };
 		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8F2BECB950730B1B0C48EE56 /* siren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = siren.wav; sourceTree = "<group>"; };
@@ -120,6 +122,7 @@
 				6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */,
 				3F0013A9A66BAEA943D110B2 /* LocationManager.swift */,
 				7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */,
+				7C1F55AFEC9A9333F2269F7B /* ShelterItem.swift */,
 				C620D89A60507FFC74C69528 /* NetworkManager.swift */,
 				75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */,
 				350F86D91B43A65872F753FF /* SettingsView.swift */,
@@ -254,6 +257,7 @@
 				49466FA86A652C232591F891 /* GeoJSONManager.swift in Sources */,
 				3D16E1A13F301CF850EEDEE8 /* LocationManager.swift in Sources */,
 				53FE660B5C6B05FD97C2E3C3 /* MapComponents.swift in Sources */,
+				53FE660B5C6B05FD97C2E3C4 /* ShelterItem.swift in Sources */,
 				EA5C79F241ACC26C7F16F20C /* NetworkManager.swift in Sources */,
 				E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */,
 				E7E9910F0D8585C65D4354B0 /* SettingsView.swift in Sources */,
