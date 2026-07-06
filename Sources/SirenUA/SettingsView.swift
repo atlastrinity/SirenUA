@@ -17,6 +17,15 @@ struct SettingsView: View {
     @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
     
     @State private var isRegionsExpanded = false
+    
+    enum ServerStatus: Equatable {
+        case checking
+        case online(pingMs: Int)
+        case offline(error: String)
+    }
+    
+    @State private var alertsServerStatus: ServerStatus = .checking
+    @State private var threatsServerStatus: ServerStatus = .checking
 
     private let allRegionsList = [
         "Вінницька область", "Волинська область", "Дніпропетровська область",
@@ -53,6 +62,46 @@ struct SettingsView: View {
     private func triggerHaptic() {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
+    }
+
+    private func checkServerStatus() async {
+        // Перевірка основного сервера тривог
+        alertsServerStatus = .checking
+        do {
+            let start = Date()
+            guard let url = URL(string: "https://ubilling.net.ua/aerialalerts/") else { throw URLError(.badURL) }
+            var request = URLRequest(url: url)
+            request.httpMethod = "HEAD"
+            request.timeoutInterval = 4.0
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, (200...399).contains(httpResponse.statusCode) {
+                let diff = Int(Date().timeIntervalSince(start) * 1000)
+                alertsServerStatus = .online(pingMs: diff)
+            } else {
+                alertsServerStatus = .offline(error: "Неправильна відповідь")
+            }
+        } catch {
+            alertsServerStatus = .offline(error: error.localizedDescription)
+        }
+        
+        // Перевірка сервера загроз
+        threatsServerStatus = .checking
+        do {
+            let start = Date()
+            guard let url = URL(string: "https://sirenua-threatserver.onrender.com/api/threats") else { throw URLError(.badURL) }
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.timeoutInterval = 4.0
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, (200...399).contains(httpResponse.statusCode) {
+                let diff = Int(Date().timeIntervalSince(start) * 1000)
+                threatsServerStatus = .online(pingMs: diff)
+            } else {
+                threatsServerStatus = .offline(error: "Неправильна відповідь")
+            }
+        } catch {
+            threatsServerStatus = .offline(error: error.localizedDescription)
+        }
     }
 
     var body: some View {
@@ -295,7 +344,50 @@ struct SettingsView: View {
                             }
                         }
                         
-                        // 5. Про додаток (Beautiful Brand Card)
+                        // 5. Діагностика серверів
+                        SettingsCard(title: "Діагностика зв'язку", icon: "waveform.path.ecg", iconColor: .green) {
+                            VStack(spacing: 12) {
+                                ServerStatusRow(
+                                    name: "Основний сервер тривог",
+                                    url: "ubilling.net.ua",
+                                    status: alertsServerStatus
+                                )
+                                
+                                Divider().background(Color.white.opacity(0.08))
+                                
+                                ServerStatusRow(
+                                    name: "Сервер моніторингу загроз",
+                                    url: "sirenua-threatserver.onrender.com",
+                                    status: threatsServerStatus
+                                )
+                                
+                                Button(action: {
+                                    triggerHaptic()
+                                    Task {
+                                        await checkServerStatus()
+                                    }
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 11, weight: .bold))
+                                        Text("Оновити статус")
+                                            .font(.system(size: 12, weight: .bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 14)
+                                    .background(Color.white.opacity(0.06))
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    )
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
+                        
+                        // 6. Про додаток (Beautiful Brand Card)
                         VStack(spacing: 12) {
                             HStack(spacing: 15) {
                                 Image(systemName: "shield.fill")
@@ -342,6 +434,11 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            Task {
+                await checkServerStatus()
+            }
+        }
     }
 }
 
@@ -355,16 +452,23 @@ struct SettingsCard<Content: View>: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
-                    .background(iconColor)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        LinearGradient(
+                            colors: [iconColor, iconColor.opacity(0.75)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .cornerRadius(8)
+                    .shadow(color: iconColor.opacity(0.4), radius: 6, x: 0, y: 3)
                 
                 Text(title)
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
                 
                 Spacer()
@@ -376,11 +480,11 @@ struct SettingsCard<Content: View>: View {
         }
         .padding()
         .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.02))
+        .background(Color.white.opacity(0.015))
         .cornerRadius(18)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
     }
 }
@@ -398,6 +502,72 @@ struct ToggleRow: View {
         .onChange(of: isOn) { _ in
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
+        }
+    }
+}
+
+struct ServerStatusRow: View {
+    let name: String
+    let url: String
+    let status: SettingsView.ServerStatus
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                Text(url)
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            switch status {
+            case .checking:
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("З'єднання...")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(6)
+                
+            case .online(let pingMs):
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: .green.opacity(0.6), radius: 3)
+                    Text("Працює (\(pingMs) ms)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.green)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.12))
+                .cornerRadius(6)
+                
+            case .offline(let error):
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: .red.opacity(0.6), radius: 3)
+                    Text("Помилка")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.red)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.red.opacity(0.12))
+                .cornerRadius(6)
+            }
         }
     }
 }
