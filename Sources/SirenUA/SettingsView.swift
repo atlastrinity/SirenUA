@@ -231,7 +231,7 @@ struct SettingsView: View {
                                     
                                     VStack(alignment: .leading, spacing: 6) {
                                         Label("Моніторинг загроз (Сервер)", systemImage: "antenna.radiowaves.left.and.right")
-                                        Label("Деталізація ракет", systemImage: "paperplane.fill")
+                                        Label("Інформація про напрямок цілей", systemImage: "location.north.radiowaves.left.and.right")
                                     }
                                     .font(.caption)
                                     .foregroundColor(.white)

@@ -80,7 +80,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Доступ до серверу загроз, TTS, радарів.",
+              "description" : "Доступ до серверу загроз та радарів.",
               "displayName" : "SirenUA Premium (1 Місяць)",
               "locale" : "uk"
             }
