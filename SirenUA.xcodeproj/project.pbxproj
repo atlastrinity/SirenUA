@@ -23,6 +23,7 @@
 		76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */; };
 		7877DCE88DFB4E8DFC918AE5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */; };
 		8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F207912A937C87B6D7143563 /* ContentView.swift */; };
+		D93974F2D5ACB6B3F7C82F10 /* MapComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48ADBDC6A7EFDD74D0BE51CD /* MapComponents.swift */; };
 		C0F781FEC3AD217C5038F12C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 75B406C5353E9D61FB78753B /* FirebaseMessaging */; };
 		DFD5CFBE2F924CA3EBAF8C12 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */; };
 		E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */; };
@@ -68,6 +69,7 @@
 		D030500F1F4D0B8471A88103 /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
 		EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = warning.wav; sourceTree = "<group>"; };
 		F207912A937C87B6D7143563 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		48ADBDC6A7EFDD74D0BE51CD /* MapComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapComponents.swift; sourceTree = "<group>"; };
 		FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -110,6 +112,7 @@
 				8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */,
 				8BA16504A891512121DBF64D /* Assets.xcassets */,
 				F207912A937C87B6D7143563 /* ContentView.swift */,
+				48ADBDC6A7EFDD74D0BE51CD /* MapComponents.swift */,
 				1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */,
 				3C09ADEA4D52330CA8C514F0 /* ErrorView.swift */,
 				CD053B9754B66B36FE55849E /* GeoJSONManager.swift */,
@@ -246,6 +249,7 @@
 				360CC8F390534947DC52FC7E /* AlertViewModelV3.swift in Sources */,
 				7877DCE88DFB4E8DFC918AE5 /* AppDelegate.swift in Sources */,
 				8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */,
+				D93974F2D5ACB6B3F7C82F10 /* MapComponents.swift in Sources */,
 				DFD5CFBE2F924CA3EBAF8C12 /* CriticalAlertManager.swift in Sources */,
 				2E6D12A84049E12DAD1085CD /* ErrorView.swift in Sources */,
 				49466FA86A652C232591F891 /* GeoJSONManager.swift in Sources */,

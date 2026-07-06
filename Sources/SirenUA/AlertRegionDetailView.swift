@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import OSLog
 
 @available(iOS 16.0, *)
 struct AlertRegionDetailView: View {
@@ -42,54 +43,64 @@ struct AlertRegionDetailView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Status indicator with glassmorphism
-                    HStack {
-                        Circle()
-                            .fill(themeColor)
-                            .frame(width: 20, height: 20)
-                            .animation(.easeInOut(duration: 0.3), value: region.isActive)
+        ZStack {
+            // Dark glassmorphism background
+            Color(red: 0.06, green: 0.06, blue: 0.10)
+                .ignoresSafeArea()
 
-                        Text(statusTitle)
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundStyle(themeGradient)
+            RadialGradient(
+                colors: [themeColor.opacity(0.08), .clear],
+                center: .top,
+                startRadius: 0,
+                endRadius: 300
+            )
+            .ignoresSafeArea()
+
+        NavigationView {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header status card
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(themeColor.opacity(0.15))
+                                .frame(width: 46, height: 46)
+                            Image(systemName: region.isActive ? "exclamationmark.triangle.fill" : (isThreatActive ? "bell.badge.fill" : "checkmark.circle.fill"))
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundStyle(themeGradient)
+                        }
+                        .shadow(color: themeColor.opacity(0.4), radius: 8)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(statusTitle)
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(themeGradient)
+
+                            if let changed = region.lastChanged {
+                                Text(changed)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.45))
+                            }
+                        }
 
                         Spacer()
-
-                        // Action buttons
-                        HStack(spacing: 12) {
-                            // Close button
-                            Button(action: {
-                                dismiss()
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundStyle(.gray)
-                                    .frame(width: 44, height: 44)
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(14)
-                                    .shadow(radius: 8)
-                            }
-                            .buttonStyle(.plain)
-                        }
                     }
-                    .padding()
+                    .padding(14)
                     .background(.ultraThinMaterial)
-                    .cornerRadius(20)
-                    .shadow(radius: 20)
+                    .background(themeColor.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20)
+                        RoundedRectangle(cornerRadius: 18)
                             .stroke(
                                 LinearGradient(
-                                    colors: [.white.opacity(0.3), .white.opacity(0.1)],
+                                    colors: [themeColor.opacity(0.4), themeColor.opacity(0.1)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
                                 lineWidth: 1
                             )
                     )
+                    .shadow(color: themeColor.opacity(0.15), radius: 12)
 
                     // Region name with glassmorphism
                     VStack(alignment: .leading, spacing: 12) {
@@ -224,7 +235,21 @@ struct AlertRegionDetailView: View {
                 }
                 .padding()
             }
+            .background(Color.clear)
+            .navigationTitle(region.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .preferredColorScheme(.dark)
         }
+        } // ZStack
     }
 
     private var formattedDate: String {
@@ -234,6 +259,7 @@ struct AlertRegionDetailView: View {
         return formatter.string(from: Date())
     }
 }
+
 
 @available(iOS 16.0, *)
 struct AlertRegionDetailView_Previews: PreviewProvider {

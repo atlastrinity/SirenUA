@@ -1,449 +1,138 @@
 import SwiftUI
 import UIKit
+import OSLog
 
+// MARK: - Logger
+private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Settings")
+
+// MARK: - Design Tokens
+private extension Color {
+    static let siBlue    = Color(red: 0.20, green: 0.52, blue: 0.98)
+    static let siGreen   = Color(red: 0.18, green: 0.80, blue: 0.55)
+    static let siGold    = Color(red: 0.98, green: 0.78, blue: 0.12)
+    static let siOrange  = Color(red: 0.98, green: 0.55, blue: 0.18)
+    static let siPurple  = Color(red: 0.65, green: 0.35, blue: 0.98)
+    static let cardBg    = Color.white.opacity(0.04)
+    static let cardBorder = Color.white.opacity(0.10)
+}
+
+// MARK: - SettingsView
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-    @AppStorage("autoRefreshEnabled") private var autoRefreshEnabled = true
-    @AppStorage("refreshInterval") private var refreshInterval = 30
-    @AppStorage("mapType") private var mapType = 0
-    @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
-    @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
-    
-    @EnvironmentObject var storeManager: StoreKitManager
-    @State private var isPurchasing = false
+    @AppStorage("notificationsEnabled")      private var notificationsEnabled      = true
+    @AppStorage("autoRefreshEnabled")        private var autoRefreshEnabled        = true
+    @AppStorage("refreshInterval")           private var refreshInterval           = 30
+    @AppStorage("mapType")                   private var mapType                   = 0
+    @AppStorage("walkingSearchRadius")       private var walkingSearchRadius       = 1.5
+    @AppStorage("drivingSearchRadius")       private var drivingSearchRadius       = 5.0
     @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
-    @AppStorage("allRegionsTracked") private var allRegionsTracked = true
-    @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
-    
+    @AppStorage("allRegionsTracked")         private var allRegionsTracked         = true
+    @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
+
+    @EnvironmentObject var storeManager: StoreKitManager
+    @State private var isPurchasing     = false
     @State private var isRegionsExpanded = false
-    
+
     enum ServerStatus: Equatable {
         case checking
         case online(pingMs: Int)
         case offline(error: String)
     }
-    
-    @State private var alertsServerStatus: ServerStatus = .checking
+
+    @State private var alertsServerStatus:  ServerStatus = .checking
     @State private var threatsServerStatus: ServerStatus = .checking
 
+    // MARK: Region list
     private let allRegionsList = [
-        "Вінницька область", "Волинська область", "Дніпропетровська область",
-        "Донецька область", "Житомирська область", "Закарпатська область",
-        "Запорізька область", "Івано-Франківська область", "Київська область",
-        "м. Київ", "Кіровоградська область", "Луганська область",
-        "Львівська область", "Миколаївська область", "Одеська область",
-        "Полтавська область", "Рівненська область", "Сумська область",
-        "Тернопільська область", "Харківська область", "Херсонська область",
-        "Хмельницька область", "Черкаська область", "Чернівецька область",
+        "Вінницька область",    "Волинська область",       "Дніпропетровська область",
+        "Донецька область",     "Житомирська область",     "Закарпатська область",
+        "Запорізька область",   "Івано-Франківська область","Київська область",
+        "м. Київ",              "Кіровоградська область",  "Луганська область",
+        "Львівська область",    "Миколаївська область",    "Одеська область",
+        "Полтавська область",   "Рівненська область",      "Сумська область",
+        "Тернопільська область","Харківська область",      "Херсонська область",
+        "Хмельницька область",  "Черкаська область",       "Чернівецька область",
         "Чернігівська область"
     ]
 
+    // MARK: Region helpers
     private func isTracked(_ name: String) -> Bool {
-        if trackedRegionsString.isEmpty && allRegionsTracked {
-            return true
-        }
-        let list = trackedRegionsString.components(separatedBy: ";")
-        return list.contains(name)
+        guard !trackedRegionsString.isEmpty || !allRegionsTracked else { return true }
+        return trackedRegionsString.components(separatedBy: ";").contains(name)
     }
 
     private func setTracked(_ name: String, isOn: Bool) {
         var list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
         if isOn {
-            if !list.contains(name) {
-                list.append(name)
-            }
+            if !list.contains(name) { list.append(name) }
         } else {
             list.removeAll { $0 == name }
         }
         trackedRegionsString = list.joined(separator: ";")
     }
-    
-    private func triggerHaptic() {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
+
+    // MARK: Haptics
+    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
+        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 
+    // MARK: Server ping
     private func checkServerStatus() async {
-        // Перевірка основного сервера тривог
-        alertsServerStatus = .checking
-        do {
-            let start = Date()
-            guard let url = URL(string: "https://ubilling.net.ua/aerialalerts/") else { throw URLError(.badURL) }
-            var request = URLRequest(url: url)
-            request.httpMethod = "HEAD"
-            request.timeoutInterval = 4.0
-            let (_, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse, (200...399).contains(httpResponse.statusCode) {
-                let diff = Int(Date().timeIntervalSince(start) * 1000)
-                alertsServerStatus = .online(pingMs: diff)
-            } else {
-                alertsServerStatus = .offline(error: "Неправильна відповідь")
-            }
-        } catch {
-            alertsServerStatus = .offline(error: error.localizedDescription)
-        }
-        
-        // Перевірка сервера загроз
+        alertsServerStatus  = .checking
         threatsServerStatus = .checking
+
+        async let alertsPing  = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
+        async let threatsPing = ping(url: "https://sirenua-threatserver.onrender.com/api/threats", method: "GET")
+
+        alertsServerStatus  = await alertsPing
+        threatsServerStatus = await threatsPing
+    }
+
+    private func ping(url urlString: String, method: String) async -> ServerStatus {
+        guard let url = URL(string: urlString) else { return .offline(error: "Невірна URL") }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.timeoutInterval = 5.0
         do {
             let start = Date()
-            guard let url = URL(string: "https://sirenua-threatserver.onrender.com/api/threats") else { throw URLError(.badURL) }
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.timeoutInterval = 4.0
             let (_, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse, (200...399).contains(httpResponse.statusCode) {
-                let diff = Int(Date().timeIntervalSince(start) * 1000)
-                threatsServerStatus = .online(pingMs: diff)
-            } else {
-                threatsServerStatus = .offline(error: "Неправильна відповідь")
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
+            if let http = response as? HTTPURLResponse, (200...399).contains(http.statusCode) {
+                return .online(pingMs: ms)
             }
+            return .offline(error: "HTTP помилка")
         } catch {
-            threatsServerStatus = .offline(error: error.localizedDescription)
+            return .offline(error: error.localizedDescription)
         }
     }
 
+    // MARK: - Body
     var body: some View {
         ZStack {
-            // Фонові градієнти
-            LinearGradient(
-                colors: [Color(red: 0.1, green: 0.1, blue: 0.15), Color.black],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Background
+            backgroundLayer
             
             VStack(spacing: 0) {
-                // Навігаційна панель
-                HStack {
-                    Text("Налаштування")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        triggerHaptic()
-                        dismiss()
-                    }) {
-                        Text("Готово")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color.blue.opacity(0.15))
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding()
-                .background(Color.white.opacity(0.02))
+                settingsHeader
                 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        
-                        // 1. Сповіщення
-                        SettingsCard(title: "Сповіщення", icon: "bell.fill", iconColor: .blue) {
-                            ToggleRow(title: "Увімкнути сповіщення", isOn: $notificationsEnabled)
-                            Divider().background(Color.white.opacity(0.1))
-                            ToggleRow(title: "Автооновлення даних", isOn: $autoRefreshEnabled)
-                            
-                            if autoRefreshEnabled {
-                                Divider().background(Color.white.opacity(0.1))
-                                HStack {
-                                    Text("Інтервал оновлення")
-                                        .font(.subheadline)
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                    Stepper("\(refreshInterval) сек", value: $refreshInterval, in: 15...300, step: 15)
-                                        .onChange(of: refreshInterval) { _ in triggerHaptic() }
-                                }
-                            }
-                        }
-                        
-                        // 2. Карта та Навігація
-                        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .blue) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Тип карти")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                
-                                Picker("Тип карти", selection: $mapType) {
-                                    Text("Стандартна").tag(0)
-                                    Text("Гібридна").tag(1)
-                                    Text("Супутник").tag(2)
-                                }
-                                .pickerStyle(.segmented)
-                                .onChange(of: mapType) { _ in triggerHaptic() }
-                            }
-                            
-                            Divider().background(Color.white.opacity(0.1))
-                            
-                            VStack(alignment: .leading, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("Радіус пошуку пішки")
-                                            .font(.subheadline)
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        Text("\(walkingSearchRadius, specifier: "%.1f") км")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                    }
-                                    Slider(value: $walkingSearchRadius, in: 0.5...3.0, step: 0.5)
-                                        .tint(.blue)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("Радіус пошуку авто")
-                                            .font(.subheadline)
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        Text("\(drivingSearchRadius, specifier: "%.0f") км")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                    }
-                                    Slider(value: $drivingSearchRadius, in: 1.0...20.0, step: 1.0)
-                                        .tint(.blue)
-                                }
-                            }
-                        }
-                        
-                        // 3. Premium Моніторинг
-                        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: .blue) {
-                            if storeManager.isPremium {
-                                HStack {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .foregroundColor(.green)
-                                    Text("Premium Активовано")
-                                        .font(.subheadline)
-                                        .bold()
-                                        .foregroundColor(.white)
-                                }
-                                Divider().background(Color.white.opacity(0.1))
-                                ToggleRow(title: "Деталізація сповіщень", isOn: $premiumDetailedNotifications)
-                            } else {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Отримайте доступ до розширених функцій:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Label("Моніторинг загроз (Сервер)", systemImage: "antenna.radiowaves.left.and.right")
-                                        Label("Деталізація загроз", systemImage: "eye.fill")
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.white)
-                                    
-                                    if let product = storeManager.storeProducts.first(where: { $0.id == "com.sirenua.premium.monthly" }) {
-                                        Button(action: {
-                                            isPurchasing = true
-                                            Task {
-                                                do {
-                                                    let _ = try await storeManager.purchase(product)
-                                                } catch {
-                                                    print("Purchase failed: \(error)")
-                                                }
-                                                isPurchasing = false
-                                            }
-                                        }) {
-                                            HStack {
-                                                if isPurchasing {
-                                                    ProgressView()
-                                                } else {
-                                                    Text("Оформити підписку — \(product.displayPrice)/міс")
-                                                        .bold()
-                                                }
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                            .padding()
-                                            .background(
-                                                LinearGradient(
-                                                    colors: [Color.blue, Color.blue.opacity(0.8)],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-                                            .foregroundColor(.white)
-                                            .cornerRadius(10)
-                                        }
-                                        .disabled(isPurchasing)
-                                        
-                                        Button("Відновити покупки") {
-                                            Task {
-                                                await storeManager.restorePurchases()
-                                            }
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                        .frame(maxWidth: .infinity)
-                                    } else {
-                                        ProgressView("Завантаження...")
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 4. Області для попереджень (collapsible)
-                        SettingsCard(title: "Області для попереджень", icon: "map", iconColor: .blue) {
-                            ToggleRow(title: "Усі області України", isOn: Binding(
-                                get: { allRegionsTracked },
-                                set: { trackingAll in
-                                    triggerHaptic()
-                                    allRegionsTracked = trackingAll
-                                    if trackingAll {
-                                        trackedRegionsString = allRegionsList.joined(separator: ";")
-                                    } else {
-                                        trackedRegionsString = ""
-                                    }
-                                }
-                            ))
-                            
-                            if !allRegionsTracked {
-                                Divider().background(Color.white.opacity(0.1))
-                                
-                                DisclosureGroup(
-                                    isExpanded: $isRegionsExpanded,
-                                    content: {
-                                        VStack(spacing: 8) {
-                                            ForEach(allRegionsList, id: \.self) { region in
-                                                HStack {
-                                                    Text(region)
-                                                        .font(.subheadline)
-                                                        .foregroundColor(.white)
-                                                    Spacer()
-                                                    Toggle("", isOn: Binding(
-                                                        get: { isTracked(region) },
-                                                        set: { isOn in
-                                                            triggerHaptic()
-                                                            setTracked(region, isOn: isOn)
-                                                        }
-                                                    ))
-                                                    .labelsHidden()
-                                                }
-                                                .padding(.vertical, 4)
-                                                
-                                                if region != allRegionsList.last {
-                                                    Divider().background(Color.white.opacity(0.05))
-                                                }
-                                            }
-                                        }
-                                        .padding(.top, 10)
-                                    },
-                                    label: {
-                                        HStack {
-                                            Text("Вибрати області вручну")
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                            Spacer()
-                                        }
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            withAnimation {
-                                                isRegionsExpanded.toggle()
-                                            }
-                                        }
-                                    }
-                                )
-                                .accentColor(.blue)
-                            }
-                        }
-                        
-                        // 5. Діагностика серверів
-                        SettingsCard(title: "Діагностика зв'язку", icon: "waveform.path.ecg", iconColor: .blue) {
-                            VStack(spacing: 12) {
-                                ServerStatusRow(
-                                    name: "Основний сервер тривог",
-                                    url: "ubilling.net.ua",
-                                    status: alertsServerStatus
-                                )
-                                
-                                Divider().background(Color.white.opacity(0.08))
-                                
-                                ServerStatusRow(
-                                    name: "Сервер моніторингу загроз",
-                                    url: "sirenua-threatserver.onrender.com",
-                                    status: threatsServerStatus
-                                )
-                                
-                                Button(action: {
-                                    triggerHaptic()
-                                    Task {
-                                        await checkServerStatus()
-                                    }
-                                }) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.system(size: 11, weight: .bold))
-                                        Text("Оновити статус")
-                                            .font(.system(size: 12, weight: .bold))
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 14)
-                                    .background(Color.white.opacity(0.06))
-                                    .cornerRadius(8)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                    )
-                                }
-                                .padding(.top, 4)
-                            }
-                        }
-                        
-                        // 6. Про додаток (Beautiful Brand Card)
-                        VStack(spacing: 12) {
-                            HStack(spacing: 15) {
-                                Image(systemName: "shield.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.blue)
-                                    .shadow(color: .blue.opacity(0.6), radius: 10)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("SirenUA")
-                                        .font(.title2)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                    Text("Версія 4.2 (Premium)")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                Spacer()
-                            }
-                            
-                            Text("Надійний локальний монітор повітряних тривог, виявлення загроз та швидкий пошук найближчих укриттів.")
-                                .font(.system(size: 13))
-                                .foregroundColor(.gray)
-                                .multilineTextAlignment(.leading)
-                                .lineSpacing(4)
-                        }
-                        .padding(20)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.blue.opacity(0.12), Color.purple.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .cornerRadius(18)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                        .padding(.bottom, 20)
-                        
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        notificationsCard
+                        mapCard
+                        premiumCard
+                        regionsCard
+                        diagnosticsCard
+                        aboutCard
                     }
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 40)
                 }
             }
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            Task {
-                await checkServerStatus()
-            }
+            Task { await checkServerStatus() }
         }
         .onChange(of: trackedRegionsString) { _ in
             NotificationManager.shared.syncTopicSubscriptions()
@@ -452,59 +141,636 @@ struct SettingsView: View {
             NotificationManager.shared.syncTopicSubscriptions()
         }
     }
+
+    // MARK: - Background
+    private var backgroundLayer: some View {
+        ZStack {
+            Color(red: 0.06, green: 0.06, blue: 0.10)
+                .ignoresSafeArea()
+            
+            // Subtle radial glow
+            RadialGradient(
+                colors: [Color.siBlue.opacity(0.08), .clear],
+                center: .topTrailing,
+                startRadius: 0,
+                endRadius: 400
+            )
+            .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Header
+    private var settingsHeader: some View {
+        ZStack {
+            // Glassmorphism layer
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    LinearGradient(
+                        colors: [Color.siBlue.opacity(0.18), Color.siGold.opacity(0.12)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .overlay(
+                    // Ukraine flag top stripe (subtle)
+                    VStack(spacing: 0) {
+                        Color(red: 0.0, green: 0.48, blue: 0.87).opacity(0.25)
+                            .frame(height: 2)
+                        Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.25)
+                            .frame(height: 2)
+                        Spacer()
+                    }
+                )
+                .overlay(
+                    Rectangle()
+                        .frame(height: 0.5)
+                        .foregroundColor(Color.white.opacity(0.12)),
+                    alignment: .bottom
+                )
+
+            HStack(alignment: .center, spacing: 12) {
+                // Shield icon
+                Image(systemName: "shield.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.siBlue, Color.siBlue.opacity(0.7)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: Color.siBlue.opacity(0.5), radius: 8)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Налаштування")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("SirenUA")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+
+                Spacer()
+
+                Button(action: {
+                    haptic(.medium)
+                    dismiss()
+                }) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Готово")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.siBlue)
+                    .clipShape(Capsule())
+                    .shadow(color: Color.siBlue.opacity(0.4), radius: 8, x: 0, y: 3)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+        }
+        .frame(height: 68)
+    }
+
+    // MARK: - Cards
+
+    private var notificationsCard: some View {
+        SettingsCard(title: "Сповіщення", icon: "bell.badge.fill", iconColor: .siBlue) {
+            StyledToggleRow(
+                title: "Увімкнути сповіщення",
+                subtitle: "Push-повідомлення про тривоги",
+                icon: "bell.fill",
+                iconColor: .siBlue,
+                isOn: $notificationsEnabled
+            )
+            
+            StyledDivider()
+            
+            StyledToggleRow(
+                title: "Автооновлення даних",
+                subtitle: "Фоновий моніторинг статусу",
+                icon: "arrow.clockwise.circle.fill",
+                iconColor: .siGreen,
+                isOn: $autoRefreshEnabled
+            )
+
+            if autoRefreshEnabled {
+                StyledDivider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Інтервал оновлення")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                        Text("\(refreshInterval) секунд")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    Spacer()
+                    Stepper("", value: $refreshInterval, in: 15...300, step: 15)
+                        .labelsHidden()
+                        .onChange(of: refreshInterval) { _ in haptic() }
+                }
+            }
+        }
+    }
+
+    private var mapCard: some View {
+        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .siGreen) {
+            VStack(alignment: .leading, spacing: 8) {
+                Label {
+                    Text("Тип карти")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.7))
+                } icon: {
+                    Image(systemName: "square.3.layers.3d")
+                        .foregroundColor(.siGreen)
+                        .font(.system(size: 12))
+                }
+
+                Picker("Тип карти", selection: $mapType) {
+                    Text("Стандартна").tag(0)
+                    Text("Гібридна").tag(1)
+                    Text("Супутник").tag(2)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: mapType) { _ in haptic() }
+            }
+
+            StyledDivider()
+
+            radiusRow(
+                title: "Радіус пошуку пішки",
+                icon: "figure.walk",
+                iconColor: .siGreen,
+                value: $walkingSearchRadius,
+                range: 0.5...3.0,
+                step: 0.5,
+                format: "%.1f"
+            )
+
+            radiusRow(
+                title: "Радіус пошуку авто",
+                icon: "car.fill",
+                iconColor: .siOrange,
+                value: $drivingSearchRadius,
+                range: 1.0...20.0,
+                step: 1.0,
+                format: "%.0f"
+            )
+        }
+    }
+
+    private func radiusRow(
+        title: String,
+        icon: String,
+        iconColor: Color,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double,
+        format: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundColor(iconColor)
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                Spacer()
+                Text("\(value.wrappedValue, specifier: format) км")
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundColor(iconColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(iconColor.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            Slider(value: value, in: range, step: step)
+                .tint(iconColor)
+        }
+    }
+
+    private var premiumCard: some View {
+        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: .siGold) {
+            if storeManager.isPremium {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(
+                            LinearGradient(colors: [.siGold, .siOrange], startPoint: .top, endPoint: .bottom)
+                        )
+                        .font(.title3)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Premium Активовано")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Всі функції розблоковано")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    Spacer()
+                }
+                StyledDivider()
+                StyledToggleRow(
+                    title: "Деталізація сповіщень",
+                    subtitle: "Тип загрози та деталі",
+                    icon: "eye.fill",
+                    iconColor: .siGold,
+                    isOn: $premiumDetailedNotifications
+                )
+            } else {
+                premiumUpgradeView
+            }
+        }
+    }
+
+    private var premiumUpgradeView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Розширені можливості:")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white.opacity(0.6))
+
+            VStack(spacing: 8) {
+                premiumFeatureRow(icon: "antenna.radiowaves.left.and.right", text: "Моніторинг загроз (Сервер)", color: .siPurple)
+                premiumFeatureRow(icon: "eye.fill",                          text: "Деталізація загроз",         color: .siGold)
+            }
+
+            if let product = storeManager.storeProducts.first(where: { $0.id == "com.sirenua.premium.monthly" }) {
+                Button(action: {
+                    isPurchasing = true
+                    Task {
+                        do { _ = try await storeManager.purchase(product) }
+                        catch { settingsLogger.error("Purchase failed: \(error.localizedDescription)") }
+                        isPurchasing = false
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        if isPurchasing {
+                            ProgressView().tint(.black)
+                        } else {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 13))
+                            Text("Оформити підписку — \(product.displayPrice)/міс")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [.siGold, .siOrange],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .foregroundColor(.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: Color.siGold.opacity(0.35), radius: 10, x: 0, y: 4)
+                }
+                .disabled(isPurchasing)
+
+                Button("Відновити покупки") {
+                    Task { await storeManager.restorePurchases() }
+                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.siBlue)
+                .frame(maxWidth: .infinity)
+            } else {
+                ProgressView("Завантаження продуктів...")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.4))
+            }
+        }
+    }
+
+    private func premiumFeatureRow(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundColor(color)
+                .frame(width: 20)
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white.opacity(0.85))
+            Spacer()
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var regionsCard: some View {
+        SettingsCard(title: "Відслідковувані регіони", icon: "map.circle.fill", iconColor: .siOrange) {
+            StyledToggleRow(
+                title: "Усі регіони України",
+                subtitle: "Отримувати тривоги по всій країні",
+                icon: "globe.europe.africa.fill",
+                iconColor: .siOrange,
+                isOn: Binding(
+                    get: { allRegionsTracked },
+                    set: { newVal in
+                        haptic()
+                        allRegionsTracked = newVal
+                        trackedRegionsString = newVal ? allRegionsList.joined(separator: ";") : ""
+                    }
+                )
+            )
+
+            if !allRegionsTracked {
+                StyledDivider()
+                regionsPickerSection
+            }
+        }
+    }
+
+    private var regionsPickerSection: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.spring(response: 0.3)) {
+                    isRegionsExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: isRegionsExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .foregroundColor(.siOrange)
+                        .font(.system(size: 16))
+                    Text("Вибрати регіони вручну")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.75))
+                    Spacer()
+                    let count = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }.count
+                    if count > 0 {
+                        Text("\(count)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.siOrange)
+                            .clipShape(Capsule())
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isRegionsExpanded {
+                VStack(spacing: 0) {
+                    ForEach(allRegionsList, id: \.self) { region in
+                        HStack {
+                            Text(region)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { isTracked(region) },
+                                set: { isOn in
+                                    haptic()
+                                    setTracked(region, isOn: isOn)
+                                }
+                            ))
+                            .labelsHidden()
+                            .tint(.siOrange)
+                        }
+                        .padding(.vertical, 9)
+                        .padding(.horizontal, 4)
+
+                        if region != allRegionsList.last {
+                            Divider().background(Color.white.opacity(0.05))
+                        }
+                    }
+                }
+                .padding(.top, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private var diagnosticsCard: some View {
+        SettingsCard(title: "Діагностика з'єднання", icon: "wifi.router.fill", iconColor: .siPurple) {
+            VStack(spacing: 12) {
+                ServerStatusRow(
+                    name: "Основний сервер тривог",
+                    url: "ubilling.net.ua",
+                    status: alertsServerStatus
+                )
+
+                Divider().background(Color.white.opacity(0.06))
+
+                ServerStatusRow(
+                    name: "Сервер загроз (Premium)",
+                    url: "sirenua-threatserver.onrender.com",
+                    status: threatsServerStatus
+                )
+
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        haptic(.medium)
+                        alertsServerStatus  = .checking
+                        threatsServerStatus = .checking
+                        Task { await checkServerStatus() }
+                    }) {
+                        Label("Оновити статус", systemImage: "arrow.clockwise")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.siPurple)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 14)
+                            .background(Color.siPurple.opacity(0.12))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke(Color.siPurple.opacity(0.3), lineWidth: 1)
+                            )
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private var aboutCard: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.siBlue.opacity(0.3), Color.siPurple.opacity(0.2)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 54, height: 54)
+                    Image(systemName: "shield.lefthalf.filled.badge.checkmark")
+                        .font(.system(size: 26))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.siBlue, .siPurple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                .shadow(color: Color.siBlue.opacity(0.4), radius: 12)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("SirenUA")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("Версія 4.2 · Premium Edition")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                Spacer()
+            }
+
+            Text("Надійний локальний монітор повітряних тривог, виявлення загроз та швидкий пошук найближчих укриттів.")
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.55))
+                .lineSpacing(5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(18)
+        .background(
+            ZStack {
+                Color.white.opacity(0.03)
+                LinearGradient(
+                    colors: [Color.siBlue.opacity(0.08), Color.siPurple.opacity(0.05)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .padding(.bottom, 8)
+    }
 }
 
-// MARK: - Допоміжні компоненти
-
+// MARK: - SettingsCard
 struct SettingsCard<Content: View>: View {
     let title: String
     let icon: String
     let iconColor: Color
     @ViewBuilder let content: () -> Content
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Card header
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 32, height: 32)
                     .background(
                         LinearGradient(
-                            colors: [iconColor, iconColor.opacity(0.75)],
+                            colors: [iconColor, iconColor.opacity(0.7)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .cornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
                     .shadow(color: iconColor.opacity(0.4), radius: 6, x: 0, y: 3)
-                
+
                 Text(title)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
-                
+
                 Spacer()
             }
-            
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Separator
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(height: 1)
+                .padding(.horizontal, 16)
+
+            // Content
             VStack(alignment: .leading, spacing: 12) {
                 content()
             }
+            .padding(16)
         }
-        .padding()
         .background(.ultraThinMaterial)
         .background(Color.white.opacity(0.015))
-        .cornerRadius(18)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(Color.white.opacity(0.09), lineWidth: 1)
+        )
+        // Accent left bar
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(iconColor)
+                .frame(width: 3)
+                .padding(.vertical, 10),
+            alignment: .leading
         )
     }
 }
 
+// MARK: - StyledToggleRow
+struct StyledToggleRow: View {
+    let title: String
+    var subtitle: String? = nil
+    var icon: String? = nil
+    var iconColor: Color = .white
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 10) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 13))
+                        .foregroundColor(isOn ? iconColor : .white.opacity(0.35))
+                        .frame(width: 18)
+                        .animation(.easeInOut(duration: 0.2), value: isOn)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.45))
+                    }
+                }
+            }
+        }
+        .tint(iconColor)
+        .onChange(of: isOn) { _ in
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+}
+
+// MARK: - StyledDivider
+struct StyledDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.07))
+            .frame(height: 1)
+            .padding(.vertical, 2)
+    }
+}
+
+// MARK: - ToggleRow (Legacy — kept for compatibility)
 struct ToggleRow: View {
     let title: String
     @Binding var isOn: Bool
-    
+
     var body: some View {
         Toggle(isOn: $isOn) {
             Text(title)
@@ -512,74 +778,91 @@ struct ToggleRow: View {
                 .foregroundColor(.white)
         }
         .onChange(of: isOn) { _ in
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
 }
 
+// MARK: - ServerStatusRow
 struct ServerStatusRow: View {
     let name: String
     let url: String
     let status: SettingsView.ServerStatus
-    
+
+    @State private var pulse = false
+
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(name)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.white)
                 Text(url)
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.4))
             }
-            
+
             Spacer()
-            
-            switch status {
-            case .checking:
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                    Text("З'єднання...")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.05))
-                .cornerRadius(6)
-                
-            case .online(let pingMs):
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: .green.opacity(0.6), radius: 3)
-                    Text("Працює (\(pingMs) ms)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.green)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.green.opacity(0.12))
-                .cornerRadius(6)
-                
-            case .offline:
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: .red.opacity(0.6), radius: 3)
-                    Text("Помилка")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.red)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.red.opacity(0.12))
-                .cornerRadius(6)
+
+            statusBadge
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                pulse = true
             }
+        }
+    }
+
+    @ViewBuilder
+    private var statusBadge: some View {
+        switch status {
+        case .checking:
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.white.opacity(0.6))
+                    .frame(width: 7, height: 7)
+                    .scaleEffect(pulse ? 1.3 : 0.7)
+                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+                Text("Перевірка...")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.05))
+            .clipShape(Capsule())
+
+        case .online(let pingMs):
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Color(red: 0.18, green: 0.80, blue: 0.55))
+                    .frame(width: 7, height: 7)
+                    .shadow(color: Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.7), radius: 4)
+                Text("\(pingMs) ms")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color(red: 0.18, green: 0.80, blue: 0.55))
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.12))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.25), lineWidth: 1))
+
+        case .offline:
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: Color.red.opacity(0.6), radius: 4)
+                Text("Офлайн")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.red)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Color.red.opacity(0.10))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Color.red.opacity(0.25), lineWidth: 1))
         }
     }
 }

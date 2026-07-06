@@ -1,6 +1,9 @@
 import SwiftUI
 import MapKit
 import UIKit
+import OSLog
+
+private let mapLogger = Logger(subsystem: "com.sirenua", category: "Map")
 
 @available(iOS 17.0, *)
 enum ActiveSheet: Identifiable, Equatable {
@@ -32,7 +35,7 @@ struct ContentView: View {
     @State private var transportType: MKDirectionsTransportType = .walking
     
     var centerCoordinate: CLLocationCoordinate2D {
-        locationManager.location?.coordinate ?? CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+        locationManager.location?.coordinate ?? Self.fallbackCoordinate
     }
 
     var alertFocusCoordinate: CLLocationCoordinate2D {
@@ -50,10 +53,11 @@ struct ContentView: View {
         }
     }
 
-    let userCoordinate = CLLocationCoordinate2D(latitude: 50.4450, longitude: 30.5300)
-    
+    /// Fallback coordinate (Kyiv) used when GPS is unavailable
+    private static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+
     var currentUserCoordinate: CLLocationCoordinate2D {
-        locationManager.location?.coordinate ?? userCoordinate
+        locationManager.location?.coordinate ?? Self.fallbackCoordinate
     }
     
     private var alertsDict: [String: AlertRegion] {
@@ -212,7 +216,7 @@ struct ContentView: View {
                 
                 // Права кнопка: Показати мою локацію
                 Button(action: {
-                    let coord = locationManager.location?.coordinate ?? userCoordinate
+                    let coord = currentUserCoordinate
                     withAnimation(.easeInOut(duration: 1.0)) {
                         cameraPosition = .region(
                             MKCoordinateRegion(
@@ -302,7 +306,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
         }
-        .onChange(of: viewModel.lastAlertedRegionName) {
+        .onChange(of: viewModel.lastAlertedRegionName) { _, _ in
             viewModel.markLastAlertAsViewed()
         }
         .onChange(of: selectedShelter) { oldValue, newValue in
@@ -349,9 +353,9 @@ struct ContentView: View {
                     let lat = shelter.placemark.coordinate.latitude
                     let lon = shelter.placemark.coordinate.longitude
                     let name = shelter.name ?? ""
-                    return "Увага! Повітряна тривога. Знайдено найближче укриття: \(name), координати: \(lat), \(lon)"
+                    return "🚨 Увага! Повітряна тривога.\nЗнайдено найближче укриття: \(name)\nКоординати: \(String(format: "%.5f", lat)), \(String(format: "%.5f", lon))"
                 } else {
-                    return "Увага! Повітряна тривога. Знайдіть найближче безпечне місце."
+                    return "🚨 Увага! Повітряна тривога.\nЗнайдіть найближче безпечне місце."
                 }
             }()
             ShareSheet(activityItems: [shareText])
@@ -365,14 +369,14 @@ struct ContentView: View {
                     
                     if route != nil {
                         withAnimation(.easeInOut(duration: 2.0)) {
-                            let coord = locationManager.location?.coordinate ?? userCoordinate
+                            let coord = currentUserCoordinate
                             cameraPosition = .userLocation(
                                 followsHeading: true,
                                 fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
                             )
                         }
                     } else {
-                        let coord = locationManager.location?.coordinate ?? userCoordinate
+                        let coord = currentUserCoordinate
                         cameraPosition = .userLocation(
                             fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
                         )
@@ -462,16 +466,16 @@ struct ContentView: View {
     }
     
     private func findNearestShelter() {
-        guard !isRoutingToShelter else { 
-            print("[ShelterSearch] Вже виконується пошук укриття, ігноруємо запит.")
-            return 
+        guard !isRoutingToShelter else {
+            mapLogger.debug("Shelter search already in progress — ignoring duplicate request")
+            return
         }
         isRoutingToShelter = true
 
         let userLoc = centerCoordinate
         let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
         let radiusMeters = max(currentRadius, 0.5) * 1000
-        print("[ShelterSearch] Початок пошуку. Координати користувача: \(userLoc.latitude), \(userLoc.longitude). Радіус: \(radiusMeters) метрів.")
+        mapLogger.info("Shelter search started. User: (\(userLoc.latitude), \(userLoc.longitude)), radius: \(radiusMeters)m")
         
         let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
 
@@ -483,17 +487,17 @@ struct ContentView: View {
             await withTaskGroup(of: [MKMapItem]?.self) { group in
                 for query in queries {
                     group.addTask {
-                        print("[ShelterSearch] Запит в Apple Maps: \(query)...")
+                        mapLogger.debug("MKLocalSearch query: '\(query)' started")
                         let request = MKLocalSearch.Request()
                         request.naturalLanguageQuery = query
                         request.region = searchRegion
                         let search = MKLocalSearch(request: request)
                         do {
                             let response = try await search.start()
-                            print("[ShelterSearch] Запит '\(query)' знайшов \(response.mapItems.count) об'єктів.")
+                            mapLogger.debug("Query '\(query)' returned \(response.mapItems.count) items")
                             return response.mapItems
                         } catch {
-                            print("[ShelterSearch] Помилка запиту '\(query)': \(error.localizedDescription)")
+                            mapLogger.warning("Query '\(query)' failed: \(error.localizedDescription)")
                             return nil
                         }
                     }
@@ -506,7 +510,7 @@ struct ContentView: View {
                 }
             }
 
-            print("[ShelterSearch] Всього сирих об'єктів знайдено: \(allItems.count)")
+            mapLogger.info("Total raw items found: \(allItems.count)")
 
             // Фільтрація дублікатів за близькістю координат (~5 метрів)
             var uniqueItems: [MKMapItem] = []
@@ -522,16 +526,18 @@ struct ContentView: View {
                     uniqueItems.append(item)
                 }
             }
-            print("[ShelterSearch] Унікальних об'єктів після дедуплікації: \(uniqueItems.count)")
+            mapLogger.info("Unique items after dedup: \(uniqueItems.count)")
 
-            // Жорстке відсіювання об'єктів, які вийшли за межі обраного радіуса
+            // Filter items strictly within the selected radius
             let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
             var strictRadiusItems = uniqueItems.filter { item in
-                let itemLocation = CLLocation(latitude: item.placemark.coordinate.latitude, longitude: item.placemark.coordinate.longitude)
-                let distance = itemLocation.distance(from: userLocation)
-                return distance <= radiusMeters
+                let itemLocation = CLLocation(
+                    latitude: item.placemark.coordinate.latitude,
+                    longitude: item.placemark.coordinate.longitude
+                )
+                return itemLocation.distance(from: userLocation) <= radiusMeters
             }
-            print("[ShelterSearch] Об'єктів в межах строгого радіусу \(radiusMeters)м: \(strictRadiusItems.count)")
+            mapLogger.info("Items within strict radius (\(radiusMeters)m): \(strictRadiusItems.count)")
 
             // Знаходження найближчого об'єкта до користувача
             var closestItem = strictRadiusItems.min { a, b in
@@ -553,9 +559,11 @@ struct ContentView: View {
                 }
                 
                 if let fallbackItem = absoluteClosest {
-                    let fallbackDistance = CLLocation(latitude: fallbackItem.placemark.coordinate.latitude, longitude: fallbackItem.placemark.coordinate.longitude)
-                        .distance(from: userLocation)
-                    print("[ShelterSearch] У радіусі \(radiusMeters)м нічого не знайдено. Використовуємо найближчий фолбек на відстані \(Int(fallbackDistance))м: \(fallbackItem.name ?? "Без назви")")
+                    let fallbackDistance = CLLocation(
+                        latitude: fallbackItem.placemark.coordinate.latitude,
+                        longitude: fallbackItem.placemark.coordinate.longitude
+                    ).distance(from: userLocation)
+                    mapLogger.info("Fallback shelter at \(Int(fallbackDistance))m: \(fallbackItem.name ?? "unknown")")
                     closestItem = fallbackItem
                     strictRadiusItems = [fallbackItem]
                 }
@@ -615,8 +623,8 @@ struct ContentView: View {
                     }
                 }
             } catch {
-                print("[ShelterSearch] Failed to calculate route: \(error.localizedDescription)")
-                
+                mapLogger.error("Route calculation failed: \(error.localizedDescription)")
+
                 if request.transportType == .walking {
                     print("[ShelterSearch] Trying fallback to automobile...")
                     let fallbackRequest = MKDirections.Request()
@@ -775,28 +783,47 @@ struct TopAlertBannerV4: View {
     let activeCount: Int
     let isLoading: Bool
 
+    // Computed icon based on semantic state, not color comparison
+    private var statusIcon: String {
+        if activeCount > 0 {
+            return statusText == "ТРИВОГА" ? "bell.badge.fill" : "exclamationmark.triangle.fill"
+        }
+        return "checkmark.shield.fill"
+    }
+
     var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: statusColor == .red ? "bell.badge.fill" : (statusColor == .yellow ? "exclamationmark.triangle.fill" : "checkmark.shield.fill"))
+        HStack(spacing: 14) {
+            Image(systemName: statusIcon)
                 .foregroundColor(statusColor)
-                .font(.title2)
+                .font(.system(size: 20, weight: .bold))
                 .symbolEffect(.bounce, options: .repeating, value: activeCount)
-            
+                .shadow(color: statusColor.opacity(0.5), radius: 6)
+
             VStack(spacing: 2) {
                 Text(statusText)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(statusColor)
-                Text(isLoading ? "ОНОВЛЕННЯ" : "\(activeCount) АКТИВНИХ")
-                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(statusColor.opacity(0.9))
+                    .tracking(1.5)
+                Text(isLoading ? "ОНОВЛЕННЯ..." : "\(activeCount) АКТИВНИХ")
+                    .font(.system(size: 17, weight: .black, design: .monospaced))
                     .foregroundColor(statusColor)
             }
         }
-        .padding(.horizontal, 30)
-        .padding(.vertical, 12)
-        .background(Color.black.opacity(0.85))
+        .padding(.horizontal, 26)
+        .padding(.vertical, 11)
+        .background(.ultraThinMaterial)
+        .background(Color.black.opacity(0.75))
         .clipShape(Capsule())
         .overlay(
-            Capsule().stroke(statusColor.opacity(0.8), lineWidth: 1.5)
+            Capsule()
+                .stroke(
+                    LinearGradient(
+                        colors: [statusColor.opacity(0.9), statusColor.opacity(0.4)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
         )
         .shadow(color: statusColor.opacity(0.4), radius: 15, x: 0, y: 5)
     }
@@ -951,121 +978,29 @@ struct BottomDashboardV4: View {
 struct SmallIconButtonV4: View {
     let iconName: String
     let action: () -> Void
-    
+    @State private var isPressed = false
+
     var body: some View {
         Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
         }) {
             Image(systemName: iconName)
-                .font(.system(size: 16))
-                .foregroundColor(.white.opacity(0.8))
-                .frame(width: 30, height: 30)
-                .background(Color.white.opacity(0.15))
-                .clipShape(Circle())
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white.opacity(0.85))
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(isPressed ? 0.25 : 0.13))
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .scaleEffect(isPressed ? 0.88 : 1.0)
         }
-    }
-}
-
-// Допоміжний компонент для Share Sheet
-struct ShareSheet: UIViewControllerRepresentable {
-    var activityItems: [Any]
-    var applicationActivities: [UIActivity]? = nil
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-// Вигляд деталей укриття
-@available(iOS 17.0, *)
-struct ShelterDetailView: View {
-    let shelter: MKMapItem
-    let route: MKRoute?
-    var isCalculatingRoute: Bool
-    var routeErrorMessage: String?
-    let onRouteRequested: () -> Void
-    let onStartNavigation: () -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(shelter.name ?? "Невідоме укриття")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-            
-            if let address = shelter.placemark.title {
-                Text(address)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            if let route = route {
-                HStack {
-                    Image(systemName: "figure.walk")
-                        .foregroundColor(.blue)
-                    Text("Відстань: \(String(format: "%.0f", route.distance)) м")
-                    Spacer()
-                    Text("Час: \(String(format: "%.0f", route.expectedTravelTime / 60)) хв")
-                }
-                .font(.subheadline)
-                .padding(.top, 5)
-            } else if let error = routeErrorMessage {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.red)
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundColor(.red)
-                }
-                .padding(.top, 5)
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 15) {
-                if route == nil {
-                    Button(action: onRouteRequested) {
-                        HStack {
-                            if isCalculatingRoute {
-                                ProgressView()
-                                    .tint(.white)
-                                    .padding(.trailing, 4)
-                            } else {
-                                Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
-                            }
-                            Text(isCalculatingRoute ? "Обчислення..." : "Побудувати маршрут")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.blue.opacity(0.85))
-                        .clipShape(Capsule())
-
-                    }
-                } else {
-                    Button(action: onStartNavigation) {
-                        HStack {
-                            Image(systemName: "location.fill")
-                            Text("Почати навігацію")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.green.opacity(0.85))
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-        }
-        .padding(24)
-        .background(Color.clear) // Ensure we don't accidentally make it opaque
+        .buttonStyle(.plain)
+        .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
     }
 }
 
@@ -1075,144 +1010,3 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
-
-@available(iOS 17.0, *)
-struct NavigationOverlay: View {
-    let route: MKRoute?
-    let onEndNavigation: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "location.north.line.fill")
-                    .foregroundColor(.green)
-                    .font(.title2)
-                
-                VStack(alignment: .leading) {
-                    Text("Режим навігації")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    if let route = route {
-                        Text("\(String(format: "%.0f", route.distance)) м • \(String(format: "%.0f", route.expectedTravelTime / 60)) хв пішки")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                }
-                Spacer()
-            }
-            
-            Button(action: onEndNavigation) {
-                Text("Завершити навігацію")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.red.opacity(0.85))
-                    .clipShape(Capsule())
-            }
-        }
-        .padding()
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-        .preferredColorScheme(.dark)
-        .padding()
-    }
-}
-
-extension MKDirectionsTransportType: @retroactive Hashable {}
-
-@available(iOS 17.0, *)
-struct AlertListOverlayView: View {
-    let title: String
-    let color: Color
-    let alerts: [AlertRegion]
-    let filterActiveOnly: Bool
-    var onClose: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 10) {
-            // Header
-            HStack {
-                Text(title)
-                    .font(.system(size: 28, weight: .black, design: .default))
-                    .foregroundColor(color)
-                    .shadow(color: color.opacity(0.4), radius: 8, x: 0, y: 0)
-                
-                Spacer()
-                
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    onClose()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(8)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            
-            // List of alerts (dimmed background)
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    let filteredAlerts = filterActiveOnly ? alerts.filter { $0.isActive } : alerts
-                    let sortedAlerts = filteredAlerts.sorted { a, b in
-                        if a.isActive != b.isActive {
-                            return a.isActive
-                        }
-                        return (a.lastChanged ?? "") > (b.lastChanged ?? "")
-                    }
-                    
-                    ForEach(sortedAlerts) { alert in
-                        HStack(alignment: .center, spacing: 12) {
-                            Circle()
-                                .fill(alert.isActive ? color : Color.gray)
-                                .frame(width: 8, height: 8)
-                                .shadow(color: alert.isActive ? color : .clear, radius: 4)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(alert.name)
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                
-                                HStack(spacing: 8) {
-                                    Text(alert.isActive ? "АКТИВНА" : "НЕАКТИВНА")
-                                        .font(.system(size: 10, weight: .black))
-                                        .foregroundColor(alert.isActive ? .red : .gray)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(alert.isActive ? Color.red.opacity(0.15) : Color.gray.opacity(0.15))
-                                        .cornerRadius(4)
-                                    
-                                    if let changed = alert.lastChanged {
-                                        Text(changed)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                            Spacer()
-                        }
-                        .padding()
-                        .background(Color.white.opacity(0.04))
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                        .padding(.horizontal, 24)
-                    }
-                }
-                .padding(.top, 10)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ultraThinMaterial)
-        .background(Color.black.opacity(0.55).ignoresSafeArea())
-    }
-}
-
