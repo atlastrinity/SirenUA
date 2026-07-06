@@ -3,28 +3,28 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>placeholder-api-key</string>
+	<string>AIzaSyDe8-UHgfc_D3QSyiYcU3FOZ92_N7tj1V0</string>
 	<key>GCM_SENDER_ID</key>
-	<string>placeholder-gcm-sender-id</string>
+	<string>655509243960</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.sirenua.SirenUA</string>
 	<key>PROJECT_ID</key>
-	<string>sirenua-placeholder</string>
+	<string>sirenua</string>
 	<key>STORAGE_BUCKET</key>
-	<string>sirenua-placeholder.appspot.com</string>
+	<string>sirenua.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_APPINVITE_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_GCM_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:placeholder:ios:placeholder</string>
+	<string>1:655509243960:ios:9f365548b71962bc8e7ecd</string>
 </dict>
 </plist>
