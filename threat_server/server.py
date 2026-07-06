@@ -7,6 +7,7 @@ Threat Monitoring Server — FastAPI сервер моніторингу заг�
 
 API:
     GET  /api/threats           — поточний стан загроз для всіх областей
+    GET  /api/shelters          — пошук найближчих укриттів за координатами
     POST /api/threats/mock      — встановити загрозу вручну (мок-режим)
     POST /api/threats/scenario  — запустити тестовий сценарій
     POST /api/threats/clear     — очистити всі загрози
@@ -25,6 +26,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from mock_mode import MockThreatManager
+from shelter_manager import ShelterManager
 
 try:
     import firebase_admin
@@ -35,6 +37,7 @@ except ImportError:
 
 # Глобальний менеджер загроз (in-memory)
 threat_manager = MockThreatManager()
+shelter_manager = ShelterManager()
 telegram_monitor = None
 is_live_mode = "--live" in sys.argv or os.environ.get("LIVE_MODE", "false").lower() == "true"
 
@@ -97,6 +100,13 @@ async def lifespan(app: FastAPI):
     
     # Ініціалізація Firebase Cloud Messaging
     init_firebase()
+
+    # Завантаження бази укриттів з OpenStreetMap
+    try:
+        await shelter_manager.load()
+        await shelter_manager.start_refresh_loop()
+    except Exception as e:
+        print(f"⚠️ Помилка завантаження укриттів: {e}")
     
     if is_live_mode:
         from telegram_monitor import TelegramThreatMonitor
@@ -108,6 +118,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
+    await shelter_manager.stop()
     if telegram_monitor:
         await telegram_monitor.stop()
 
@@ -147,10 +158,11 @@ class ScenarioRequest(BaseModel):
 async def root():
     return {
         "service": "SirenUA Threat Monitor",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "status": "running",
         "mode": "live" if is_live_mode else "mock",
         "telegram_connected": telegram_monitor is not None and telegram_monitor.is_running,
+        "shelters_loaded": shelter_manager.total_count,
     }
 
 
@@ -216,6 +228,25 @@ async def clear_all_threats():
     """Очистити всі загрози."""
     threat_manager.clear_all()
     return {"status": "ok", "message": "All threats cleared"}
+
+
+@app.get("/api/shelters")
+async def get_shelters(lat: float, lon: float, radius: float = 1500, limit: int = 50):
+    """Пошук найближчих укриттів у заданому радіусі (метри)."""
+    if not shelter_manager.is_loaded:
+        raise HTTPException(status_code=503, detail="Shelter database is loading, try again in a minute.")
+
+    # Clamp values
+    radius = max(100, min(radius, 50_000))  # 100m — 50km
+    limit = max(1, min(limit, 100))
+
+    results = shelter_manager.find_nearby(lat, lon, radius, limit=limit)
+    return {
+        "count": len(results),
+        "radius_m": radius,
+        "total_in_db": shelter_manager.total_count,
+        "shelters": results,
+    }
 
 
 if __name__ == "__main__":

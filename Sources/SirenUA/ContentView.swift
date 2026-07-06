@@ -476,14 +476,73 @@ struct ContentView: View {
         let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
         let radiusMeters = max(currentRadius, 0.5) * 1000
         mapLogger.info("Shelter search started. User: (\(userLoc.latitude), \(userLoc.longitude)), radius: \(radiusMeters)m")
-        
-        let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
-
-        let queries = ["укриття", "бомбосховище", "shelter", "bomb shelter", "метро", "subway"]
 
         Task {
+            // ──────────────────────────────────────────────
+            // Priority 1: Our server API (real OSM data)
+            // ──────────────────────────────────────────────
+            var apiShelters: [ShelterItem] = []
+            do {
+                let networkManager = NetworkManager()
+                apiShelters = try await networkManager.fetchShelters(
+                    serverURL: viewModel.threatServerURL,
+                    lat: userLoc.latitude,
+                    lon: userLoc.longitude,
+                    radiusMeters: radiusMeters
+                )
+                mapLogger.info("API returned \(apiShelters.count) shelters")
+            } catch {
+                mapLogger.warning("Shelter API failed, falling back to MKLocalSearch: \(error.localizedDescription)")
+            }
+
+            if !apiShelters.isEmpty {
+                // Convert ShelterItems to MKMapItems for existing UI flow
+                let mapItems = apiShelters.map { shelter -> MKMapItem in
+                    let placemark = MKPlacemark(coordinate: shelter.coordinate)
+                    let item = MKMapItem(placemark: placemark)
+                    item.name = shelter.name ?? shelter.typeDescription
+                    if let addr = shelter.address {
+                        item.name = "\(item.name ?? "Укриття") — \(addr)"
+                    }
+                    return item
+                }
+
+                await MainActor.run {
+                    isRoutingToShelter = false
+                    allFoundShelters = mapItems
+
+                    guard let closest = mapItems.first else { return }
+                    foundShelter = closest
+                    selectedShelter = closest
+                    route = nil
+                    routeErrorMessage = nil
+                    isCalculatingRoute = false
+
+                    withAnimation(.easeInOut(duration: 1.0)) {
+                        cameraPosition = .region(
+                            MKCoordinateRegion(
+                                center: closest.placemark.coordinate,
+                                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                            )
+                        )
+                    }
+                }
+                return
+            }
+
+            // ──────────────────────────────────────────────
+            // Priority 2: Fallback to Apple MKLocalSearch
+            // ──────────────────────────────────────────────
+            mapLogger.info("Falling back to MKLocalSearch...")
+            let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
+
+            let queries = [
+                "укриття", "бомбосховище", "shelter", "bomb shelter",
+                "метро", "subway", "підземний перехід", "підвал", "паркінг"
+            ]
+
             var allItems: [MKMapItem] = []
-            
+
             await withTaskGroup(of: [MKMapItem]?.self) { group in
                 for query in queries {
                     group.addTask {
@@ -502,7 +561,7 @@ struct ContentView: View {
                         }
                     }
                 }
-                
+
                 for await items in group {
                     if let items = items {
                         allItems.append(contentsOf: items)
@@ -557,7 +616,7 @@ struct ContentView: View {
                         .distance(from: userLocation)
                     return distA < distB
                 }
-                
+
                 if let fallbackItem = absoluteClosest {
                     let fallbackDistance = CLLocation(
                         latitude: fallbackItem.placemark.coordinate.latitude,
