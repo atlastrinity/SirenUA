@@ -49,7 +49,27 @@ class TelegramThreatMonitor:
     async def start(self):
         self.is_running = True
         
-        # Detect if userbot session file exists
+        # 1. Try to load from environment variable (StringSession) - best for Render production
+        session_string = os.environ.get("TELEGRAM_SESSION_STRING")
+        if session_string:
+            print("🔥 Знайдено TELEGRAM_SESSION_STRING в змінних оточення. Ініціалізуємо MTProto...")
+            try:
+                from telethon.sessions import StringSession
+                self.client = TelegramClient(StringSession(session_string), TELEGRAM_API_ID, TELEGRAM_API_HASH)
+                await self.client.connect()
+                if await self.client.is_user_authorized():
+                    self.use_mtproto = True
+                    print("✅ Юзербот авторизований через StringSession! Отримуємо повідомлення МИТТЄВО.")
+                    self._setup_event_handlers()
+                    return
+                else:
+                    print("⚠️ StringSession надано, але сесія не авторизована.")
+            except Exception as e:
+                print(f"⚠️ Помилка ініціалізації StringSession: {e}")
+                if self.client:
+                    await self.client.disconnect()
+
+        # 2. Try to load from local file session (fallback)
         session_found = None
         for path in self.session_paths:
             if os.path.exists(path):
@@ -57,31 +77,15 @@ class TelegramThreatMonitor:
                 break
                 
         if session_found:
-            print(f"🔥 Знайдено сесію юзербота: {session_found}. Ініціалізуємо MTProto з'єднання...")
+            print(f"🔥 Знайдено локальний файл сесії: {session_found}. Ініціалізуємо MTProto...")
             try:
                 self.client = TelegramClient(session_found, TELEGRAM_API_ID, TELEGRAM_API_HASH)
                 await self.client.connect()
                 
                 if await self.client.is_user_authorized():
                     self.use_mtproto = True
-                    print("✅ Юзербот авторизований! Отримуємо повідомлення МИТТЄВО через MTProto.")
-                    
-                    @self.client.on(events.NewMessage(chats=TARGET_CHANNELS))
-                    async def handler(event):
-                        if not self.is_running:
-                            return
-                        text = event.message.text
-                        if text:
-                            # Get channel name safely
-                            try:
-                                channel = event.chat.username or str(event.chat_id)
-                            except:
-                                channel = "unknown"
-                            
-                            short_text = text.strip().replace('\n', ' ')[:80]
-                            print(f"⚡ [MTProto: {channel}] Нове повідомлення: \"{short_text}...\"")
-                            await self._process_message(text, channel)
-                            
+                    print("✅ Юзербот авторизований через локальний файл! Отримуємо повідомлення МИТТЄВО.")
+                    self._setup_event_handlers()
                     return
                 else:
                     print("⚠️ Файл сесії знайдено, але користувач не авторизований.")
@@ -94,6 +98,25 @@ class TelegramThreatMonitor:
         self.use_mtproto = False
         asyncio.create_task(self._scrape_loop())
         print(f"📥 Автоматичний веб-моніторинг (кожні 20 сек) активний для: {', '.join(TARGET_CHANNELS)}")
+
+    def _setup_event_handlers(self):
+        if not self.client:
+            return
+            
+        @self.client.on(events.NewMessage(chats=TARGET_CHANNELS))
+        async def handler(event):
+            if not self.is_running:
+                return
+            text = event.message.text
+            if text:
+                try:
+                    channel = event.chat.username or str(event.chat_id)
+                except:
+                    channel = "unknown"
+                
+                short_text = text.strip().replace('\n', ' ')[:80]
+                print(f"⚡ [MTProto: {channel}] Нове повідомлення: \"{short_text}...\"")
+                await self._process_message(text, channel)
 
     async def stop(self):
         self.is_running = False
