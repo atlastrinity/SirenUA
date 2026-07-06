@@ -72,6 +72,7 @@ final class NetworkManager: Sendable {
 
     private func makeRequest(url: URL, agent: String) -> URLRequest {
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(agent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = Self.defaultTimeout
