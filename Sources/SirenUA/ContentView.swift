@@ -886,8 +886,11 @@ struct ShelterDetailView: View {
     }
 }
 
-#Preview {
-    ContentView()
+@available(iOS 17.0, *)
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
 
 @available(iOS 17.0, *)

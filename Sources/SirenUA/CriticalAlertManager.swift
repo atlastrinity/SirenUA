@@ -1,7 +1,7 @@
 import Foundation
 import UserNotifications
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 class CriticalAlertManager: NSObject {
     static let shared = CriticalAlertManager()
 
@@ -74,7 +74,7 @@ class CriticalAlertManager: NSObject {
     }
 }
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 extension CriticalAlertManager: UNUserNotificationCenterDelegate {
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,

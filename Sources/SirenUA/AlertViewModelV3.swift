@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import CoreLocation
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 @MainActor
 class AlertViewModelV3: ObservableObject {
     @Published var alerts: [AlertRegion] = []

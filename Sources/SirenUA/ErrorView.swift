@@ -1,6 +1,6 @@
 import SwiftUI
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 struct ErrorView: View {
     let message: String
     

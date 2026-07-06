@@ -5,7 +5,7 @@ targets:
   SirenUA:
     type: application
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "16.0"
     sources: 
       - path: Sources/SirenUA
     settings:
@@ -13,14 +13,15 @@ targets:
         INFOPLIST_FILE: Sources/SirenUA/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.sirenua.SirenUA
         SWIFT_VERSION: 5.0
-        DEVELOPMENT_TEAM: ""
-        CODE_SIGNING_REQUIRED: "NO"
-        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: "B7WVJ3B4B7"
+        CODE_SIGNING_REQUIRED: "YES"
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   SirenUATests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "16.0"
     sources: 
       - path: Tests/SirenUATests
     dependencies:

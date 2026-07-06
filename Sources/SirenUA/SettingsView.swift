@@ -109,7 +109,7 @@ struct SettingsView: View {
                                         .foregroundColor(.white)
                                     Spacer()
                                     Stepper("\(refreshInterval) сек", value: $refreshInterval, in: 15...300, step: 15)
-                                        .onChange(of: refreshInterval) { triggerHaptic() }
+                                        .onChange(of: refreshInterval) { _ in triggerHaptic() }
                                 }
                             }
                         }
@@ -127,7 +127,7 @@ struct SettingsView: View {
                                     Text("Супутник").tag(2)
                                 }
                                 .pickerStyle(.segmented)
-                                .onChange(of: mapType) { triggerHaptic() }
+                                .onChange(of: mapType) { _ in triggerHaptic() }
                             }
                             
                             Divider().background(Color.white.opacity(0.1))
@@ -418,7 +418,7 @@ struct ToggleRow: View {
                 .font(.subheadline)
                 .foregroundColor(.white)
         }
-        .onChange(of: isOn) {
+        .onChange(of: isOn) { _ in
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
         }

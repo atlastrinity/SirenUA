@@ -1,7 +1,7 @@
 import Foundation
 import MapKit
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 struct RegionPolygon: Identifiable {
     let id = UUID()
     let name: String
@@ -11,7 +11,7 @@ struct RegionPolygon: Identifiable {
     let center: CLLocationCoordinate2D
 }
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 class GeoJSONManager: ObservableObject {
     @Published var regions: [RegionPolygon] = []
     

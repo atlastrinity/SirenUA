@@ -1,7 +1,7 @@
 import Foundation
 import CoreLocation
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 class NetworkManager {
     private let baseURL = "https://ubilling.net.ua/aerialalerts/"
     private let session: URLSession
