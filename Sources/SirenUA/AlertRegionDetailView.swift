@@ -161,7 +161,7 @@ struct AlertRegionDetailView: View {
                                 Image(systemName: "bell.badge.fill")
                                     .foregroundStyle(themeColor)
                                     .font(.system(size: 14))
-                                Text("Що відомо (Telegram)")
+                                Text("Що відомо")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.secondary)
                             }
