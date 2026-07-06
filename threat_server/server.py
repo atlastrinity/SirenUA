@@ -157,7 +157,8 @@ async def clear_all_threats():
 
 
 if __name__ == "__main__":
-    port = 8080
+    import os
+    port = int(os.environ.get("PORT", 8085))
     mode = "LIVE (Telegram)" if is_live_mode else "MOCK (тестування)"
     
     print(f"🚀 SirenUA Threat Monitor Server")
