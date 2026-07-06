@@ -3,6 +3,24 @@ import MapKit
 import UIKit
 
 @available(iOS 17.0, *)
+enum ActiveSheet: Identifiable, Equatable {
+    case settings
+    case share
+    case shelterDetail(MKMapItem)
+    
+    var id: String {
+        switch self {
+        case .settings:
+            return "settings"
+        case .share:
+            return "share"
+        case .shelterDetail(let item):
+            return "shelter_\(item.placemark.coordinate.latitude)_\(item.placemark.coordinate.longitude)"
+        }
+    }
+}
+
+@available(iOS 17.0, *)
 struct ContentView: View {
     @StateObject private var viewModel = AlertViewModelV3()
     @StateObject private var geoManager = GeoJSONManager()
@@ -34,6 +52,27 @@ struct ContentView: View {
 
     let userCoordinate = CLLocationCoordinate2D(latitude: 50.4450, longitude: 30.5300)
     
+    var currentUserCoordinate: CLLocationCoordinate2D {
+        locationManager.location?.coordinate ?? userCoordinate
+    }
+    
+    private var alertsDict: [String: AlertRegion] {
+        Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
+    }
+    
+    private var activeAlertRegions: [RegionPolygon] {
+        geoManager.regions.filter { region in
+            alertsDict[region.nameUK]?.isActive == true
+        }
+    }
+    
+    private var activeThreatRegions: [RegionPolygon] {
+        geoManager.regions.filter { region in
+            guard let alert = alertsDict[region.nameUK] else { return false }
+            return !alert.isActive && alert.threatLevel != nil
+        }
+    }
+    
     // Стан для анімацій (пульсація)
     @State private var dummyState = false
     
@@ -43,8 +82,7 @@ struct ContentView: View {
     }
     
     // Стан для навігації та модальних вікон
-    @State private var showSettings = false
-    @State private var showShareSheet = false
+    @State private var activeSheet: ActiveSheet? = nil
     @State private var showHistory = false
     @State private var showActiveAlerts = false
     @State private var isNavigating = false
@@ -80,19 +118,6 @@ struct ContentView: View {
         let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
         let activeTrackedThreats = viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
         
-        // Оптимізація рендерингу карти: створюємо словник для швидкого O(1) пошуку
-        let alertsDict = Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
-        
-        // Попередньо фільтруємо області за межами Map closure
-        let activeAlertRegions = geoManager.regions.filter { region in
-            alertsDict[region.nameUK]?.isActive == true
-        }
-        
-        let activeThreatRegions = geoManager.regions.filter { region in
-            guard let alert = alertsDict[region.nameUK] else { return false }
-            return !alert.isActive && alert.threatLevel != nil
-        }
-        
         let hasAlerts = !activeTrackedAlerts.isEmpty
         let hasThreats = !activeTrackedThreats.isEmpty
         
@@ -103,78 +128,7 @@ struct ContentView: View {
         return ZStack(alignment: .top) {
             // 1. ШАР КАРТИ
             Map(position: $cameraPosition, selection: $selectedShelter) {
-                
-                // Полігони областей з рівнем загрози (Premium)
-                ForEach(activeThreatRegions) { region in
-                    let strokeColor: Color = .yellow.opacity(0.6)
-                    let fillColor: Color = .yellow.opacity(0.35)
-                    
-                    ForEach(0..<region.mkPolygons.count, id: \.self) { index in
-                        MapPolygon(region.mkPolygons[index])
-                            .stroke(strokeColor, lineWidth: 0.5)
-                            .foregroundStyle(fillColor)
-                    }
-                }
-
-                // Полігони областей з активною тривогою
-                ForEach(activeAlertRegions) { region in
-                    let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
-                    
-                    ForEach(0..<region.mkPolygons.count, id: \.self) { index in
-                        MapPolygon(region.mkPolygons[index])
-                            .stroke(
-                                .red.opacity(0.6), 
-                                lineWidth: 0.7
-                            )
-                            .foregroundStyle(
-                                isLastAlerted ? .red.opacity(0.5) : .red.opacity(0.35)
-                            )
-                    }
-                }
-                
-                // Маркер користувача
-                Annotation("Ви", coordinate: locationManager.location?.coordinate ?? userCoordinate) {
-                    Image(systemName: "location.north.fill")
-                        .foregroundColor(.white)
-                        .padding(8)
-                        .background(Color.green)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                        .shadow(radius: 5)
-                }
-                
-                // Інтерактивні маркери центрів областей (для кліку та перегляду деталей тривоги/загрози)
-                ForEach(viewModel.alerts) { alert in
-                    if alert.isActive || (viewModel.isPremium && alert.threatLevel != nil) {
-                        Annotation(alert.name, coordinate: alert.coordinate) {
-                            Button(action: {
-                                selectedRegionForDetail = alert
-                            }) {
-                                Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : "bell.fill")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(6)
-                                    .background(alert.isActive ? Color.red : Color.yellow)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                                    .shadow(radius: 4)
-                            }
-                        }
-                    }
-                }
-                
-                // Усі знайдені укриття в радіусі
-                ForEach(allFoundShelters, id: \.self) { shelter in
-                    Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
-                        .tint(selectedShelter == shelter ? .green : .blue)
-                        .tag(shelter)
-                }
-                
-                // Маршрут
-                if let route = route {
-                    MapPolyline(route)
-                        .stroke(.blue, lineWidth: 5)
-                }
+                mapContent
             }
             .mapStyle(selectedMapStyle)
             .colorScheme(.dark)
@@ -309,10 +263,10 @@ struct ContentView: View {
                         transportType: $transportType,
                         onFindShelter: findNearestShelter,
                         onShare: {
-                            showShareSheet = true
+                            activeSheet = .share
                         },
                         onSettings: {
-                            showSettings = true
+                            activeSheet = .settings
                         },
                         onHistory: {
                             showHistory = true
@@ -342,69 +296,9 @@ struct ContentView: View {
                 .transition(.opacity.combined(with: .scale))
             }
         }
+        .sheet(item: $activeSheet) { item in
+            sheetContent(for: item)
         }
-        .background(
-            Color.clear
-                .sheet(isPresented: $showSettings) {
-                    SettingsView()
-                        .presentationBackground(.clear)
-                }
-        )
-        .background(
-            Color.clear
-                .sheet(isPresented: $showShareSheet) {
-                    let shareText: String = {
-                        if let shelter = foundShelter {
-                            let lat = shelter.placemark.coordinate.latitude
-                            let lon = shelter.placemark.coordinate.longitude
-                            let name = shelter.name ?? ""
-                            return "Увага! Повітряна тривога. Знайдено найближче укриття: \(name), координати: \(lat), \(lon)"
-                        } else {
-                            return "Увага! Повітряна тривога. Знайдіть найближче безпечне місце."
-                        }
-                    }()
-                    return ShareSheet(activityItems: [shareText])
-                }
-        )
-        .background(
-            Color.clear
-                .sheet(isPresented: Binding(
-                    get: { selectedShelter != nil },
-                    set: { if !$0 { selectedShelter = nil } }
-                )) {
-                    if let shelter = selectedShelter {
-                        if !isNavigating {
-                            ShelterDetailView(shelter: shelter, route: route, isCalculatingRoute: isCalculatingRoute, routeErrorMessage: routeErrorMessage, onRouteRequested: {
-                                calculateRoute(to: shelter)
-                            }, onStartNavigation: {
-                                isNavigating = true
-                                // Тут ми зберігаємо selectedShelter = nil, але route НЕ зникає через оновлену логіку onChange
-                                selectedShelter = nil
-                                
-                                if route != nil {
-                                    withAnimation(.easeInOut(duration: 2.0)) {
-                                        let coord = locationManager.location?.coordinate ?? userCoordinate
-                                        cameraPosition = .userLocation(
-                                            followsHeading: true,
-                                            fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
-                                        )
-                                    }
-                                } else {
-                                    let coord = locationManager.location?.coordinate ?? userCoordinate
-                                    cameraPosition = .userLocation(
-                                        fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
-                                    )
-                                }
-                            })
-                            .presentationDetents([.height(220)])
-                            .presentationBackground(.ultraThinMaterial)
-                            .presentationCornerRadius(24)
-                            .presentationBackgroundInteraction(.enabled(upThrough: .height(220)))
-                            .preferredColorScheme(.dark)
-                        }
-                    }
-                }
-        )
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
         }
@@ -412,11 +306,24 @@ struct ContentView: View {
             viewModel.markLastAlertAsViewed()
         }
         .onChange(of: selectedShelter) { oldValue, newValue in
-            // Очищуємо маршрут лише тоді, коли користувач дійсно скасував вибір сховища вручну
-            if newValue == nil && !isNavigating {
-                route = nil
-                routeErrorMessage = nil
-                isCalculatingRoute = false
+            if let newValue = newValue {
+                activeSheet = .shelterDetail(newValue)
+            } else {
+                if !isNavigating {
+                    route = nil
+                    routeErrorMessage = nil
+                    isCalculatingRoute = false
+                }
+            }
+        }
+        .onChange(of: activeSheet) { oldValue, newValue in
+            if newValue == nil {
+                selectedShelter = nil
+                if !isNavigating {
+                    route = nil
+                    routeErrorMessage = nil
+                    isCalculatingRoute = false
+                }
             }
         }
         .onAppear {
@@ -427,6 +334,130 @@ struct ContentView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 centerMapOnAlerts()
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func sheetContent(for item: ActiveSheet) -> some View {
+        switch item {
+        case .settings:
+            SettingsView()
+                .presentationBackground(.clear)
+        case .share:
+            let shareText: String = {
+                if let shelter = foundShelter {
+                    let lat = shelter.placemark.coordinate.latitude
+                    let lon = shelter.placemark.coordinate.longitude
+                    let name = shelter.name ?? ""
+                    return "Увага! Повітряна тривога. Знайдено найближче укриття: \(name), координати: \(lat), \(lon)"
+                } else {
+                    return "Увага! Повітряна тривога. Знайдіть найближче безпечне місце."
+                }
+            }()
+            ShareSheet(activityItems: [shareText])
+        case .shelterDetail(let shelter):
+            if !isNavigating {
+                ShelterDetailView(shelter: shelter, route: route, isCalculatingRoute: isCalculatingRoute, routeErrorMessage: routeErrorMessage, onRouteRequested: {
+                    calculateRoute(to: shelter)
+                }, onStartNavigation: {
+                    isNavigating = true
+                    activeSheet = nil
+                    
+                    if route != nil {
+                        withAnimation(.easeInOut(duration: 2.0)) {
+                            let coord = locationManager.location?.coordinate ?? userCoordinate
+                            cameraPosition = .userLocation(
+                                followsHeading: true,
+                                fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
+                            )
+                        }
+                    } else {
+                        let coord = locationManager.location?.coordinate ?? userCoordinate
+                        cameraPosition = .userLocation(
+                            fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
+                        )
+                    }
+                })
+                .presentationDetents([.height(220)])
+                .presentationBackground(.ultraThinMaterial)
+                .presentationCornerRadius(24)
+                .presentationBackgroundInteraction(.enabled(upThrough: .height(220)))
+                .preferredColorScheme(.dark)
+            }
+        }
+    }
+    
+    @MapContentBuilder
+    private var mapContent: some MapContent {
+        // Polygons
+        ForEach(activeThreatRegions) { region in
+            let strokeColor: Color = .yellow.opacity(0.6)
+            let fillColor: Color = .yellow.opacity(0.35)
+            
+            ForEach(region.identifiablePolygons) { item in
+                MapPolygon(item.polygon)
+                    .stroke(strokeColor, lineWidth: 0.5)
+                    .foregroundStyle(fillColor)
+            }
+        }
+
+        ForEach(activeAlertRegions) { region in
+            let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
+            
+            ForEach(region.identifiablePolygons) { item in
+                MapPolygon(item.polygon)
+                    .stroke(
+                        .red.opacity(0.6), 
+                        lineWidth: 0.7
+                    )
+                    .foregroundStyle(
+                        isLastAlerted ? .red.opacity(0.5) : .red.opacity(0.35)
+                    )
+            }
+        }
+        
+        // User Annotation
+        Annotation("Ви", coordinate: currentUserCoordinate) {
+            Image(systemName: "location.north.fill")
+                .foregroundColor(.white)
+                .padding(8)
+                .background(Color.green)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                .shadow(radius: 5)
+        }
+        
+        // Regions
+        ForEach(viewModel.alerts) { alert in
+            if alert.isActive || (viewModel.isPremium && alert.threatLevel != nil) {
+                Annotation(alert.name, coordinate: alert.coordinate) {
+                    Button(action: {
+                        selectedRegionForDetail = alert
+                    }) {
+                        Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : "bell.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(alert.isActive ? Color.red : Color.yellow)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                            .shadow(radius: 4)
+                    }
+                }
+            }
+        }
+        
+        // Shelters
+        ForEach(allFoundShelters, id: \.self) { shelter in
+            Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
+                .tint(selectedShelter == shelter ? .green : .blue)
+                .tag(shelter)
+        }
+        
+        // Route
+        if let route = route {
+            MapPolyline(route)
+                .stroke(.blue, lineWidth: 5)
         }
     }
     

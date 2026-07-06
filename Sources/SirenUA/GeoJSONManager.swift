@@ -2,12 +2,19 @@ import Foundation
 import MapKit
 
 @available(iOS 16.0, *)
+struct IdentifiableMKPolygon: Identifiable {
+    let id = UUID()
+    let polygon: MKPolygon
+}
+
+@available(iOS 16.0, *)
 struct RegionPolygon: Identifiable {
     let id = UUID()
     let name: String
     let nameUK: String
     let polygons: [[CLLocationCoordinate2D]]
     let mkPolygons: [MKPolygon]  // Зберігаємо оригінальні MKPolygon для надійного рендерингу
+    let identifiablePolygons: [IdentifiableMKPolygon]
     let center: CLLocationCoordinate2D
 }
 
@@ -77,7 +84,8 @@ class GeoJSONManager: ObservableObject {
                         }
                     }
                     
-                    let region = RegionPolygon(name: nameEn, nameUK: nameUk, polygons: featurePolygons, mkPolygons: featureMKPolygons, center: centerCoord)
+                    let identifiablePolygons = featureMKPolygons.map { IdentifiableMKPolygon(polygon: $0) }
+                    let region = RegionPolygon(name: nameEn, nameUK: nameUk, polygons: featurePolygons, mkPolygons: featureMKPolygons, identifiablePolygons: identifiablePolygons, center: centerCoord)
                     parsedRegions.append(region)
                 }
             }
