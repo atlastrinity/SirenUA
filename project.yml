@@ -7,28 +7,15 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources: 
-      - path: SirenUAApp.swift
-      - path: AlertRegionDetailView.swift
-      - path: NetworkManager.swift
-      - path: AlertRegion.swift
-      - path: ErrorView.swift
-      - path: CriticalAlertManager.swift
-      - path: SettingsView.swift
-      - path: NotificationManager.swift
-      - path: ContentView.swift
-      - path: AlertViewModelV3.swift
-      - path: GeoJSONManager.swift
-      - path: ukraine_regions.geojson
-      - path: LocationManager.swift
-      - path: siren.wav
-      - path: vidbiy.wav
-      - path: Assets.xcassets
+      - path: Sources/SirenUA
     settings:
       base:
-        INFOPLIST_FILE: Info.plist
+        INFOPLIST_FILE: Sources/SirenUA/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.sirenua.SirenUA
         SWIFT_VERSION: 5.0
         DEVELOPMENT_TEAM: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   SirenUATests:
     type: bundle.unit-test
@@ -41,3 +28,12 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  SirenUA:
+    build:
+      targets:
+        SirenUA: all
+    run:
+      config: Debug
+      storeKitConfiguration: SirenUA.storekit
