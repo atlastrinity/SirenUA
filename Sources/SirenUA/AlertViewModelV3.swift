@@ -34,7 +34,11 @@ final class AlertViewModelV3: ObservableObject {
     }
     
     var isPremium: Bool {
+        #if DEBUG
+        return true
+        #else
         UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+        #endif
     }
     
     var threatServerURL: String {
