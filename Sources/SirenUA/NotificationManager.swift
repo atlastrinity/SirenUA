@@ -2,10 +2,22 @@ import Foundation
 import UserNotifications
 import AVFoundation
 
+struct PendingNotification {
+    let title: String
+    let body: String
+    let soundName: String
+}
+
 class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
     private var audioPlayer: AVAudioPlayer?
-    private let speechSynthesizer = AVSpeechSynthesizer()
+    
+    // Черга для послідовного виведення пуш-сповіщень
+    private var notificationQueue: [PendingNotification] = []
+    private var isProcessingQueue = false
+    
+    // Трекер часу програвання звуків для запобігання накладанню
+    private var lastPlayedTimes: [String: Date] = [:]
     
     private override init() {
         super.init()
@@ -48,30 +60,65 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
     
-    func speakText(_ text: String) {
+    // Чергування та послідовне відправлення пушів
+    private func enqueueNotification(title: String, body: String, soundName: String, regionName: String) {
         guard notificationsEnabled else { return }
-        // Зупиняємо попереднє мовлення, якщо воно триває
-        if speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
+        guard shouldNotify(for: regionName) else { return }
+        
+        // Відтворюємо звук (буде відтворюватися тільки один раз на партію завдяки ліміту)
+        playSound(named: soundName, for: regionName)
+        
+        let pending = PendingNotification(title: title, body: body, soundName: soundName)
+        
+        DispatchQueue.main.async {
+            self.notificationQueue.append(pending)
+            self.processNotificationQueue()
         }
+    }
+    
+    private func processNotificationQueue() {
+        guard !isProcessingQueue else { return }
+        guard !notificationQueue.isEmpty else { return }
         
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "uk-UA")
-        utterance.rate = 0.5 // Швидкість мовлення (дефолт 0.5 - нормальний темп)
-        utterance.volume = 1.0
+        isProcessingQueue = true
+        let notification = notificationQueue.removeFirst()
         
-        // Додамо невелику паузу перед початком
-        utterance.preUtteranceDelay = 0.5
+        let content = UNMutableNotificationContent()
+        content.title = notification.title
+        content.body = notification.body
+        content.sound = UNNotificationSound(named: UNNotificationSoundName(notification.soundName))
         
-        speechSynthesizer.speak(utterance)
-        print("Speaking: \(text)")
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Error scheduling queued notification: \(error.localizedDescription)")
+            }
+            
+            // Затримка в 1.0 секунду перед наступним пушем для послідовного спливання
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.isProcessingQueue = false
+                self.processNotificationQueue()
+            }
+        }
     }
     
     private func playSound(named filename: String, for regionName: String) {
         guard notificationsEnabled else { return }
         guard shouldNotify(for: regionName) else { return }
         
-        // Відтворюємо звук у фоновому потоці (професійна озвучка вже всередині wav-файлів)
+        let now = Date()
+        // Ліміт накладання звуків: якщо такий самий звук програвався менше ніж 8.0 секунд тому — ігноруємо
+        if let lastPlayed = lastPlayedTimes[filename], now.timeIntervalSince(lastPlayed) < 8.0 {
+            print("Skipping sound \(filename) (throttled to avoid overlaps)")
+            return
+        }
+        lastPlayedTimes[filename] = now
+        
         DispatchQueue.global(qos: .userInitiated).async {
             guard let path = Bundle.main.path(forResource: filename, ofType: nil) else {
                 print("Audio file not found: \(filename)")
@@ -80,7 +127,6 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             let url = URL(fileURLWithPath: path)
             do {
                 #if os(iOS)
-                // Налаштовуємо аудіосесію для iOS
                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
                 try AVAudioSession.sharedInstance().setActive(true)
                 #endif
@@ -95,75 +141,18 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
     
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
-        // Програємо звук безпосередньо в додатку
-        playSound(named: "siren.wav", for: regionName)
-        
-        guard notificationsEnabled else { return }
-        guard shouldNotify(for: regionName) else { return }
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
-        content.sound = UNNotificationSound(named: UNNotificationSoundName("siren.wav"))
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil // nil trigger means "deliver immediately"
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Error scheduling notification: \(error.localizedDescription)")
-            }
-        }
+        let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
+        enqueueNotification(title: title, body: body, soundName: "siren.wav", regionName: regionName)
     }
     
     func sendThreatNotification(for regionName: String, title: String, body: String) {
-        // Програємо звук попередження
-        playSound(named: "warning.wav", for: regionName)
-        
-        guard notificationsEnabled else { return }
-        guard shouldNotify(for: regionName) else { return }
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = UNNotificationSound(named: UNNotificationSoundName("warning.wav"))
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Error scheduling threat notification: \(error.localizedDescription)")
-            }
-        }
+        enqueueNotification(title: title, body: body, soundName: "warning.wav", regionName: regionName)
     }
     
     func sendClearNotification(for regionName: String) {
-        // Програємо звук безпосередньо в додатку
-        playSound(named: "vidbiy.wav", for: regionName)
-        
-        guard notificationsEnabled else { return }
-        guard shouldNotify(for: regionName) else { return }
-        let content = UNMutableNotificationContent()
-        content.title = "🟢 Відбій тривоги!"
-        content.body = "Відбій повітряної тривоги в: \(regionName)."
-        content.sound = UNNotificationSound(named: UNNotificationSoundName("vidbiy.wav"))
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Error scheduling notification: \(error.localizedDescription)")
-            }
-        }
+        let title = "🟢 Відбій тривоги!"
+        let body = "Відбій повітряної тривоги в: \(regionName)."
+        enqueueNotification(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName)
     }
 }
 

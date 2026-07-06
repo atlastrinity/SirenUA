@@ -12,9 +12,7 @@ struct SettingsView: View {
     
     @EnvironmentObject var storeManager: StoreKitManager
     @State private var isPurchasing = false
-    @AppStorage("threatServerURL") private var threatServerURL = "https://eb3e-185-94-219-55.ngrok-free.app"
     @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
-    @AppStorage("premiumUseVoiceAnnouncements") private var premiumUseVoiceAnnouncements = true
     @AppStorage("allRegionsTracked") private var allRegionsTracked = true
     @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
     
@@ -176,26 +174,6 @@ struct SettingsView: View {
                                 }
                                 Divider().background(Color.white.opacity(0.1))
                                 ToggleRow(title: "Деталізація сповіщень", isOn: $premiumDetailedNotifications)
-                                Divider().background(Color.white.opacity(0.1))
-                                ToggleRow(title: "Голосове озвучення (TTS)", isOn: $premiumUseVoiceAnnouncements)
-                                Divider().background(Color.white.opacity(0.1))
-                                
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Адреса сервера загроз:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    TextField("https://threats.server.com", text: $threatServerURL)
-                                        .font(.system(.body, design: .monospaced))
-                                        .padding(10)
-                                        .background(Color.black.opacity(0.3))
-                                        .cornerRadius(8)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                        )
-                                        .autocorrectionDisabled()
-                                }
                             } else {
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text("Отримайте доступ до розширених функцій:")
@@ -203,7 +181,6 @@ struct SettingsView: View {
                                         .foregroundColor(.gray)
                                     
                                     VStack(alignment: .leading, spacing: 6) {
-                                        Label("Голосові сповіщення (TTS)", systemImage: "speaker.wave.2.fill")
                                         Label("Моніторинг загроз (Сервер)", systemImage: "antenna.radiowaves.left.and.right")
                                         Label("Деталізація ракет", systemImage: "paperplane.fill")
                                     }

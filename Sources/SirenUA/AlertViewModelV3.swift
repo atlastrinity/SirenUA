@@ -35,15 +35,10 @@ class AlertViewModelV3: ObservableObject {
     }
     
     var threatServerURL: String {
-        UserDefaults.standard.object(forKey: "threatServerURL") as? String ?? "http://localhost:8085"
+        "https://sirenua-threatserver.onrender.com"
     }
 
     init() {
-        // За замовчуванням використовуємо локальний сервер для розробки та симулятора
-        if UserDefaults.standard.string(forKey: "threatServerURL") == nil || UserDefaults.standard.string(forKey: "threatServerURL") == "https://eb3e-185-94-219-55.ngrok-free.app" {
-            UserDefaults.standard.set("http://localhost:8085", forKey: "threatServerURL")
-        }
-        
         initializeRegions()
         refreshAlerts()
         setupRefreshLoop()
