@@ -41,17 +41,35 @@ final class AlertViewModelV3: ObservableObject {
         "https://sirenua-threatserver.onrender.com"
     }
 
+    private var premiumObserver: NSObjectProtocol? = nil
+
     init() {
         vmLogger.info("AlertViewModelV3 initialized")
         initializeRegions()
         refreshAlerts()
         setupRefreshLoop()
         setupThreatRefreshLoop()
+        
+        // Instantly refresh threats when premium status changes in UserDefaults
+        premiumObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.objectWillChange.send()
+            Task { @MainActor in
+                self.refreshThreats()
+            }
+        }
     }
 
     deinit {
         refreshTask?.cancel()
         threatRefreshTask?.cancel()
+        if let premiumObserver {
+            NotificationCenter.default.removeObserver(premiumObserver)
+        }
     }
 
     private func initializeRegions() {
