@@ -481,7 +481,7 @@ struct ContentView: View {
 
             // Жорстке відсіювання об'єктів, які вийшли за межі обраного радіуса
             let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
-            let strictRadiusItems = uniqueItems.filter { item in
+            var strictRadiusItems = uniqueItems.filter { item in
                 let itemLocation = CLLocation(latitude: item.placemark.coordinate.latitude, longitude: item.placemark.coordinate.longitude)
                 let distance = itemLocation.distance(from: userLocation)
                 return distance <= radiusMeters
@@ -489,7 +489,7 @@ struct ContentView: View {
             print("[ShelterSearch] Об'єктів в межах строгого радіусу \(radiusMeters)м: \(strictRadiusItems.count)")
 
             // Знаходження найближчого об'єкта до користувача
-            let closestItem = strictRadiusItems.min { a, b in
+            var closestItem = strictRadiusItems.min { a, b in
                 let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
                     .distance(from: userLocation)
                 let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
@@ -497,12 +497,31 @@ struct ContentView: View {
                 return distA < distB
             }
 
+            // Розумний фолбек: якщо в обраному радіусі нічого не знайдено, беремо найближчий знайдений об'єкт
+            if closestItem == nil, !uniqueItems.isEmpty {
+                let absoluteClosest = uniqueItems.min { a, b in
+                    let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
+                        .distance(from: userLocation)
+                    let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
+                        .distance(from: userLocation)
+                    return distA < distB
+                }
+                
+                if let fallbackItem = absoluteClosest {
+                    let fallbackDistance = CLLocation(latitude: fallbackItem.placemark.coordinate.latitude, longitude: fallbackItem.placemark.coordinate.longitude)
+                        .distance(from: userLocation)
+                    print("[ShelterSearch] У радіусі \(radiusMeters)м нічого не знайдено. Використовуємо найближчий фолбек на відстані \(Int(fallbackDistance))м: \(fallbackItem.name ?? "Без назви")")
+                    closestItem = fallbackItem
+                    strictRadiusItems = [fallbackItem]
+                }
+            }
+
             await MainActor.run {
                 isRoutingToShelter = false
                 allFoundShelters = strictRadiusItems
                 
                 guard let closestItem else { 
-                    print("[ShelterSearch] Помилка: жодного укриття не знайдено в радіусі \(radiusMeters)м.")
+                    print("[ShelterSearch] Помилка: жодного укриття не знайдено взагалі.")
                     return 
                 }
 
