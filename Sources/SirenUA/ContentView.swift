@@ -78,6 +78,19 @@ struct ContentView: View {
         let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
         let activeTrackedThreats = viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
         
+        // Оптимізація рендерингу карти: створюємо словник для швидкого O(1) пошуку
+        let alertsDict = Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
+        
+        // Попередньо фільтруємо області за межами Map closure
+        let activeAlertRegions = geoManager.regions.filter { region in
+            alertsDict[region.nameUK]?.isActive == true
+        }
+        
+        let activeThreatRegions = geoManager.regions.filter { region in
+            guard let alert = alertsDict[region.nameUK] else { return false }
+            return !alert.isActive && alert.threatLevel != nil
+        }
+        
         let hasAlerts = !activeTrackedAlerts.isEmpty
         let hasThreats = !activeTrackedThreats.isEmpty
         
@@ -90,13 +103,8 @@ struct ContentView: View {
             Map(position: $cameraPosition, selection: $selectedShelter) {
                 
                 // Полігони областей з рівнем загрози (Premium)
-                ForEach(geoManager.regions.filter { region in
-                    guard let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }) else { return false }
-                    return !alert.isActive && alert.threatLevel != nil
-                }) { region in
-                    if let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }),
-                       alert.threatLevel != nil {
-                        
+                ForEach(activeThreatRegions) { region in
+                    if let alert = alertsDict[region.nameUK] {
                         let strokeColor: Color = .yellow.opacity(0.6)
                         let fillColor: Color = .yellow.opacity(0.35)
                         
@@ -109,9 +117,7 @@ struct ContentView: View {
                 }
 
                 // Полігони областей з активною тривогою
-                ForEach(geoManager.regions.filter { region in 
-                    viewModel.alerts.contains(where: { $0.name == region.nameUK && $0.isActive })
-                                }) { region in
+                ForEach(activeAlertRegions) { region in
                     let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
                     
                     ForEach(0..<region.mkPolygons.count, id: \.self) { index in
