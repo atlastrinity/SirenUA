@@ -138,11 +138,9 @@ struct ContentView: View {
                 }
                 
                 // Інтерактивні маркери центрів областей (для кліку та перегляду деталей тривоги/загрози)
-                ForEach(geoManager.regions) { region in
-                    if let alert = viewModel.alerts.first(where: { $0.name == region.nameUK }),
-                       (alert.isActive || (viewModel.isPremium && alert.threatLevel != nil)) {
-                        
-                        Annotation(region.nameUK, coordinate: region.center) {
+                ForEach(viewModel.alerts) { alert in
+                    if alert.isActive || (viewModel.isPremium && alert.threatLevel != nil) {
+                        Annotation(alert.name, coordinate: alert.coordinate) {
                             Button(action: {
                                 selectedRegionForDetail = alert
                             }) {
@@ -546,11 +544,34 @@ struct ContentView: View {
             let lons = allCoordinates.map { $0.longitude }
             if let minLat = lats.min(), let maxLat = lats.max(),
                let minLon = lons.min(), let maxLon = lons.max() {
-                let centerLat = (minLat + maxLat) / 2.0
-                let centerLon = (minLon + maxLon) / 2.0
                 
-                let latDelta = max(maxLat - minLat, 1.0) * 1.3
-                let lonDelta = max(maxLon - minLon, 1.5) * 1.3
+                let centerLat: Double
+                let centerLon: Double
+                let latDelta: Double
+                let lonDelta: Double
+                
+                // Використовуємо середнє значення візуальних центрів (пінів), 
+                // оскільки геометричні центри полігонів можуть мати зміщення вліво/вправо
+                // через складну форму областей (наприклад, "хвости" на карті).
+                if !relevantAlerts.isEmpty {
+                    centerLat = relevantAlerts.map { $0.coordinate.latitude }.reduce(0, +) / Double(relevantAlerts.count)
+                    // Додаємо мікро-зміщення вправо (+0.05), якщо потрібно компенсувати візуальне сприйняття,
+                    // але краще спочатку взяти точний візуальний центр:
+                    centerLon = relevantAlerts.map { $0.coordinate.longitude }.reduce(0, +) / Double(relevantAlerts.count)
+                    
+                    // Щоб усі полігони влізли в екран від нового центру:
+                    let maxLatDist = max(abs(maxLat - centerLat), abs(centerLat - minLat))
+                    let maxLonDist = max(abs(maxLon - centerLon), abs(centerLon - minLon))
+                    
+                    latDelta = max(maxLatDist * 2, 1.0) * 1.3
+                    lonDelta = max(maxLonDist * 2, 1.5) * 1.3
+                } else {
+                    centerLat = (minLat + maxLat) / 2.0
+                    centerLon = (minLon + maxLon) / 2.0
+                    
+                    latDelta = max(maxLat - minLat, 1.0) * 1.3
+                    lonDelta = max(maxLon - minLon, 1.5) * 1.3
+                }
                 
                 let region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
