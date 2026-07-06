@@ -25,6 +25,7 @@
 		E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */; };
 		E7E9910F0D8585C65D4354B0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350F86D91B43A65872F753FF /* SettingsView.swift */; };
 		EA5C79F241ACC26C7F16F20C /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C620D89A60507FFC74C69528 /* NetworkManager.swift */; };
+		F6ED65D08CBFBAA31215E71C /* iOS16FallbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */; };
 		F9981CFEFAF1962CC2C1E43D /* siren.wav in Resources */ = {isa = PBXBuildFile; fileRef = 8F2BECB950730B1B0C48EE56 /* siren.wav */; };
 /* End PBXBuildFile section */
 
@@ -49,6 +50,7 @@
 		5BE89A0DCB959AB4DDF739E8 /* SirenUAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUAApp.swift; sourceTree = "<group>"; };
 		5E725A6AA00F1F2090A7BEA7 /* AlertRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegion.swift; sourceTree = "<group>"; };
 		68EC910745AFC030C9AA4221 /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
+		6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOS16FallbackView.swift; sourceTree = "<group>"; };
 		75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_regions.geojson; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -94,6 +96,7 @@
 				3C09ADEA4D52330CA8C514F0 /* ErrorView.swift */,
 				CD053B9754B66B36FE55849E /* GeoJSONManager.swift */,
 				C04391E80219E2B099533C21 /* Info.plist */,
+				6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */,
 				3F0013A9A66BAEA943D110B2 /* LocationManager.swift */,
 				C620D89A60507FFC74C69528 /* NetworkManager.swift */,
 				75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */,
@@ -165,6 +168,12 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					D39A6B242D4A85E6D3CD2867 = {
+						DevelopmentTeam = B7WVJ3B4B7;
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = 539069778AA97DABE169DFC8 /* Build configuration list for PBXProject "SirenUA" */;
 			developmentRegion = en;
@@ -219,6 +228,7 @@
 				E7E9910F0D8585C65D4354B0 /* SettingsView.swift in Sources */,
 				32861EDC02596352A97E2630 /* SirenUAApp.swift in Sources */,
 				6666B1AB2B572913D0B5AF33 /* StoreKitManager.swift in Sources */,
+				F6ED65D08CBFBAA31215E71C /* iOS16FallbackView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,8 +255,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -263,18 +274,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_REQUIRED = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				INFOPLIST_FILE = Sources/SirenUA/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.SirenUA;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -285,18 +295,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_REQUIRED = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				INFOPLIST_FILE = Sources/SirenUA/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.sirenua.SirenUA;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -307,8 +316,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
