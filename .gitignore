@@ -8,3 +8,5 @@ DerivedData/
 .netrc
 build/
 /.env
+*.session
+*.session-journal
