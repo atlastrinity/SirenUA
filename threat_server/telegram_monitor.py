@@ -1,5 +1,8 @@
 import asyncio
+import os
 import re
+from typing import Optional
+from telethon import TelegramClient, events
 import aiohttp
 from bs4 import BeautifulSoup
 from mock_mode import ThreatState, ALL_REGIONS, THREAT_TYPES
@@ -22,27 +25,91 @@ MEDIUM_KEYWORDS = [r"[ШШ]ахед", r"Shahed", r"БПЛА", r"безпілот
 LOW_KEYWORDS = [r"зліт", r"підйом\s*авіаці", r"активність\s*авіаці", r"загроза\s*балістики"]
 CLEAR_KEYWORDS = [r"відбій", r"загроз\w*\s*нема", r"загроз\w*\s*відсутн", r"збит[оіа]", r"знищен[оіа]", r"посадка", r"чисто", r"дорозвідка"]
 
+# API credentials
+TELEGRAM_API_ID = 20294647
+TELEGRAM_API_HASH = "454a9c055308a8d118608bb6b032bc30"
+
 class TelegramThreatMonitor:
     def __init__(self, threat_manager):
         self.threat_manager = threat_manager
         self.is_running = False
+        self.use_mtproto = False
+        self.client: Optional[TelegramClient] = None
         self._clear_tasks = {}
-        # Stores the last seen post ID for each channel to avoid duplicate processing
+        
+        # Session file path detection
+        self.session_paths = [
+            "sirenua_userbot_session.session",
+            "threat_server/sirenua_userbot_session.session"
+        ]
+        
+        # State for web scraper fallback
         self.last_seen_posts = {channel: None for channel in TARGET_CHANNELS}
 
     async def start(self):
-        print("🌐 Запуск Web Scraper для Telegram каналів...")
         self.is_running = True
+        
+        # Detect if userbot session file exists
+        session_found = None
+        for path in self.session_paths:
+            if os.path.exists(path):
+                session_found = path.replace(".session", "")
+                break
+                
+        if session_found:
+            print(f"🔥 Знайдено сесію юзербота: {session_found}. Ініціалізуємо MTProto з'єднання...")
+            try:
+                self.client = TelegramClient(session_found, TELEGRAM_API_ID, TELEGRAM_API_HASH)
+                await self.client.connect()
+                
+                if await self.client.is_user_authorized():
+                    self.use_mtproto = True
+                    print("✅ Юзербот авторизований! Отримуємо повідомлення МИТТЄВО через MTProto.")
+                    
+                    @self.client.on(events.NewMessage(chats=TARGET_CHANNELS))
+                    async def handler(event):
+                        if not self.is_running:
+                            return
+                        text = event.message.text
+                        if text:
+                            # Get channel name safely
+                            try:
+                                channel = event.chat.username or str(event.chat_id)
+                            except:
+                                channel = "unknown"
+                            
+                            short_text = text.strip().replace('\n', ' ')[:80]
+                            print(f"⚡ [MTProto: {channel}] Нове повідомлення: \"{short_text}...\"")
+                            await self._process_message(text, channel)
+                            
+                    return
+                else:
+                    print("⚠️ Файл сесії знайдено, але користувач не авторизований.")
+            except Exception as e:
+                print(f"⚠️ Помилка ініціалізації MTProto: {e}")
+                if self.client:
+                    await self.client.disconnect()
+                    
+        print("🟡 Сесію юзербота не знайдено або не авторизовано. Запускаємо резервний Web Scraper...")
+        self.use_mtproto = False
         asyncio.create_task(self._scrape_loop())
-        print(f"📥 Автоматичний моніторинг (кожні 20 сек) активний для: {', '.join(TARGET_CHANNELS)}")
+        print(f"📥 Автоматичний веб-моніторинг (кожні 20 сек) активний для: {', '.join(TARGET_CHANNELS)}")
 
     async def stop(self):
         self.is_running = False
-        print("🛑 Web Scraper зупинено.")
+        for task in self._clear_tasks.values():
+            task.cancel()
+        self._clear_tasks.clear()
+        
+        if self.client:
+            await self.client.disconnect()
+            
+        print("🛑 Telegram Monitor зупинено.")
 
+    # --- Web Scraper Fallback Loop ---
     async def _scrape_loop(self):
         async with aiohttp.ClientSession() as session:
-            while self.is_running:
+            while self.is_running and not self.use_mtproto:
                 for channel in TARGET_CHANNELS:
                     await self._scrape_channel(session, channel)
                 await asyncio.sleep(20)
@@ -60,10 +127,8 @@ class TelegramThreatMonitor:
                 if not messages:
                     return
                 
-                # Check if it's the first run (baseline) for this channel
                 is_first_run = self.last_seen_posts[channel] is None
                 
-                # If first run, find the latest post ID and set it as baseline to avoid spamming historical messages
                 if is_first_run:
                     max_id = 0
                     for msg in messages:
@@ -76,10 +141,9 @@ class TelegramThreatMonitor:
                                     self.last_seen_posts[channel] = post_id
                             except:
                                 continue
-                    print(f"📡 [{channel}] Первинний запуск. Встановлено базовий ID поста: {max_id}")
+                    print(f"📡 [{channel}] Первинний запуск веб-скрейпера. Базовий ID: {max_id}")
                     return
 
-                # For subsequent runs, iterate through all messages on the page and process those newer than last_seen_post
                 last_id = 0
                 if self.last_seen_posts[channel] is not None:
                     last_id = int(self.last_seen_posts[channel].split('/')[-1])
@@ -93,29 +157,24 @@ class TelegramThreatMonitor:
                         current_id = int(post_id.split('/')[-1])
                         if current_id <= last_id:
                             continue
-                        
-                        # Update the last seen ID
                         self.last_seen_posts[channel] = post_id
                     except:
                         continue
 
-                    # Extract text
                     text_div = msg.select_one('.tgme_widget_message_text')
                     if text_div:
                         for br in text_div.find_all("br"):
                             br.replace_with("\n")
                         text = text_div.get_text()
                         
-                        # Logging every single read message to console for transparency
                         short_text = text.strip().replace('\n', ' ')[:80]
-                        print(f"📖 [{channel}] Отримано нове повідомлення (ID: {current_id}): \"{short_text}...\"")
+                        print(f"📖 [Web: {channel}] Нове повідомлення (ID: {current_id}): \"{short_text}...\"")
                         await self._process_message(text, channel)
         except Exception as e:
-            # Silent fallback for network request errors
             pass
 
+    # --- Message Parser Logic (Shared by both MTProto & Web Scraper) ---
     async def _process_message(self, text, channel):
-        # Check if it's a clear/end alert message
         is_clear = any(re.search(kw, text, re.IGNORECASE) for kw in CLEAR_KEYWORDS)
         
         if is_clear:
@@ -139,7 +198,6 @@ class TelegramThreatMonitor:
         threat_type = self._detect_threat_type(text)
         regions = self._extract_regions(text)
         
-        # If threat level is high/critical and no specific regions mentioned, assume entire Ukraine
         if not regions and level in ("critical", "high"):
             regions = list(ALL_REGIONS)
             print(f"🚨 [{channel}] Виявлено загальну небезпеку {level.upper()} для всієї України")
@@ -159,10 +217,7 @@ class TelegramThreatMonitor:
         prefix = THREAT_TYPES.get(threat_type, "Загроза")
         keywords = ALL_REGIONS.get(region, {}).get("keywords", [])
         
-        # Clean multiple spaces
         text = re.sub(r' +', ' ', text).strip()
-        
-        # Split text into lines
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         relevant_parts = []
         
@@ -170,14 +225,12 @@ class TelegramThreatMonitor:
             if any(re.search(kw, line, re.IGNORECASE) for kw in keywords):
                 relevant_parts.append(line)
             else:
-                # Split line into sentences to find local matches
                 sentences = re.split(r'(?<=[.!?])\s+', line)
                 for sentence in sentences:
                     if any(re.search(kw, sentence, re.IGNORECASE) for kw in keywords):
                         relevant_parts.append(sentence)
                         
         if relevant_parts:
-            # Deduplicate parts
             unique_parts = []
             for part in relevant_parts:
                 if part not in unique_parts:
@@ -187,7 +240,6 @@ class TelegramThreatMonitor:
                 content = content[:157] + "..."
             return f"{prefix}: {content}"
             
-        # Fallback for generic/global threats (e.g. Mig-31K takeoff)
         cleaned_text = text.replace('\n', ' ')
         if len(cleaned_text) > 120:
             cleaned_text = cleaned_text[:117] + "..."
@@ -231,7 +283,7 @@ class TelegramThreatMonitor:
             self._clear_tasks[region].cancel()
         
         async def auto_clear():
-            await asyncio.sleep(3600)  # 1 hour auto-cleanup timeout
+            await asyncio.sleep(3600)  # 1 hour
             self.threat_manager.clear_threat(region)
             print(f"⏳ Автоматичне зняття загрози для {region} (таймаут 1 год)")
             
