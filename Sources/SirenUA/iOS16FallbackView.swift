@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import UIKit
 
 @available(iOS 16.0, *)
 struct iOS16FallbackView: View {
@@ -218,56 +219,79 @@ struct iOS16FallbackView: View {
 
     private func regionCard(_ region: AlertRegion) -> some View {
         let isThreat = !region.isActive && region.threatLevel != nil
+        let cardColor = region.isActive ? Color.red : (isThreat ? Color.yellow : Color.green)
         
         return Button(action: {
             triggerHaptic()
             selectedRegionForDetail = region
         }) {
             HStack(spacing: 16) {
-                // Colored indicator circle
-                Circle()
-                    .fill(region.isActive ? Color.red : (isThreat ? Color.yellow : Color.green.opacity(0.5)))
-                    .frame(width: 12, height: 12)
+                // Colored indicator circle with pulse/glow
+                ZStack {
+                    if region.isActive {
+                        Circle()
+                            .fill(cardColor.opacity(0.25))
+                            .frame(width: 22, height: 22)
+                    }
+                    Circle()
+                        .fill(region.isActive ? Color.red : (isThreat ? Color.yellow : Color.green.opacity(0.7)))
+                        .frame(width: 10, height: 10)
+                        .shadow(color: cardColor.opacity(0.5), radius: region.isActive ? 4 : 0)
+                }
+                .frame(width: 22)
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(region.name)
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                     
                     if region.isActive {
-                        Text("Повітряна тривога")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                        Text("🚨 Активна повітряна тривога")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.red.opacity(0.9))
                     } else if isThreat {
                         if viewModel.isPremium {
-                            Text("Загроза: \(region.threatDetail ?? "уточнюється")")
-                                .font(.caption)
-                                .foregroundColor(.yellow)
+                            Text("⚠️ Загроза: \(region.threatDetail ?? "уточнюється")")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.yellow.opacity(0.9))
                         } else {
                             Text("⚠️ Виявлено загрозу (Premium)")
-                                .font(.caption)
-                                .foregroundColor(.yellow)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.yellow.opacity(0.9))
                         }
                     } else {
-                        Text("Немає тривоги")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        Text("🟢 Немає тривоги")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.green.opacity(0.75))
                     }
                 }
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
-                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.3))
+                    .font(.system(size: 12, weight: .bold))
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial)
             .background(Color.white.opacity(0.02))
-            .cornerRadius(14)
+            .cornerRadius(16)
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.12),
+                                cardColor.opacity(region.isActive ? 0.3 : 0.05)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             )
+            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
         }
     }
 }
@@ -277,59 +301,156 @@ struct iOS16DetailView: View {
     let region: AlertRegion
     @Environment(\.dismiss) private var dismiss
 
+    private var statusThemeColor: Color {
+        if region.isActive {
+            return .red
+        } else if region.threatLevel != nil {
+            return .yellow
+        } else {
+            return .green
+        }
+    }
+
+    private var statusIcon: String {
+        if region.isActive {
+            return "exclamationmark.triangle.fill"
+        } else if region.threatLevel != nil {
+            return "bell.badge.fill"
+        } else {
+            return "checkmark.shield.fill"
+        }
+    }
+
+    private var statusText: String {
+        if region.isActive {
+            return "ПОВІТРЯНА ТРИВОГА"
+        } else if region.threatLevel != nil {
+            return "ЗАГРОЗА АТАКИ"
+        } else {
+            return "БЕЗПЕЧНО"
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
+                // Background dark theme
                 Color(red: 0.05, green: 0.05, blue: 0.08)
                     .ignoresSafeArea()
                 
-                VStack(spacing: 24) {
-                    // Alert Icon/State
-                    Image(systemName: region.isActive ? "exclamationmark.triangle.fill" : (region.threatLevel != nil ? "bell.fill" : "checkmark.circle.fill"))
-                        .font(.system(size: 72))
-                        .foregroundColor(region.isActive ? .red : (region.threatLevel != nil ? .yellow : .green))
-                        .padding(.top, 40)
-                    
-                    Text(region.name)
-                        .font(.largeTitle)
-                        .bold()
-                        .foregroundColor(.white)
-                    
-                    Text(region.isActive ? "АКТИВНА ТРИВОГА" : (region.threatLevel != nil ? "ЗАГРОЗА" : "СПОКІЙНО"))
-                        .font(.headline)
-                        .foregroundColor(region.isActive ? .red : (region.threatLevel != nil ? .yellow : .green))
-                    
-                    if let detail = region.threatDetail {
-                        Text(detail)
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.8))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    } else {
-                        Text(region.description)
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.8))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    
+                // State glow background
+                VStack {
+                    RadialGradient(
+                        colors: [statusThemeColor.opacity(0.15), .clear],
+                        center: .top,
+                        startRadius: 0,
+                        endRadius: 350
+                    )
+                    .frame(height: 300)
                     Spacer()
-                    
-                    Button("Зрозуміло") {
-                        dismiss()
+                }
+                .ignoresSafeArea()
+
+                VStack(spacing: 24) {
+                    Spacer().frame(height: 20)
+
+                    // Large animated/glowing state icon
+                    ZStack {
+                        Circle()
+                            .fill(statusThemeColor.opacity(0.08))
+                            .frame(width: 140, height: 140)
+                        Circle()
+                            .stroke(statusThemeColor.opacity(0.2), lineWidth: 1.5)
+                            .frame(width: 120, height: 120)
+
+                        Image(systemName: statusIcon)
+                            .font(.system(size: 56, weight: .bold))
+                            .foregroundColor(statusThemeColor)
+                            .shadow(color: statusThemeColor.opacity(0.4), radius: 10)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.blue)
-                    .controlSize(.large)
-                    .padding(.bottom, 40)
+
+                    // Region Card Details
+                    VStack(spacing: 12) {
+                        Text(region.name)
+                            .font(.system(size: 28, weight: .black))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Text(statusText)
+                            .font(.system(size: 13, weight: .bold))
+                            .tracking(2.0)
+                            .foregroundColor(statusThemeColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(statusThemeColor.opacity(0.15))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(statusThemeColor.opacity(0.3), lineWidth: 1))
+                    }
+
+                    // Description / Threat details
+                    VStack(alignment: .center, spacing: 14) {
+                        if let detail = region.threatDetail {
+                            Text("ДЕТАЛІ ЗАГРОЗИ")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.yellow.opacity(0.7))
+                            Text(detail)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
+                        } else {
+                            Text("ОПИС СТАНУ")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white.opacity(0.4))
+                            Text(region.description)
+                                .font(.system(size: 15))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                    }
+                    .padding(20)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+                    .background(Color.white.opacity(0.03))
+                    .cornerRadius(20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 24)
+
+                    Spacer()
+
+                    // Close Button
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        dismiss()
+                    }) {
+                        Text("Зрозуміло")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    colors: [statusThemeColor.opacity(0.8), statusThemeColor.opacity(0.6)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .clipShape(Capsule())
+                            .shadow(color: statusThemeColor.opacity(0.35), radius: 10, x: 0, y: 5)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("Деталі")
+            .navigationTitle("Деталі регіону")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Закрити") {
-                        dismiss()
+                    Button(action: { dismiss() }) {
+                        Text("Закрити")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
                     }
                 }
             }
