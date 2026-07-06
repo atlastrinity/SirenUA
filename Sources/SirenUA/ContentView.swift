@@ -217,56 +217,7 @@ struct ContentView: View {
             HStack(alignment: .center) {
                 // Ліва кнопка: Показати всі тривоги (центрування на Україну)
                 Button(action: {
-                    let relevantAlerts = activeTrackedAlerts + activeTrackedThreats
-                    let activeNames = Set(relevantAlerts.map { $0.name })
-                    let activeRegions = geoManager.regions.filter { activeNames.contains($0.nameUK) }
-                    
-                    var allCoordinates: [CLLocationCoordinate2D] = []
-                    for region in activeRegions {
-                        for polygon in region.polygons {
-                            allCoordinates.append(contentsOf: polygon)
-                        }
-                    }
-                    
-                    if allCoordinates.isEmpty {
-                        allCoordinates = relevantAlerts.map { $0.coordinate }
-                    }
-                    
-                    if !allCoordinates.isEmpty {
-                        let lats = allCoordinates.map { $0.latitude }
-                        let lons = allCoordinates.map { $0.longitude }
-                        if let minLat = lats.min(), let maxLat = lats.max(),
-                           let minLon = lons.min(), let maxLon = lons.max() {
-                            let centerLat = (minLat + maxLat) / 2.0
-                            let centerLon = (minLon + maxLon) / 2.0
-                            
-                            // Розрахунок дельти з безпечним відступом 30%
-                            let latDelta = max(maxLat - minLat, 1.0) * 1.3
-                            let lonDelta = max(maxLon - minLon, 1.5) * 1.3
-                            
-                            withAnimation(.easeInOut(duration: 2.0)) {
-                                cameraPosition = .region(
-                                    MKCoordinateRegion(
-                                        center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
-                                        span: MKCoordinateSpan(
-                                            latitudeDelta: min(latDelta, 8.0),
-                                            longitudeDelta: min(lonDelta, 13.0)
-                                        )
-                                    )
-                                )
-                            }
-                        }
-                    } else {
-                        // Якщо активних тривог немає, показуємо всю Україну
-                        withAnimation(.easeInOut(duration: 2.0)) {
-                            cameraPosition = .region(
-                                MKCoordinateRegion(
-                                    center: CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656),
-                                    span: MKCoordinateSpan(latitudeDelta: 7.5, longitudeDelta: 12.5)
-                                )
-                            )
-                        }
-                    }
+                    centerMapOnAlerts()
                 }) {
                     Image(systemName: "map.fill")
                         .font(.system(size: 16, weight: .bold))
@@ -458,17 +409,8 @@ struct ContentView: View {
             
             // Автовіддалення карти через пару секунд, щоб показати інші області
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                withAnimation(.easeInOut(duration: 4.0)) {
-                    // Координати центру України
-                    cameraPosition = .region(
-                        MKCoordinateRegion(
-                            center: CLLocationCoordinate2D(latitude: 49.0, longitude: 31.0),
-                            span: MKCoordinateSpan(latitudeDelta: 8.0, longitudeDelta: 8.0)
-                        )
-                    )
-                }
+                centerMapOnAlerts()
             }
-
         }
     }
     
@@ -570,6 +512,75 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+    }
+    
+    private func centerMapOnAlerts(animated: Bool = true) {
+        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
+        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
+        let trackedList = trackedString.components(separatedBy: ";")
+        
+        let isRegionFiltered: (String) -> Bool = { name in
+            allTracked || trackedList.contains(name)
+        }
+        
+        let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
+        let activeTrackedThreats = viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
+        let relevantAlerts = activeTrackedAlerts + activeTrackedThreats
+        let activeNames = Set(relevantAlerts.map { $0.name })
+        let activeRegions = geoManager.regions.filter { activeNames.contains($0.nameUK) }
+        
+        var allCoordinates: [CLLocationCoordinate2D] = []
+        for region in activeRegions {
+            for polygon in region.polygons {
+                allCoordinates.append(contentsOf: polygon)
+            }
+        }
+        
+        if allCoordinates.isEmpty {
+            allCoordinates = relevantAlerts.map { $0.coordinate }
+        }
+        
+        if !allCoordinates.isEmpty {
+            let lats = allCoordinates.map { $0.latitude }
+            let lons = allCoordinates.map { $0.longitude }
+            if let minLat = lats.min(), let maxLat = lats.max(),
+               let minLon = lons.min(), let maxLon = lons.max() {
+                let centerLat = (minLat + maxLat) / 2.0
+                let centerLon = (minLon + maxLon) / 2.0
+                
+                let latDelta = max(maxLat - minLat, 1.0) * 1.3
+                let lonDelta = max(maxLon - minLon, 1.5) * 1.3
+                
+                let region = MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                    span: MKCoordinateSpan(
+                        latitudeDelta: min(latDelta, 8.0),
+                        longitudeDelta: min(lonDelta, 13.0)
+                    )
+                )
+                if animated {
+                    withAnimation(.easeInOut(duration: 2.0)) {
+                        cameraPosition = .region(region)
+                    }
+                } else {
+                    cameraPosition = .region(region)
+                }
+                return
+            }
+        }
+        
+        // Вся Україна
+        let defaultRegion = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656),
+            span: MKCoordinateSpan(latitudeDelta: 7.5, longitudeDelta: 12.5)
+        )
+        if animated {
+            withAnimation(.easeInOut(duration: 2.0)) {
+                cameraPosition = .region(defaultRegion)
+            }
+        } else {
+            cameraPosition = .region(defaultRegion)
         }
     }
 }
