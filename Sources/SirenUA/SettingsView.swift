@@ -143,7 +143,7 @@ struct SettingsView: View {
                     VStack(spacing: 20) {
                         
                         // 1. Сповіщення
-                        SettingsCard(title: "Сповіщення", icon: "bell.fill", iconColor: .red) {
+                        SettingsCard(title: "Сповіщення", icon: "bell.fill", iconColor: .blue) {
                             ToggleRow(title: "Увімкнути сповіщення", isOn: $notificationsEnabled)
                             Divider().background(Color.white.opacity(0.1))
                             ToggleRow(title: "Автооновлення даних", isOn: $autoRefreshEnabled)
@@ -211,7 +211,7 @@ struct SettingsView: View {
                         }
                         
                         // 3. Premium Моніторинг
-                        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: .yellow) {
+                        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: .blue) {
                             if storeManager.isPremium {
                                 HStack {
                                     Image(systemName: "checkmark.seal.fill")
@@ -231,7 +231,7 @@ struct SettingsView: View {
                                     
                                     VStack(alignment: .leading, spacing: 6) {
                                         Label("Моніторинг загроз (Сервер)", systemImage: "antenna.radiowaves.left.and.right")
-                                        Label("Інформація про напрямок цілей", systemImage: "location.north.radiowaves.left.and.right")
+                                        Label("Деталізація загроз", systemImage: "eye.fill")
                                     }
                                     .font(.caption)
                                     .foregroundColor(.white)
@@ -258,8 +258,14 @@ struct SettingsView: View {
                                             }
                                             .frame(maxWidth: .infinity)
                                             .padding()
-                                            .background(Color.yellow.opacity(0.8))
-                                            .foregroundColor(.black)
+                                            .background(
+                                                LinearGradient(
+                                                    colors: [Color.blue, Color.blue.opacity(0.8)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                            .foregroundColor(.white)
                                             .cornerRadius(10)
                                         }
                                         .disabled(isPurchasing)
@@ -280,7 +286,7 @@ struct SettingsView: View {
                         }
                         
                         // 4. Області для попереджень (collapsible)
-                        SettingsCard(title: "Області для попереджень", icon: "map.badge.ellipsis", iconColor: .purple) {
+                        SettingsCard(title: "Області для попереджень", icon: "map.badge.ellipsis", iconColor: .blue) {
                             ToggleRow(title: "Усі області України", isOn: Binding(
                                 get: { allRegionsTracked },
                                 set: { trackingAll in
@@ -340,12 +346,12 @@ struct SettingsView: View {
                                         }
                                     }
                                 )
-                                .accentColor(.purple)
+                                .accentColor(.blue)
                             }
                         }
                         
                         // 5. Діагностика серверів
-                        SettingsCard(title: "Діагностика зв'язку", icon: "waveform.path.ecg", iconColor: .green) {
+                        SettingsCard(title: "Діагностика зв'язку", icon: "waveform.path.ecg", iconColor: .blue) {
                             VStack(spacing: 12) {
                                 ServerStatusRow(
                                     name: "Основний сервер тривог",
