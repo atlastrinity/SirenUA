@@ -249,6 +249,12 @@ struct iOS16FallbackView: View {
                         Text("🚨 Активна повітряна тривога")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.red.opacity(0.9))
+                        if viewModel.isPremium, let detail = region.threatDetail {
+                            Text("⚠️ \(detail)")
+                                .font(.system(size: 11))
+                                .foregroundColor(.yellow.opacity(0.95))
+                                .lineLimit(1)
+                        }
                     } else if isThreat {
                         if viewModel.isPremium {
                             Text("⚠️ Загроза: \(region.threatDetail ?? "уточнюється")")
