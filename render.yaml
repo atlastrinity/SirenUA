@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sirenua-threat-monitor
+    env: python
+    buildCommand: pip install -r threat_server/requirements.txt
+    startCommand: uvicorn threat_server.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LIVE_MODE
+        value: "true"
+      - key: PYTHON_VERSION
+        value: "3.11.13"

@@ -12,6 +12,7 @@ API:
     POST /api/threats/clear     — очистити всі загрози
 """
 
+import os
 import sys
 import asyncio
 from datetime import datetime, timezone
@@ -28,7 +29,7 @@ from mock_mode import MockThreatManager
 # Глобальний менеджер загроз (in-memory)
 threat_manager = MockThreatManager()
 telegram_monitor = None
-is_live_mode = "--live" in sys.argv
+is_live_mode = "--live" in sys.argv or os.environ.get("LIVE_MODE", "false").lower() == "true"
 
 
 @asynccontextmanager
