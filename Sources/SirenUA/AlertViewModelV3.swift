@@ -57,8 +57,8 @@ final class AlertViewModelV3: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            self.objectWillChange.send()
-            Task { @MainActor in
+            DispatchQueue.main.async {
+                self.objectWillChange.send()
                 self.refreshThreats()
             }
         }
