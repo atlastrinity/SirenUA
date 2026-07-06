@@ -286,7 +286,7 @@ struct SettingsView: View {
                         }
                         
                         // 4. Області для попереджень (collapsible)
-                        SettingsCard(title: "Області для попереджень", icon: "map.badge.ellipsis", iconColor: .blue) {
+                        SettingsCard(title: "Області для попереджень", icon: "map", iconColor: .blue) {
                             ToggleRow(title: "Усі області України", isOn: Binding(
                                 get: { allRegionsTracked },
                                 set: { trackingAll in

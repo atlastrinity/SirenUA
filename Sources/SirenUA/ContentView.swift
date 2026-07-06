@@ -104,15 +104,13 @@ struct ContentView: View {
                 
                 // Полігони областей з рівнем загрози (Premium)
                 ForEach(activeThreatRegions) { region in
-                    if let alert = alertsDict[region.nameUK] {
-                        let strokeColor: Color = .yellow.opacity(0.6)
-                        let fillColor: Color = .yellow.opacity(0.35)
-                        
-                        ForEach(0..<region.mkPolygons.count, id: \.self) { index in
-                            MapPolygon(region.mkPolygons[index])
-                                .stroke(strokeColor, lineWidth: 0.5)
-                                .foregroundStyle(fillColor)
-                        }
+                    let strokeColor: Color = .yellow.opacity(0.6)
+                    let fillColor: Color = .yellow.opacity(0.35)
+                    
+                    ForEach(0..<region.mkPolygons.count, id: \.self) { index in
+                        MapPolygon(region.mkPolygons[index])
+                            .stroke(strokeColor, lineWidth: 0.5)
+                            .foregroundStyle(fillColor)
                     }
                 }
 
@@ -419,12 +417,17 @@ struct ContentView: View {
     }
     
     private func findNearestShelter() {
-        guard !isRoutingToShelter else { return }
+        guard !isRoutingToShelter else { 
+            print("[ShelterSearch] Вже виконується пошук укриття, ігноруємо запит.")
+            return 
+        }
         isRoutingToShelter = true
 
         let userLoc = centerCoordinate
         let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
         let radiusMeters = max(currentRadius, 0.5) * 1000
+        print("[ShelterSearch] Початок пошуку. Координати користувача: \(userLoc.latitude), \(userLoc.longitude). Радіус: \(radiusMeters) метрів.")
+        
         let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
 
         let queries = ["укриття", "бомбосховище", "shelter", "bomb shelter", "метро", "subway"]
@@ -435,11 +438,19 @@ struct ContentView: View {
             await withTaskGroup(of: [MKMapItem]?.self) { group in
                 for query in queries {
                     group.addTask {
+                        print("[ShelterSearch] Запит в Apple Maps: \(query)...")
                         let request = MKLocalSearch.Request()
                         request.naturalLanguageQuery = query
                         request.region = searchRegion
                         let search = MKLocalSearch(request: request)
-                        return try? await search.start().mapItems
+                        do {
+                            let response = try await search.start()
+                            print("[ShelterSearch] Запит '\(query)' знайшов \(response.mapItems.count) об'єктів.")
+                            return response.mapItems
+                        } catch {
+                            print("[ShelterSearch] Помилка запиту '\(query)': \(error.localizedDescription)")
+                            return nil
+                        }
                     }
                 }
                 
@@ -449,6 +460,8 @@ struct ContentView: View {
                     }
                 }
             }
+
+            print("[ShelterSearch] Всього сирих об'єктів знайдено: \(allItems.count)")
 
             // Фільтрація дублікатів за близькістю координат (~5 метрів)
             var uniqueItems: [MKMapItem] = []
@@ -464,14 +477,16 @@ struct ContentView: View {
                     uniqueItems.append(item)
                 }
             }
+            print("[ShelterSearch] Унікальних об'єктів після дедуплікації: \(uniqueItems.count)")
 
             // Жорстке відсіювання об'єктів, які вийшли за межі обраного радіуса
-            // (оскільки Apple Maps region - це лише підказка, а не строгий ліміт)
             let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
             let strictRadiusItems = uniqueItems.filter { item in
                 let itemLocation = CLLocation(latitude: item.placemark.coordinate.latitude, longitude: item.placemark.coordinate.longitude)
-                return itemLocation.distance(from: userLocation) <= radiusMeters
+                let distance = itemLocation.distance(from: userLocation)
+                return distance <= radiusMeters
             }
+            print("[ShelterSearch] Об'єктів в межах строгого радіусу \(radiusMeters)м: \(strictRadiusItems.count)")
 
             // Знаходження найближчого об'єкта до користувача
             let closestItem = strictRadiusItems.min { a, b in
@@ -485,8 +500,13 @@ struct ContentView: View {
             await MainActor.run {
                 isRoutingToShelter = false
                 allFoundShelters = strictRadiusItems
-                guard let closestItem else { return }
+                
+                guard let closestItem else { 
+                    print("[ShelterSearch] Помилка: жодного укриття не знайдено в радіусі \(radiusMeters)м.")
+                    return 
+                }
 
+                print("[ShelterSearch] Знайдено найближче укриття: \(closestItem.name ?? "Без назви") (\(closestItem.placemark.coordinate.latitude), \(closestItem.placemark.coordinate.longitude))")
                 foundShelter = closestItem
                 selectedShelter = closestItem
                 route = nil
