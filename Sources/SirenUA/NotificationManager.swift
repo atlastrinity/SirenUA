@@ -90,29 +90,39 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         completionHandler([.banner, .sound, .badge, .list])
     }
 
-    // MARK: - Firebase Topic Subscriptions
+    private var syncTask: Task<Void, Never>? = nil
 
     func syncTopicSubscriptions() {
-        let allTracked = UserDefaults.standard.bool(forKey: "allRegionsTracked")
-        let trackedString = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
-        let trackedList = Set(trackedString.components(separatedBy: ";").filter { !$0.isEmpty })
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.syncTask?.cancel()
+            self.syncTask = Task {
+                // Debounce: wait 0.5 seconds for subsequent settings updates
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                
+                let allTracked = UserDefaults.standard.bool(forKey: "allRegionsTracked")
+                let trackedString = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
+                let trackedList = Set(trackedString.components(separatedBy: ";").filter { !$0.isEmpty })
 
-        for (region, topic) in topicMapping {
-            let shouldSubscribe = allTracked || trackedList.contains(region)
-            if shouldSubscribe {
-                Messaging.messaging().subscribe(toTopic: topic) { error in
-                    if let error {
-                        notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
+                for (region, topic) in self.topicMapping {
+                    let shouldSubscribe = allTracked || trackedList.contains(region)
+                    if shouldSubscribe {
+                        Messaging.messaging().subscribe(toTopic: topic) { error in
+                            if let error {
+                                notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
+                            } else {
+                                notifLogger.debug("Subscribed to \(topic)")
+                            }
+                        }
                     } else {
-                        notifLogger.debug("Subscribed to \(topic)")
-                    }
-                }
-            } else {
-                Messaging.messaging().unsubscribe(fromTopic: topic) { error in
-                    if let error {
-                        notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
-                    } else {
-                        notifLogger.debug("Unsubscribed from \(topic)")
+                        Messaging.messaging().unsubscribe(fromTopic: topic) { error in
+                            if let error {
+                                notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
+                            } else {
+                                notifLogger.debug("Unsubscribed from \(topic)")
+                            }
+                        }
                     }
                 }
             }
