@@ -56,6 +56,8 @@ struct ContentView: View {
     @State private var selectedShelter: MKMapItem? = nil
     @State private var allFoundShelters: [MKMapItem] = []
     @State private var route: MKRoute? = nil
+    @State private var isCalculatingRoute = false
+    @State private var routeErrorMessage: String? = nil
     
     // Початкова камера - зблизька на Київ
     @State private var cameraPosition: MapCameraPosition = .region(
@@ -363,7 +365,7 @@ struct ContentView: View {
         )) {
             if let shelter = selectedShelter {
                 if !isNavigating {
-                    ShelterDetailView(shelter: shelter, route: route, onRouteRequested: {
+                    ShelterDetailView(shelter: shelter, route: route, isCalculatingRoute: isCalculatingRoute, routeErrorMessage: routeErrorMessage, onRouteRequested: {
                         calculateRoute(to: shelter)
                     }, onStartNavigation: {
                         isNavigating = true
@@ -403,6 +405,8 @@ struct ContentView: View {
             // Очищуємо маршрут лише тоді, коли користувач дійсно скасував вибір сховища вручну
             if newValue == nil && !isNavigating {
                 route = nil
+                routeErrorMessage = nil
+                isCalculatingRoute = false
             }
         }
         .onAppear {
@@ -529,6 +533,8 @@ struct ContentView: View {
                 foundShelter = closestItem
                 selectedShelter = closestItem
                 route = nil
+                routeErrorMessage = nil
+                isCalculatingRoute = false
 
                 withAnimation(.easeInOut(duration: 1.0)) {
                     cameraPosition = .region(
@@ -544,8 +550,11 @@ struct ContentView: View {
 
     // Функція для прокладання маршруту
     private func calculateRoute(to destination: MKMapItem) {
+        guard !isCalculatingRoute else { return }
+        routeErrorMessage = nil
+        isCalculatingRoute = true
+        
         let request = MKDirections.Request()
-        // Симулюємо нашу позицію як центр Києва
         let sourcePlacemark = MKPlacemark(coordinate: centerCoordinate)
         request.source = MKMapItem(placemark: sourcePlacemark)
         request.destination = destination
@@ -553,14 +562,45 @@ struct ContentView: View {
 
         Task {
             let directions = MKDirections(request: request)
-            if let response = try? await directions.calculate() {
+            do {
+                let response = try await directions.calculate()
                 await MainActor.run {
                     self.route = response.routes.first
+                    self.isCalculatingRoute = false
                     withAnimation {
                         if let rect = self.route?.polyline.boundingMapRect {
                             cameraPosition = .rect(rect.insetBy(dx: -500, dy: -500))
                         }
                     }
+                }
+            } catch {
+                print("[ShelterSearch] Failed to calculate route: \(error.localizedDescription)")
+                
+                if request.transportType == .walking {
+                    print("[ShelterSearch] Trying fallback to automobile...")
+                    let fallbackRequest = MKDirections.Request()
+                    fallbackRequest.source = request.source
+                    fallbackRequest.destination = destination
+                    fallbackRequest.transportType = .automobile
+                    
+                    if let fallbackResponse = try? await MKDirections(request: fallbackRequest).calculate() {
+                        await MainActor.run {
+                            self.transportType = .automobile
+                            self.route = fallbackResponse.routes.first
+                            self.isCalculatingRoute = false
+                            withAnimation {
+                                if let rect = self.route?.polyline.boundingMapRect {
+                                    cameraPosition = .rect(rect.insetBy(dx: -500, dy: -500))
+                                }
+                            }
+                        }
+                        return
+                    }
+                }
+                
+                await MainActor.run {
+                    self.isCalculatingRoute = false
+                    self.routeErrorMessage = "Маршрут недоступний"
                 }
             }
         }
@@ -905,6 +945,8 @@ struct ShareSheet: UIViewControllerRepresentable {
 struct ShelterDetailView: View {
     let shelter: MKMapItem
     let route: MKRoute?
+    var isCalculatingRoute: Bool
+    var routeErrorMessage: String?
     let onRouteRequested: () -> Void
     let onStartNavigation: () -> Void
     
@@ -931,6 +973,15 @@ struct ShelterDetailView: View {
                 }
                 .font(.subheadline)
                 .padding(.top, 5)
+            } else if let error = routeErrorMessage {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.red)
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundColor(.red)
+                }
+                .padding(.top, 5)
             }
             
             Spacer()
@@ -939,8 +990,14 @@ struct ShelterDetailView: View {
                 if route == nil {
                     Button(action: onRouteRequested) {
                         HStack {
-                            Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
-                            Text("Побудувати маршрут")
+                            if isCalculatingRoute {
+                                ProgressView()
+                                    .tint(.white)
+                                    .padding(.trailing, 4)
+                            } else {
+                                Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
+                            }
+                            Text(isCalculatingRoute ? "Обчислення..." : "Побудувати маршрут")
                         }
                         .font(.headline)
                         .foregroundColor(.white)
@@ -948,6 +1005,7 @@ struct ShelterDetailView: View {
                         .padding(.vertical, 14)
                         .background(Color.blue.opacity(0.85))
                         .clipShape(Capsule())
+
                     }
                 } else {
                     Button(action: onStartNavigation) {
