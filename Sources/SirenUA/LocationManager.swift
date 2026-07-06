@@ -12,7 +12,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         authorizationStatus = manager.authorizationStatus
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        // Оптимізація ресурсів: не оновлювати локацію безперервно
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.distanceFilter = 15 // Оновлювати лише якщо змістились на 15 метрів
     }
     
     func requestPermission() {
