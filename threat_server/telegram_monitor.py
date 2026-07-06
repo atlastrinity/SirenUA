@@ -4,14 +4,14 @@ import aiohttp
 from bs4 import BeautifulSoup
 from mock_mode import ThreatState, ALL_REGIONS, THREAT_TYPES
 
-# Цільові канали для автоматичного прослуховування
+# Target Telegram channels to monitor
 TARGET_CHANNELS = [
     "kpszsu",            # Повітряні Сили ЗСУ
     "monitorwarr",       # Найшвидша аналітика радарів
     "vanek_nikolaev"     # Николаевский Ванек
 ]
 
-# Ключові слова загроз
+# Threat Keywords
 CRITICAL_KEYWORDS = [r"масований\s*(ракетний\s*)?удар", r"масований\s*обстріл", r"комбінований\s*удар"]
 HIGH_KEYWORDS = [
     r"МіГ[-\s]?31", r"Кинджал", r"Ту[-\s]?95", r"Ту[-\s]?22", r"Ту[-\s]?160",
@@ -27,13 +27,12 @@ class TelegramThreatMonitor:
         self.threat_manager = threat_manager
         self.is_running = False
         self._clear_tasks = {}
-        # Зберігаємо ID останніх оброблених постів для кожного каналу
+        # Stores the last seen post ID for each channel to avoid duplicate processing
         self.last_seen_posts = {channel: None for channel in TARGET_CHANNELS}
 
     async def start(self):
         print("🌐 Запуск Web Scraper для Telegram каналів...")
         self.is_running = True
-        # Запускаємо безкінечний цикл перевірки як фонове завдання
         asyncio.create_task(self._scrape_loop())
         print(f"📥 Автоматичний моніторинг (кожні 20 сек) активний для: {', '.join(TARGET_CHANNELS)}")
 
@@ -46,7 +45,6 @@ class TelegramThreatMonitor:
             while self.is_running:
                 for channel in TARGET_CHANNELS:
                     await self._scrape_channel(session, channel)
-                # Чекаємо 20 секунд перед наступною перевіркою
                 await asyncio.sleep(20)
 
     async def _scrape_channel(self, session, channel):
@@ -58,48 +56,65 @@ class TelegramThreatMonitor:
                 html = await response.text()
                 soup = BeautifulSoup(html, 'html.parser')
                 
-                # Знаходимо всі текстові блоки повідомлень
                 messages = soup.select('.tgme_widget_message')
                 if not messages:
                     return
                 
-                # Беремо 3 останні повідомлення
-                recent_messages = messages[-3:]
+                # Check if it's the first run (baseline) for this channel
+                is_first_run = self.last_seen_posts[channel] is None
                 
-                for msg in recent_messages:
+                # If first run, find the latest post ID and set it as baseline to avoid spamming historical messages
+                if is_first_run:
+                    max_id = 0
+                    for msg in messages:
+                        post_id = msg.get('data-post')
+                        if post_id:
+                            try:
+                                current_id = int(post_id.split('/')[-1])
+                                if current_id > max_id:
+                                    max_id = current_id
+                                    self.last_seen_posts[channel] = post_id
+                            except:
+                                continue
+                    print(f"📡 [{channel}] Первинний запуск. Встановлено базовий ID поста: {max_id}")
+                    return
+
+                # For subsequent runs, iterate through all messages on the page and process those newer than last_seen_post
+                last_id = 0
+                if self.last_seen_posts[channel] is not None:
+                    last_id = int(self.last_seen_posts[channel].split('/')[-1])
+
+                for msg in messages:
                     post_id = msg.get('data-post')
                     if not post_id:
                         continue
                         
-                    # Перевіряємо, чи пост новіший за останній оброблений
                     try:
                         current_id = int(post_id.split('/')[-1])
-                        last_id = 0
-                        if self.last_seen_posts[channel] is not None:
-                            last_id = int(self.last_seen_posts[channel].split('/')[-1])
-                            
                         if current_id <= last_id:
                             continue
                         
-                        # Оновлюємо останній оброблений ID
+                        # Update the last seen ID
                         self.last_seen_posts[channel] = post_id
                     except:
                         continue
 
-                    # Дістаємо текст
+                    # Extract text
                     text_div = msg.select_one('.tgme_widget_message_text')
                     if text_div:
-                        # Замінюємо <br> на нові рядки для зручності читання
                         for br in text_div.find_all("br"):
                             br.replace_with("\n")
                         text = text_div.get_text()
+                        
+                        # Logging every single read message to console for transparency
+                        print(f"📖 [{channel}] Отримано нове повідомлення (ID: {current_id}): \"{text.strip().replace('\n', ' ')[:80]}...\"")
                         await self._process_message(text, channel)
         except Exception as e:
-            # Ігноруємо помилки мережі, щоб не спамити в консоль
+            # Silent fallback for network request errors
             pass
 
     async def _process_message(self, text, channel):
-        # Перевірка на зняття загрози
+        # Check if it's a clear/end alert message
         is_clear = any(re.search(kw, text, re.IGNORECASE) for kw in CLEAR_KEYWORDS)
         
         if is_clear:
@@ -109,32 +124,35 @@ class TelegramThreatMonitor:
                     self.threat_manager.clear_threat(region)
                     if region in self._clear_tasks:
                         self._clear_tasks[region].cancel()
-                print(f"✅ [{channel}] Загрозу знято для: {', '.join(regions)}")
+                print(f"🟢 [{channel}] Зняття загрози розпізнано для: {', '.join(regions)}")
             else:
                 self.threat_manager.clear_all()
-                print(f"✅ [{channel}] Всі загрози скасовано (відбій тривог/дорозвідка)")
+                print(f"🟢 [{channel}] Зняття загрози розпізнано для ВСІХ областей (відбій/чисто)")
             return
 
         level = self._detect_threat_level(text)
         if not level:
+            print(f"💡 [{channel}] Повідомлення проігноровано (не містить ключових слів загроз)")
             return
 
         threat_type = self._detect_threat_type(text)
         regions = self._extract_regions(text)
         
-        # Якщо загроза критична/висока і немає конкретних областей — це для всієї України
+        # If threat level is high/critical and no specific regions mentioned, assume entire Ukraine
         if not regions and level in ("critical", "high"):
             regions = list(ALL_REGIONS)
+            print(f"🚨 [{channel}] Виявлено загальну небезпеку {level.upper()} для всієї України")
             
         if not regions:
+            print(f"💡 [{channel}] Рівень {level.upper()} розпізнано, але не знайдено відповідних областей")
             return
 
-        detail = f"{THREAT_TYPES.get(threat_type, 'Загроза')}: {text[:80]}..."
+        detail = f"{THREAT_TYPES.get(threat_type, 'Загроза')}: {text.strip().replace('\n', ' ')[:80]}..."
         for region in regions:
             self.threat_manager.set_threat(region, level, threat_type, detail)
             self._schedule_auto_clear(region)
 
-        print(f"🔴 [{channel}] Рівень {level.upper()} встановлено для {len(regions)} областей.")
+        print(f"🔴 [{channel}] Рівень {level.upper()} встановлено для {len(regions)} областей: {', '.join(regions)}")
 
     def _detect_threat_level(self, text: str):
         if any(re.search(kw, text, re.IGNORECASE) for kw in CRITICAL_KEYWORDS):
@@ -150,13 +168,13 @@ class TelegramThreatMonitor:
     def _detect_threat_type(self, text: str):
         text_lower = text.lower()
         if any(kw in text_lower for kw in ["шахед", "shahed", "бпла", "дрон", "мопед"]):
-            return "drone"
+            return "shahed"
         if any(kw in text_lower for kw in ["балісти", "іскандер", "кинджал"]):
             return "ballistic"
         if any(kw in text_lower for kw in ["ракета", "крилата", "калібр", "х-101"]):
-            return "missile"
+            return "cruise_missile"
         if any(kw in text_lower for kw in ["міг", "ту-", "авіація"]):
-            return "aviation"
+            return "mig31k" if "міг" in text_lower else "tu95"
         if any(kw in text_lower for kw in ["артилерія", "рсзв", "обстріл"]):
             return "artillery"
         return "unknown"
@@ -174,7 +192,7 @@ class TelegramThreatMonitor:
             self._clear_tasks[region].cancel()
         
         async def auto_clear():
-            await asyncio.sleep(3600)  # 1 година
+            await asyncio.sleep(3600)  # 1 hour auto-cleanup timeout
             self.threat_manager.clear_threat(region)
             print(f"⏳ Автоматичне зняття загрози для {region} (таймаут 1 год)")
             
