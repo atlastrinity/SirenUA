@@ -67,6 +67,10 @@ final class StoreKitManager: ObservableObject {
     // Purchase transaction
     func purchase(_ product: Product) async throws -> Transaction? {
         storeLogger.info("Starting purchase flow for \(product.id)")
+        
+        // Reset mute status when a new purchase is initiated
+        UserDefaults.standard.set(false, forKey: "debugPremiumMuted")
+        
         let result = try await product.purchase()
         
         switch result {
@@ -120,6 +124,11 @@ final class StoreKitManager: ObservableObject {
             }
         }
         
+        // If debug premium is muted, override and force false
+        if UserDefaults.standard.bool(forKey: "debugPremiumMuted") {
+            hasActivePremium = false
+        }
+        
         self.purchasedSubscriptions = purchased
         self.isPremium = hasActivePremium
         
@@ -132,11 +141,21 @@ final class StoreKitManager: ObservableObject {
     // Restore Purchases
     func restorePurchases() async {
         storeLogger.info("Manually syncing purchases with App Store...")
+        UserDefaults.standard.set(false, forKey: "debugPremiumMuted")
         do {
             try await AppStore.sync()
             await updateCustomerProductStatus()
         } catch {
             storeLogger.error("Failed to restore purchases: \(error.localizedDescription)")
+        }
+    }
+    
+    // Debug Reset for testers
+    func debugResetPremium() {
+        storeLogger.info("Resetting premium for testing purposes")
+        UserDefaults.standard.set(true, forKey: "debugPremiumMuted")
+        Task {
+            await updateCustomerProductStatus()
         }
     }
 }

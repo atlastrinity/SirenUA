@@ -382,6 +382,18 @@ struct SettingsView: View {
                     iconColor: .siGold,
                     isOn: $premiumDetailedNotifications
                 )
+                StyledDivider()
+                Button(action: {
+                    storeManager.debugResetPremium()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise.circle.fill")
+                        Text("Скинути преміум (для тестування)")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.red)
+                }
+                .padding(.vertical, 4)
             } else {
                 premiumUpgradeView
             }

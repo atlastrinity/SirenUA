@@ -287,16 +287,38 @@ struct ContentView: View {
             .padding(.bottom, 20)
             
             if showHistory {
-                AlertListOverlayView(title: "ІСТОРІЯ ТРИВОГ", color: .yellow, alerts: viewModel.alerts, filterActiveOnly: false) {
-                    showHistory = false
-                }
+                AlertListOverlayView(
+                    title: "ІСТОРІЯ ТРИВОГ",
+                    color: .yellow,
+                    alerts: viewModel.alerts,
+                    filterActiveOnly: false,
+                    isPremium: viewModel.isPremium,
+                    onSelect: { region in
+                        selectedRegionForDetail = region
+                        showHistory = false
+                    },
+                    onClose: {
+                        showHistory = false
+                    }
+                )
                 .transition(.opacity.combined(with: .scale))
             }
             
             if showActiveAlerts {
-                AlertListOverlayView(title: "АКТИВНІ ТРИВОГИ", color: .red, alerts: viewModel.alerts, filterActiveOnly: true) {
-                    showActiveAlerts = false
-                }
+                AlertListOverlayView(
+                    title: "АКТИВНІ ТРИВОГИ",
+                    color: .red,
+                    alerts: viewModel.alerts,
+                    filterActiveOnly: true,
+                    isPremium: viewModel.isPremium,
+                    onSelect: { region in
+                        selectedRegionForDetail = region
+                        showActiveAlerts = false
+                    },
+                    onClose: {
+                        showActiveAlerts = false
+                    }
+                )
                 .transition(.opacity.combined(with: .scale))
             }
         }

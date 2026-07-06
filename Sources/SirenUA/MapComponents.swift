@@ -164,20 +164,21 @@ struct ShelterDetailView: View {
     }
 }
 
-// MARK: - AlertListOverlayView
-
 @available(iOS 17.0, *)
 struct AlertListOverlayView: View {
     let title: String
     let color: Color
     let alerts: [AlertRegion]
     let filterActiveOnly: Bool
+    let isPremium: Bool
+    var onSelect: ((AlertRegion) -> Void)? = nil
     var onClose: () -> Void
 
     private var sortedAlerts: [AlertRegion] {
-        let filtered = filterActiveOnly ? alerts.filter { $0.isActive } : alerts
+        let filtered = filterActiveOnly ? alerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) } : alerts
         return filtered.sorted { a, b in
             if a.isActive != b.isActive { return a.isActive }
+            if (a.threatLevel != nil) != (b.threatLevel != nil) { return a.threatLevel != nil }
             return (a.lastChanged ?? "") > (b.lastChanged ?? "")
         }
     }
@@ -250,68 +251,86 @@ struct AlertListOverlayView: View {
     }
 
     private func alertRow(_ alert: AlertRegion) -> some View {
-        HStack(alignment: .center, spacing: 14) {
-            // Status dot with optional glow
-            ZStack {
-                if alert.isActive {
+        let isThreat = !alert.isActive && alert.threatLevel != nil
+        let rowColor = alert.isActive ? color : (isThreat ? Color.yellow : Color.gray.opacity(0.4))
+        
+        return Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onSelect?(alert)
+        }) {
+            HStack(alignment: .center, spacing: 14) {
+                // Status dot with optional glow
+                ZStack {
+                    if alert.isActive || isThreat {
+                        Circle()
+                            .fill(rowColor.opacity(0.3))
+                            .frame(width: 18, height: 18)
+                    }
                     Circle()
-                        .fill(color.opacity(0.3))
-                        .frame(width: 18, height: 18)
+                        .fill(rowColor)
+                        .frame(width: 9, height: 9)
+                        .shadow(color: (alert.isActive || isThreat) ? rowColor.opacity(0.8) : .clear, radius: 4)
                 }
-                Circle()
-                    .fill(alert.isActive ? color : Color.gray.opacity(0.4))
-                    .frame(width: 9, height: 9)
-                    .shadow(color: alert.isActive ? color.opacity(0.8) : .clear, radius: 4)
-            }
-            .frame(width: 20)
+                .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(alert.name)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(alert.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
 
-                HStack(spacing: 6) {
-                    Text(alert.isActive ? "АКТИВНА" : "НЕАКТИВНА")
-                        .font(.system(size: 9, weight: .black))
-                        .tracking(0.8)
-                        .foregroundColor(alert.isActive ? color : .gray)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background((alert.isActive ? color : Color.gray).opacity(0.12))
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().stroke((alert.isActive ? color : Color.gray).opacity(0.2), lineWidth: 1)
-                        )
+                    HStack(spacing: 6) {
+                        Text(alert.isActive ? "АКТИВНА" : (isThreat ? "ЗАГРОЗА" : "НЕАКТИВНА"))
+                            .font(.system(size: 9, weight: .black))
+                            .tracking(0.8)
+                            .foregroundColor(alert.isActive ? color : (isThreat ? .yellow : .gray))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background((alert.isActive ? color : (isThreat ? .yellow : Color.gray)).opacity(0.12))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke((alert.isActive ? color : (isThreat ? .yellow : Color.gray)).opacity(0.2), lineWidth: 1)
+                            )
 
-                    if let changed = alert.lastChanged {
-                        Text(changed)
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.35))
+                        if let changed = alert.lastChanged {
+                            Text(changed)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.35))
+                        }
+                    }
+                    
+                    // Display details for premium users
+                    if isPremium, let type = alert.threatType, let detail = alert.threatDetail {
+                        Text("⚠️ \(type.uppercased()): \(detail)")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.yellow.opacity(0.8))
+                            .multilineTextAlignment(.leading)
+                            .padding(.top, 2)
                     }
                 }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.25))
             }
-
-            Spacer()
-
-            Image(systemName: alert.isActive ? "chevron.right" : "minus")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.25))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                alert.isActive
+                    ? color.opacity(0.05)
+                    : (isThreat ? Color.yellow.opacity(0.03) : Color.white.opacity(0.02))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        alert.isActive ? color.opacity(0.2) : (isThreat ? Color.yellow.opacity(0.15) : Color.white.opacity(0.05)),
+                        lineWidth: 1
+                    )
+            )
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-        .background(
-            alert.isActive
-                ? color.opacity(0.05)
-                : Color.white.opacity(0.02)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(
-                    alert.isActive ? color.opacity(0.2) : Color.white.opacity(0.05),
-                    lineWidth: 1
-                )
-        )
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
