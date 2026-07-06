@@ -108,20 +108,18 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 for (region, topic) in self.topicMapping {
                     let shouldSubscribe = allTracked || trackedList.contains(region)
                     if shouldSubscribe {
-                        Messaging.messaging().subscribe(toTopic: topic) { error in
-                            if let error {
-                                notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
-                            } else {
-                                notifLogger.debug("Subscribed to \(topic)")
-                            }
+                        do {
+                            try await Messaging.messaging().subscribe(toTopic: topic)
+                            notifLogger.debug("Subscribed to \(topic)")
+                        } catch {
+                            notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
                         }
                     } else {
-                        Messaging.messaging().unsubscribe(fromTopic: topic) { error in
-                            if let error {
-                                notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
-                            } else {
-                                notifLogger.debug("Unsubscribed from \(topic)")
-                            }
+                        do {
+                            try await Messaging.messaging().unsubscribe(fromTopic: topic)
+                            notifLogger.debug("Unsubscribed from \(topic)")
+                        } catch {
+                            notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
                         }
                     }
                 }
