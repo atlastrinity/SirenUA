@@ -35,7 +35,6 @@ struct ContentView: View {
     let userCoordinate = CLLocationCoordinate2D(latitude: 50.4450, longitude: 30.5300)
     
     // Стан для анімацій (пульсація)
-    @State private var isPulsating = false
     @State private var dummyState = false
     
     private var shouldBlinkLastAlert: Bool {
@@ -351,7 +350,6 @@ struct ContentView: View {
                     BottomDashboardV4(
                         activeAlerts: viewModel.activeAlerts,
                         primaryRegionName: viewModel.alerts.first(where: { $0.isActive })?.name,
-                        isPulsating: isPulsating,
                         isSearchingShelter: isRoutingToShelter,
                         transportType: $transportType,
                         onFindShelter: findNearestShelter,
@@ -457,10 +455,6 @@ struct ContentView: View {
         .onAppear {
             locationManager.requestPermission()
             viewModel.markLastAlertAsViewed()
-            
-            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                isPulsating = true
-            }
             
             // Автовіддалення карти через пару секунд, щоб показати інші області
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
@@ -647,7 +641,7 @@ struct TopAlertBannerV4: View {
 struct BottomDashboardV4: View {
     let activeAlerts: Int
     let primaryRegionName: String?
-    var isPulsating: Bool
+    @State private var isPulsating = false
     let isSearchingShelter: Bool
     @Binding var transportType: MKDirectionsTransportType
     var onFindShelter: () -> Void
@@ -778,6 +772,11 @@ struct BottomDashboardV4: View {
         )
         .padding(.horizontal, 16)
         .shadow(color: .black.opacity(0.25), radius: 15, x: 0, y: 8)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                isPulsating = true
+            }
+        }
     }
 }
 
