@@ -175,74 +175,116 @@ struct ContentView: View {
             }
             
             // 2. ВЕРХНІЙ БАНЕР ТА КНОПКИ КЕРУВАННЯ КАМЕРОЮ
-
-            HStack(alignment: .center) {
-                // Ліва кнопка: Показати всі тривоги (центрування на Україну)
-                Button(action: {
-                    centerMapOnAlerts()
-                }) {
-                    Image(systemName: "map.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(themeColor)
-                        .padding(10)
-                        .background(themeColor.opacity(0.15))
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                })
-                .padding(.leading, 16)
-                
-                Spacer()
-                
-                // Центр: Баннер тривог
-                TopAlertBannerV4(
-                    statusColor: themeColor,
-                    statusText: themeStatusText,
-                    activeCount: themeActiveCount,
-                    isLoading: viewModel.isLoading
-                )
-                .onTapGesture {
-                    if themeActiveCount > 0 {
-                        showActiveAlerts = true
+            VStack(spacing: 12) {
+                HStack(alignment: .center) {
+                    // Ліва кнопка: Показати всі тривоги (центрування на Україну)
+                    Button(action: {
+                        centerMapOnAlerts()
+                    }) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(themeColor)
+                            .padding(10)
+                            .background(themeColor.opacity(0.15))
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
-                }
-                
-                Spacer()
-                
-                // Права кнопка: Показати мою локацію
-                Button(action: {
-                    let coord = currentUserCoordinate
-                    withAnimation(.easeInOut(duration: 1.0)) {
-                        cameraPosition = .region(
-                            MKCoordinateRegion(
-                                center: coord,
-                                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                    })
+                    .padding(.leading, 16)
+                    
+                    Spacer()
+                    
+                    // Центр: Баннер тривог
+                    TopAlertBannerV4(
+                        statusColor: themeColor,
+                        statusText: themeStatusText,
+                        activeCount: themeActiveCount,
+                        isLoading: viewModel.isLoading
+                    )
+                    .onTapGesture {
+                        if themeActiveCount > 0 {
+                            showActiveAlerts = true
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Права кнопка: Показати мою локацію
+                    Button(action: {
+                        let coord = currentUserCoordinate
+                        withAnimation(.easeInOut(duration: 1.0)) {
+                            cameraPosition = .region(
+                                MKCoordinateRegion(
+                                    center: coord,
+                                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                                )
                             )
-                        )
+                        }
+                    }) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(themeColor)
+                            .padding(10)
+                            .background(themeColor.opacity(0.15))
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
-                }) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(themeColor)
-                        .padding(10)
-                        .background(themeColor.opacity(0.15))
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                    })
+                    .padding(.trailing, 16)
                 }
-                .simultaneousGesture(TapGesture().onEnded {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                })
-                .padding(.trailing, 16)
+                .padding(.top, 10)
+                
+                // Floating error toast banner for shelter search results
+                if let error = routeErrorMessage {
+                    HStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.yellow)
+                            .font(.title3)
+                        
+                        Text(error)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            withAnimation {
+                                routeErrorMessage = nil
+                            }
+                        }) {
+                            Image(systemName: "xmark")
+                                .foregroundColor(.white.opacity(0.6))
+                                .font(.system(size: 10, weight: .bold))
+                                .padding(6)
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
-            .padding(.top, 10)
             
             // 3. НИЖНЯ ПАНЕЛЬ АБО НАВІГАЦІЯ
             VStack {
