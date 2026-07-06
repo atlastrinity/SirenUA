@@ -2,6 +2,11 @@ import Foundation
 import UserNotifications
 import AVFoundation
 import FirebaseMessaging
+import OSLog
+
+private let notifLogger = Logger(subsystem: "com.sirenua", category: "Notifications")
+
+// MARK: - PendingNotification
 
 struct PendingNotification {
     let title: String
@@ -9,87 +14,129 @@ struct PendingNotification {
     let soundName: String
 }
 
-class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+// MARK: - NotificationManager
+
+final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+
     static let shared = NotificationManager()
+
     private var audioPlayer: AVAudioPlayer?
-    
-    // Черга для послідовного виведення пуш-сповіщень
+
+    /// Serial queue for notification delivery to prevent overlap
     private var notificationQueue: [PendingNotification] = []
     private var isProcessingQueue = false
-    
-    // Трекер часу програвання звуків для запобігання накладанню
+
+    /// Sound throttle: prevent the same sound from overlapping within 8 seconds
     private var lastPlayedTimes: [String: Date] = [:]
-    
-    private let topicMapping = [
-        "Вінницька область": "region_vinnytsia",
-        "Волинська область": "region_volyn",
-        "Дніпропетровська область": "region_dnipro",
-        "Донецька область": "region_donetsk",
-        "Житомирська область": "region_zhytomyr",
-        "Закарпатська область": "region_zakarpattya",
-        "Запорізька область": "region_zaporizhzhya",
+    private static let soundThrottle: TimeInterval = 8.0
+
+    // MARK: - Firebase Topic Mapping
+
+    private let topicMapping: [String: String] = [
+        "Вінницька область":        "region_vinnytsia",
+        "Волинська область":         "region_volyn",
+        "Дніпропетровська область":  "region_dnipro",
+        "Донецька область":          "region_donetsk",
+        "Житомирська область":       "region_zhytomyr",
+        "Закарпатська область":      "region_zakarpattya",
+        "Запорізька область":        "region_zaporizhzhya",
         "Івано-Франківська область": "region_if",
-        "Київська область": "region_kyiv_oblast",
-        "м. Київ": "region_kyiv_city",
-        "Кіровоградська область": "region_kirovohrad",
-        "Луганська область": "region_luhansk",
-        "Львівська область": "region_lviv",
-        "Миколаївська область": "region_mykolaiv",
-        "Одеська область": "region_odesa",
-        "Полтавська область": "region_poltava",
-        "Рівненська область": "region_rivne",
-        "Сумська область": "region_sumy",
-        "Тернопільська область": "region_ternopil",
-        "Харківська область": "region_kharkiv",
-        "Херсонська область": "region_kherson",
-        "Хмельницька область": "region_khmelnytskyi",
-        "Черкаська область": "region_cherkasy",
-        "Чернівецька область": "region_chernivtsi",
-        "Чернігівська область": "region_chernihiv"
+        "Київська область":          "region_kyiv_oblast",
+        "м. Київ":                   "region_kyiv_city",
+        "Кіровоградська область":    "region_kirovohrad",
+        "Луганська область":         "region_luhansk",
+        "Львівська область":         "region_lviv",
+        "Миколаївська область":      "region_mykolaiv",
+        "Одеська область":           "region_odesa",
+        "Полтавська область":        "region_poltava",
+        "Рівненська область":        "region_rivne",
+        "Сумська область":           "region_sumy",
+        "Тернопільська область":     "region_ternopil",
+        "Харківська область":        "region_kharkiv",
+        "Херсонська область":        "region_kherson",
+        "Хмельницька область":       "region_khmelnytskyi",
+        "Черкаська область":         "region_cherkasy",
+        "Чернівецька область":       "region_chernivtsi",
+        "Чернігівська область":      "region_chernihiv"
     ]
-    
-    func syncTopicSubscriptions() {
-        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
-        let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
-        
-        for (region, topic) in topicMapping {
-            let shouldSubscribe = allTracked || trackedList.contains(region)
-            if shouldSubscribe {
-                Messaging.messaging().subscribe(toTopic: topic) { error in
-                    if let error = error {
-                        print("Error subscribing to \(topic): \(error.localizedDescription)")
-                    } else {
-                        print("Subscribed to topic: \(topic)")
-                    }
-                }
-            } else {
-                Messaging.messaging().unsubscribe(fromTopic: topic) { error in
-                    if let error = error {
-                        print("Error unsubscribing from \(topic): \(error.localizedDescription)")
-                    } else {
-                        print("Unsubscribed from topic: \(topic)")
-                    }
-                }
-            }
-        }
-    }
-    
+
+    // MARK: - Init
+
     private override init() {
         super.init()
         UNUserNotificationCenter.current().delegate = self
     }
 
-    // Дозволяємо показ пуш-сповіщень, навіть коли додаток відкритий
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        if #available(iOS 14.0, *) {
-            completionHandler([.banner, .sound, .badge, .list])
-        } else {
-            completionHandler([.alert, .sound, .badge])
+    // MARK: - Authorization
+
+    func requestAuthorization() {
+        guard notificationsEnabled else { return }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error {
+                notifLogger.error("Permission request error: \(error.localizedDescription)")
+            } else {
+                notifLogger.info("Notification permission: \(granted ? "granted" : "denied")")
+            }
         }
     }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .badge, .list])
+    }
+
+    // MARK: - Firebase Topic Subscriptions
+
+    func syncTopicSubscriptions() {
+        let allTracked = UserDefaults.standard.bool(forKey: "allRegionsTracked")
+        let trackedString = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
+        let trackedList = Set(trackedString.components(separatedBy: ";").filter { !$0.isEmpty })
+
+        for (region, topic) in topicMapping {
+            let shouldSubscribe = allTracked || trackedList.contains(region)
+            if shouldSubscribe {
+                Messaging.messaging().subscribe(toTopic: topic) { error in
+                    if let error {
+                        notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
+                    } else {
+                        notifLogger.debug("Subscribed to \(topic)")
+                    }
+                }
+            } else {
+                Messaging.messaging().unsubscribe(fromTopic: topic) { error in
+                    if let error {
+                        notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
+                    } else {
+                        notifLogger.debug("Unsubscribed from \(topic)")
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Public API
+
+    func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
+        let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
+        enqueue(title: title, body: body, soundName: "siren.wav", regionName: regionName)
+    }
+
+    func sendThreatNotification(for regionName: String, title: String, body: String) {
+        enqueue(title: title, body: body, soundName: "warning.wav", regionName: regionName)
+    }
+
+    func sendClearNotification(for regionName: String) {
+        let title = "🟢 Відбій тривоги!"
+        let body  = "Відбій повітряної тривоги в: \(regionName)."
+        enqueue(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName)
+    }
+
+    // MARK: - Private helpers
 
     private var notificationsEnabled: Bool {
         UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
@@ -97,118 +144,72 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @unchecke
 
     private func shouldNotify(for regionName: String) -> Bool {
         let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        if allTracked {
-            return true
-        }
-        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
-        let trackedList = trackedString.components(separatedBy: ";")
-        return trackedList.contains(regionName)
+        if allTracked { return true }
+        let tracked = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
+        return tracked.components(separatedBy: ";").contains(regionName)
     }
-    
-    func requestAuthorization() {
-        guard notificationsEnabled else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if granted {
-                print("Notification permission granted.")
-            } else if let error = error {
-                print("Notification permission error: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    // Чергування та послідовне відправлення пушів
-    private func enqueueNotification(title: String, body: String, soundName: String, regionName: String) {
+
+    private func enqueue(title: String, body: String, soundName: String, regionName: String) {
         guard notificationsEnabled else { return }
         guard shouldNotify(for: regionName) else { return }
-        
-        // Відтворюємо звук (буде відтворюватися тільки один раз на партію завдяки ліміту)
+
         playSound(named: soundName, for: regionName)
-        
-        let pending = PendingNotification(title: title, body: body, soundName: soundName)
-        
+
         DispatchQueue.main.async {
-            self.notificationQueue.append(pending)
-            self.processNotificationQueue()
+            self.notificationQueue.append(PendingNotification(title: title, body: body, soundName: soundName))
+            self.processQueue()
         }
     }
-    
-    private func processNotificationQueue() {
-        guard !isProcessingQueue else { return }
-        guard !notificationQueue.isEmpty else { return }
-        
+
+    private func processQueue() {
+        guard !isProcessingQueue, !notificationQueue.isEmpty else { return }
         isProcessingQueue = true
-        let notification = notificationQueue.removeFirst()
-        
-        let content = UNMutableNotificationContent()
-        content.title = notification.title
-        content.body = notification.body
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(notification.soundName))
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        
+        let item = notificationQueue.removeFirst()
+
+        let content       = UNMutableNotificationContent()
+        content.title     = item.title
+        content.body      = item.body
+        content.sound     = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+
         UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Error scheduling queued notification: \(error.localizedDescription)")
+            if let error {
+                notifLogger.error("Notification scheduling failed: \(error.localizedDescription)")
             }
-            
-            // Затримка в 1.0 секунду перед наступним пушем для послідовного спливання
+            // 1-second spacing between sequential banners
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.isProcessingQueue = false
-                self.processNotificationQueue()
+                self.processQueue()
             }
         }
     }
-    
+
     private func playSound(named filename: String, for regionName: String) {
-        guard notificationsEnabled else { return }
-        guard shouldNotify(for: regionName) else { return }
-        
+        guard notificationsEnabled, shouldNotify(for: regionName) else { return }
+
         let now = Date()
-        // Ліміт накладання звуків: якщо такий самий звук програвався менше ніж 8.0 секунд тому — ігноруємо
-        if let lastPlayed = lastPlayedTimes[filename], now.timeIntervalSince(lastPlayed) < 8.0 {
-            print("Skipping sound \(filename) (throttled to avoid overlaps)")
+        if let last = lastPlayedTimes[filename], now.timeIntervalSince(last) < Self.soundThrottle {
+            notifLogger.debug("Sound \(filename) throttled")
             return
         }
         lastPlayedTimes[filename] = now
-        
+
         DispatchQueue.global(qos: .userInitiated).async {
             guard let path = Bundle.main.path(forResource: filename, ofType: nil) else {
-                print("Audio file not found: \(filename)")
+                notifLogger.warning("Audio file not found: \(filename)")
                 return
             }
             let url = URL(fileURLWithPath: path)
             do {
-                #if os(iOS)
                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
                 try AVAudioSession.sharedInstance().setActive(true)
-                #endif
-                
                 self.audioPlayer = try AVAudioPlayer(contentsOf: url)
                 self.audioPlayer?.play()
-                print("Playing audio: \(filename)")
+                notifLogger.info("Playing audio: \(filename)")
             } catch {
-                print("Audio player error: \(error.localizedDescription)")
+                notifLogger.error("Audio player error: \(error.localizedDescription)")
             }
         }
     }
-    
-    func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
-        let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
-        enqueueNotification(title: title, body: body, soundName: "siren.wav", regionName: regionName)
-    }
-    
-    func sendThreatNotification(for regionName: String, title: String, body: String) {
-        enqueueNotification(title: title, body: body, soundName: "warning.wav", regionName: regionName)
-    }
-    
-    func sendClearNotification(for regionName: String) {
-        let title = "🟢 Відбій тривоги!"
-        let body = "Відбій повітряної тривоги в: \(regionName)."
-        enqueueNotification(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName)
-    }
 }
-

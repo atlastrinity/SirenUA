@@ -1,11 +1,14 @@
 import Foundation
 import UserNotifications
+import OSLog
+
+private let critLogger = Logger(subsystem: "com.sirenua", category: "CriticalAlert")
 
 @available(iOS 16.0, *)
-class CriticalAlertManager: NSObject {
+final class CriticalAlertManager: NSObject {
     static let shared = CriticalAlertManager()
 
-    override init() {
+    override private init() {
         super.init()
         setupNotification()
     }
@@ -14,14 +17,15 @@ class CriticalAlertManager: NSObject {
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.alert, .sound, .criticalAlert]) { granted, error in
             if let error = error {
-                print("Error requesting notification authorization: \(error)")
+                critLogger.error("Error requesting notification authorization: \(error.localizedDescription)")
             }
             if granted {
-                print("Notification authorization granted")
+                critLogger.info("Notification authorization granted")
             }
         }
-
-        center.delegate = self
+        
+        // Removed `center.delegate = self` to prevent overwriting NotificationManager's delegate registration.
+        // If critical alerts need handling in foreground, they can be processed through NotificationManager.
     }
 
     func sendCriticalAlert(region: String, isActive: Bool) {
@@ -42,9 +46,9 @@ class CriticalAlertManager: NSObject {
 
             center.add(request) { error in
                 if let error = error {
-                    print("Error sending critical alert: \(error)")
+                    critLogger.error("Error sending critical alert: \(error.localizedDescription)")
                 } else {
-                    print("Critical alert sent for \(region)")
+                    critLogger.info("Critical alert sent for \(region)")
                 }
             }
         } else {
@@ -60,9 +64,9 @@ class CriticalAlertManager: NSObject {
 
             center.add(request) { error in
                 if let error = error {
-                    print("Error sending alert end notification: \(error)")
+                    critLogger.error("Error sending alert end notification: \(error.localizedDescription)")
                 } else {
-                    print("Alert ended notification sent for \(region)")
+                    critLogger.info("Alert ended notification sent for \(region)")
                 }
             }
         }
@@ -71,28 +75,6 @@ class CriticalAlertManager: NSObject {
     func clearAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
-    }
-}
-
-@available(iOS 16.0, *)
-extension CriticalAlertManager: UNUserNotificationCenterDelegate {
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-    ) {
-        completionHandler([.banner, .sound])
-    }
-
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        let userInfo = response.notification.request.content.userInfo
-        if let region = userInfo["region"] as? String {
-            print("User tapped alert for: \(region)")
-        }
-        completionHandler()
+        critLogger.info("Cleared all pending and delivered notifications")
     }
 }

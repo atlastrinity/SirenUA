@@ -1,10 +1,13 @@
 import Foundation
 import SwiftUI
 import CoreLocation
+import OSLog
+
+private let vmLogger = Logger(subsystem: "com.sirenua", category: "AlertViewModel")
 
 @available(iOS 16.0, *)
 @MainActor
-class AlertViewModelV3: ObservableObject {
+final class AlertViewModelV3: ObservableObject {
     @Published var alerts: [AlertRegion] = []
     @Published var activeAlerts: Int = 0
     @Published var maxLevel: Int = 0
@@ -39,6 +42,7 @@ class AlertViewModelV3: ObservableObject {
     }
 
     init() {
+        vmLogger.info("AlertViewModelV3 initialized")
         initializeRegions()
         refreshAlerts()
         setupRefreshLoop()
@@ -121,7 +125,7 @@ class AlertViewModelV3: ObservableObject {
             let threatData = try await networkManager.fetchThreats(serverURL: threatServerURL)
             applyThreats(threatData)
         } catch {
-            print("Threat fetch error: \(error.localizedDescription)")
+            vmLogger.error("Threat fetch error: \(error.localizedDescription)")
         }
     }
     
@@ -137,7 +141,7 @@ class AlertViewModelV3: ObservableObject {
             alerts[index].threatType = threat.type
             alerts[index].threatDetail = threat.detail
             
-            // Якщо з'явилася нова загроза і немає активної тривоги
+            // Trigger local warning notification if there's a new threat and no active alert
             if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
                 if !isFirstThreatFetch {
                     let typeDesc = getThreatTypeDescription(threat.type ?? "")
@@ -173,7 +177,7 @@ class AlertViewModelV3: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        // Одразу оновлюємо і загрози при оновленні тривог
+        // Also fetch active threat levels for premium users simultaneously
         if isPremium {
             await fetchThreats()
         }
@@ -185,7 +189,7 @@ class AlertViewModelV3: ObservableObject {
             updateStats()
         } catch {
             errorMessage = "Помилка оновлення тривог: \(error.localizedDescription)"
-            print("Error fetching alerts: \(error)")
+            vmLogger.error("Error fetching alerts: \(error.localizedDescription)")
         }
 
         isLoading = false

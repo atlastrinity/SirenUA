@@ -1,62 +1,97 @@
 import Foundation
 import CoreLocation
+import OSLog
 
-@available(iOS 16.0, *)
-class NetworkManager {
-    private let baseURL = "https://ubilling.net.ua/aerialalerts/"
+private let networkLogger = Logger(subsystem: "com.sirenua", category: "Network")
+
+// MARK: - NetworkManager
+final class NetworkManager: Sendable {
+
+    private static let alertsBaseURL  = "https://ubilling.net.ua/aerialalerts/"
+    private static let userAgent      = "ios-sirenua/4.2"
+    private static let premiumAgent   = "ios-sirenua-premium/4.2"
+    private static let defaultTimeout: TimeInterval = 8.0
+
     private let session: URLSession
 
     init(session: URLSession = .shared) {
         self.session = session
     }
 
-    /// Fetches the live alerts and returns a dictionary mapping Region Name to AerialAlertState
+    // MARK: - Live Alerts
+
+    /// Fetches the live air-raid alerts map  
+    /// Returns a dictionary mapping Ukrainian region name → AerialAlertState
     func fetchLiveAlerts() async throws -> [String: AerialAlertState] {
-        guard let url = URL(string: baseURL) else {
-            throw NetworkError.invalidURL
+        guard let url = URL(string: Self.alertsBaseURL) else {
+            throw NetworkError.invalidURL(Self.alertsBaseURL)
         }
 
-        var request = URLRequest(url: url)
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("ios-sirenua", forHTTPHeaderField: "User-Agent")
+        let request = makeRequest(url: url, agent: Self.userAgent)
+        networkLogger.info("Fetching live alerts from \(Self.alertsBaseURL)")
 
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw NetworkError.invalidResponse
-        }
+        let data = try await fetch(request: request)
 
         do {
-            let alertData = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
-            return alertData.states
+            let decoded = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
+            networkLogger.info("Decoded \(decoded.states.count) region states")
+            return decoded.states
         } catch {
-            print("DECODING ERROR: \(error)")
-            throw NetworkError.invalidResponse
+            networkLogger.error("Alert decoding failed: \(error.localizedDescription)")
+            throw NetworkError.decodingFailed(error)
         }
     }
-    
-    /// Fetches threat levels from the local threat monitoring server (Premium feature)
+
+    // MARK: - Threats (Premium)
+
+    /// Fetches threat levels from the threat-monitoring server (Premium feature)
     func fetchThreats(serverURL: String) async throws -> [String: ThreatInfo] {
-        let urlString = serverURL.hasSuffix("/") ? "\(serverURL)api/threats" : "\(serverURL)/api/threats"
+        let base = serverURL.hasSuffix("/") ? serverURL : "\(serverURL)/"
+        let urlString = "\(base)api/threats"
         guard let url = URL(string: urlString) else {
-            throw NetworkError.invalidURL
+            throw NetworkError.invalidURL(urlString)
         }
-        
+
+        var request = makeRequest(url: url, agent: Self.premiumAgent)
+        request.timeoutInterval = 5.0   // faster timeout for threat server
+        networkLogger.info("Fetching threats from \(urlString)")
+
+        let data = try await fetch(request: request)
+
+        do {
+            let decoded = try JSONDecoder().decode(ThreatResponse.self, from: data)
+            networkLogger.info("Decoded threats for \(decoded.threats.count) regions")
+            return decoded.threats
+        } catch {
+            networkLogger.error("Threat decoding failed: \(error.localizedDescription)")
+            throw NetworkError.decodingFailed(error)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func makeRequest(url: URL, agent: String) -> URLRequest {
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("ios-sirenua-premium", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 5 // Швидкий таймаут для локального сервера
-        
+        request.setValue(agent, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = Self.defaultTimeout
+        return request
+    }
+
+    private func fetch(request: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw NetworkError.invalidResponse
+        guard let http = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse(statusCode: nil)
         }
-        
-        let threatData = try JSONDecoder().decode(ThreatResponse.self, from: data)
-        return threatData.threats
+        guard (200...299).contains(http.statusCode) else {
+            networkLogger.warning("HTTP \(http.statusCode) from \(request.url?.absoluteString ?? "?")")
+            throw NetworkError.invalidResponse(statusCode: http.statusCode)
+        }
+        return data
     }
 }
+
+// MARK: - Response Models
 
 struct AerialAlertsResponse: Codable {
     let source: String
@@ -77,23 +112,34 @@ struct ThreatResponse: Codable {
 }
 
 struct ThreatInfo: Codable {
-    let level: String       // "none", "low", "medium", "high", "critical"
+    let level: String       // "none" | "low" | "medium" | "high" | "critical"
     let type: String?
     let detail: String?
     let since: String?
 }
 
+// MARK: - Network Errors
+
 enum NetworkError: LocalizedError {
-    case invalidURL
-    case invalidResponse
+    case invalidURL(String)
+    case invalidResponse(statusCode: Int?)
+    case decodingFailed(Error)
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL:
-            return "Invalid URL"
-        case .invalidResponse:
-            return "Invalid response from server"
+        case .invalidURL(let url):
+            return "Невірна URL: \(url)"
+        case .invalidResponse(let code):
+            if let code { return "Сервер повернув помилку \(code)" }
+            return "Невірна відповідь від сервера"
+        case .decodingFailed(let err):
+            return "Помилка декодування даних: \(err.localizedDescription)"
         }
     }
 }
 
+// Legacy alias — keeps old call sites compiling
+extension NetworkError {
+    static var invalidURL: NetworkError { .invalidURL("unknown") }
+    static var invalidResponse: NetworkError { .invalidResponse(statusCode: nil) }
+}

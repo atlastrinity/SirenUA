@@ -1,31 +1,34 @@
 import Foundation
 import StoreKit
+import OSLog
+
+private let storeLogger = Logger(subsystem: "com.sirenua", category: "StoreKit")
 
 typealias Transaction = StoreKit.Transaction
 typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo
 typealias RenewalState = StoreKit.Product.SubscriptionInfo.RenewalState
 
 @MainActor
-class StoreKitManager: ObservableObject {
+final class StoreKitManager: ObservableObject {
     
-    // Перелік усіх ідентифікаторів продуктів
+    // Product IDs List
     private let productIds = ["com.sirenua.premium.monthly"]
     
     @Published var storeProducts: [Product] = []
     @Published var purchasedSubscriptions: [Product] = []
-    
     @Published var isPremium: Bool = false
     
-    private var updateListenerTask: Task<Void, Error>? = nil
+    private var updateListenerTask: Task<Void, Never>? = nil
     
     init() {
-        // Запускаємо прослуховувач транзакцій
+        storeLogger.info("StoreKitManager initialized")
+        // Start listening to background transaction updates
         updateListenerTask = listenForTransactions()
         
         Task {
-            // Отримуємо продукти
+            // Request store products
             await requestProducts()
-            // Перевіряємо поточний статус підписок
+            // Verify current active entitlements
             await updateCustomerProductStatus()
         }
     }
@@ -34,59 +37,69 @@ class StoreKitManager: ObservableObject {
         updateListenerTask?.cancel()
     }
     
-    // Прослуховувач оновлень від App Store, що відбуваються у фоні (напр. автоматичне поновлення підписки)
-    private func listenForTransactions() -> Task<Void, Error> {
-        return Task {
+    // Background transaction listener for updates outside the app (e.g. renewals)
+    private func listenForTransactions() -> Task<Void, Never> {
+        Task {
             for await result in Transaction.updates {
                 do {
                     let transaction = try self.checkVerified(result)
+                    storeLogger.info("Background update verified: \(transaction.productID)")
                     await self.updateCustomerProductStatus()
                     await transaction.finish()
                 } catch {
-                    print("Transaction failed verification")
+                    storeLogger.error("Background transaction verification failed: \(error.localizedDescription)")
                 }
             }
         }
     }
     
-    // Завантаження продуктів з App Store (або з локального файлу .storekit)
+    // Fetch products list from App Store or mock configuration
     func requestProducts() async {
         do {
             let products = try await Product.products(for: productIds)
             self.storeProducts = products
+            storeLogger.info("App Store loaded \(products.count) products")
         } catch {
-            print("Failed to request products from App Store: \(error)")
+            storeLogger.error("Failed to fetch products from App Store: \(error.localizedDescription)")
         }
     }
     
-    // Купівля
+    // Purchase transaction
     func purchase(_ product: Product) async throws -> Transaction? {
+        storeLogger.info("Starting purchase flow for \(product.id)")
         let result = try await product.purchase()
         
         switch result {
         case .success(let verification):
             let transaction = try checkVerified(verification)
+            storeLogger.info("Purchase successful and verified: \(transaction.productID)")
             await updateCustomerProductStatus()
             await transaction.finish()
             return transaction
-        case .userCancelled, .pending:
+        case .userCancelled:
+            storeLogger.info("User cancelled purchase flow")
             return nil
-        default:
+        case .pending:
+            storeLogger.info("Purchase transaction is pending user action")
+            return nil
+        @unknown default:
+            storeLogger.warning("Unknown purchase result encountered")
             return nil
         }
     }
     
-    // Перевірка криптографічного підпису транзакції
+    // Verify cryptographic signature of transactions
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified:
+            storeLogger.warning("App Store transaction signature could not be verified")
             throw StoreError.failedVerification
         case .verified(let safe):
             return safe
         }
     }
     
-    // Оновлення статусу всіх покупок користувача
+    // Synchronize active entitlements
     func updateCustomerProductStatus() async {
         var purchased: [Product] = []
         var hasActivePremium = false
@@ -95,7 +108,6 @@ class StoreKitManager: ObservableObject {
             do {
                 let transaction = try checkVerified(result)
                 
-                // Перевіряємо, чи підписка є активною
                 if transaction.productID == "com.sirenua.premium.monthly" {
                     hasActivePremium = true
                 }
@@ -104,23 +116,40 @@ class StoreKitManager: ObservableObject {
                     purchased.append(product)
                 }
             } catch {
-                print("Failed to verify entitlement: \(error)")
+                storeLogger.error("Entitlement verification failed: \(error.localizedDescription)")
             }
         }
         
         self.purchasedSubscriptions = purchased
         self.isPremium = hasActivePremium
         
-        // Також оновлюємо UserDefaults для сумісності зі старим кодом, хоча краще використовувати @EnvironmentObject
+        storeLogger.info("Entitlements status updated: premium=\(hasActivePremium)")
+        
+        // Sync with UserDefaults for backward compatibility
         UserDefaults.standard.set(hasActivePremium, forKey: "premiumEnabled")
     }
     
-    // Відновлення покупок
+    // Restore Purchases
     func restorePurchases() async {
-        try? await AppStore.sync()
+        storeLogger.info("Manually syncing purchases with App Store...")
+        do {
+            try await AppStore.sync()
+            await updateCustomerProductStatus()
+        } catch {
+            storeLogger.error("Failed to restore purchases: \(error.localizedDescription)")
+        }
     }
 }
 
-enum StoreError: Error {
+// MARK: - StoreError
+
+enum StoreError: LocalizedError {
     case failedVerification
+    
+    var errorDescription: String? {
+        switch self {
+        case .failedVerification:
+            return "Не вдалося перевірити підпис транзакції в App Store."
+        }
+    }
 }
