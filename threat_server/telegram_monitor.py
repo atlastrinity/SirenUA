@@ -331,14 +331,16 @@ class TelegramThreatMonitor:
 
     def _detect_threat_type(self, text: str):
         text_lower = text.lower()
+        if any(kw in text_lower for kw in ["міг-31", "міг31", "mig-31", "mig31", "кинджал"]):
+            return "mig31k"
+        if any(kw in text_lower for kw in ["ту-95", "ту95", "tu-95", "tu95", "ту-22", "ту22", "tu-22", "tu22"]):
+            return "tu95"
         if any(kw in text_lower for kw in ["шахед", "shahed", "бпла", "дрон", "мопед"]):
             return "shahed"
-        if any(kw in text_lower for kw in ["балісти", "іскандер", "кинджал"]):
+        if any(kw in text_lower for kw in ["балісти", "іскандер"]):
             return "ballistic"
-        if any(kw in text_lower for kw in ["ракета", "крилата", "калібр", "х-101"]):
+        if any(kw in text_lower for kw in ["ракет", "крилат", "калібр", "х-101"]):
             return "cruise_missile"
-        if any(kw in text_lower for kw in ["міг", "ту-", "авіація"]):
-            return "mig31k" if "міг" in text_lower else "tu95"
         if any(kw in text_lower for kw in ["артилерія", "рсзв", "обстріл"]):
             return "artillery"
         return "unknown"
