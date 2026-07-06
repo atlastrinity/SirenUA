@@ -342,59 +342,69 @@ struct ContentView: View {
                 .transition(.opacity.combined(with: .scale))
             }
         }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-                .presentationBackground(.clear)
         }
-        .sheet(isPresented: $showShareSheet) {
-            let shareText: String = {
-                if let shelter = foundShelter {
-                    let lat = shelter.placemark.coordinate.latitude
-                    let lon = shelter.placemark.coordinate.longitude
-                    let name = shelter.name ?? ""
-                    return "Увага! Повітряна тривога. Знайдено найближче укриття: \(name), координати: \(lat), \(lon)"
-                } else {
-                    return "Увага! Повітряна тривога. Знайдіть найближче безпечне місце."
+        .background(
+            Color.clear
+                .sheet(isPresented: $showSettings) {
+                    SettingsView()
+                        .presentationBackground(.clear)
                 }
-            }()
-            ShareSheet(activityItems: [shareText])
-        }
-        .sheet(isPresented: Binding(
-            get: { selectedShelter != nil },
-            set: { if !$0 { selectedShelter = nil } }
-        )) {
-            if let shelter = selectedShelter {
-                if !isNavigating {
-                    ShelterDetailView(shelter: shelter, route: route, isCalculatingRoute: isCalculatingRoute, routeErrorMessage: routeErrorMessage, onRouteRequested: {
-                        calculateRoute(to: shelter)
-                    }, onStartNavigation: {
-                        isNavigating = true
-                        // Тут ми зберігаємо selectedShelter = nil, але route НЕ зникає через оновлену логіку onChange
-                        selectedShelter = nil
-                        
-                        if route != nil {
-                            withAnimation(.easeInOut(duration: 2.0)) {
-                                let coord = locationManager.location?.coordinate ?? userCoordinate
-                                cameraPosition = .userLocation(
-                                    followsHeading: true,
-                                    fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
-                                )
-                            }
+        )
+        .background(
+            Color.clear
+                .sheet(isPresented: $showShareSheet) {
+                    let shareText: String = {
+                        if let shelter = foundShelter {
+                            let lat = shelter.placemark.coordinate.latitude
+                            let lon = shelter.placemark.coordinate.longitude
+                            let name = shelter.name ?? ""
+                            return "Увага! Повітряна тривога. Знайдено найближче укриття: \(name), координати: \(lat), \(lon)"
                         } else {
-                            let coord = locationManager.location?.coordinate ?? userCoordinate
-                            cameraPosition = .userLocation(
-                                fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
-                            )
+                            return "Увага! Повітряна тривога. Знайдіть найближче безпечне місце."
                         }
-                    })
-                    .presentationDetents([.height(220)])
-                    .presentationBackground(.ultraThinMaterial)
-                    .presentationCornerRadius(24)
-                    .presentationBackgroundInteraction(.enabled(upThrough: .height(220)))
-                    .preferredColorScheme(.dark)
+                    }()
+                    return ShareSheet(activityItems: [shareText])
                 }
-            }
-        }
+        )
+        .background(
+            Color.clear
+                .sheet(isPresented: Binding(
+                    get: { selectedShelter != nil },
+                    set: { if !$0 { selectedShelter = nil } }
+                )) {
+                    if let shelter = selectedShelter {
+                        if !isNavigating {
+                            ShelterDetailView(shelter: shelter, route: route, isCalculatingRoute: isCalculatingRoute, routeErrorMessage: routeErrorMessage, onRouteRequested: {
+                                calculateRoute(to: shelter)
+                            }, onStartNavigation: {
+                                isNavigating = true
+                                // Тут ми зберігаємо selectedShelter = nil, але route НЕ зникає через оновлену логіку onChange
+                                selectedShelter = nil
+                                
+                                if route != nil {
+                                    withAnimation(.easeInOut(duration: 2.0)) {
+                                        let coord = locationManager.location?.coordinate ?? userCoordinate
+                                        cameraPosition = .userLocation(
+                                            followsHeading: true,
+                                            fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
+                                        )
+                                    }
+                                } else {
+                                    let coord = locationManager.location?.coordinate ?? userCoordinate
+                                    cameraPosition = .userLocation(
+                                        fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
+                                    )
+                                }
+                            })
+                            .presentationDetents([.height(220)])
+                            .presentationBackground(.ultraThinMaterial)
+                            .presentationCornerRadius(24)
+                            .presentationBackgroundInteraction(.enabled(upThrough: .height(220)))
+                            .preferredColorScheme(.dark)
+                        }
+                    }
+                }
+        )
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
         }
