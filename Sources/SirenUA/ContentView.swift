@@ -459,18 +459,26 @@ struct ContentView: View {
                 }
             }
 
+            // Жорстке відсіювання об'єктів, які вийшли за межі обраного радіуса
+            // (оскільки Apple Maps region - це лише підказка, а не строгий ліміт)
+            let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
+            let strictRadiusItems = uniqueItems.filter { item in
+                let itemLocation = CLLocation(latitude: item.placemark.coordinate.latitude, longitude: item.placemark.coordinate.longitude)
+                return itemLocation.distance(from: userLocation) <= radiusMeters
+            }
+
             // Знаходження найближчого об'єкта до користувача
-            let closestItem = uniqueItems.min { a, b in
+            let closestItem = strictRadiusItems.min { a, b in
                 let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
-                    .distance(from: CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude))
+                    .distance(from: userLocation)
                 let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
-                    .distance(from: CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude))
+                    .distance(from: userLocation)
                 return distA < distB
             }
 
             await MainActor.run {
                 isRoutingToShelter = false
-                allFoundShelters = uniqueItems
+                allFoundShelters = strictRadiusItems
                 guard let closestItem else { return }
 
                 foundShelter = closestItem

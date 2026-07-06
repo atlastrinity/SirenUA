@@ -8,6 +8,11 @@ targets:
     deploymentTarget: "16.0"
     sources: 
       - path: Sources/SirenUA
+    entitlements:
+      path: Sources/SirenUA/SirenUA.entitlements
+    dependencies:
+      - package: Firebase
+        product: FirebaseMessaging
     settings:
       base:
         INFOPLIST_FILE: Sources/SirenUA/Info.plist
@@ -29,6 +34,11 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 10.0.0
 
 schemes:
   SirenUA:

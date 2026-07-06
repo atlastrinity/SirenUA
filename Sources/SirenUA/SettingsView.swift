@@ -445,6 +445,12 @@ struct SettingsView: View {
                 await checkServerStatus()
             }
         }
+        .onChange(of: trackedRegionsString) { _ in
+            NotificationManager.shared.syncTopicSubscriptions()
+        }
+        .onChange(of: allRegionsTracked) { _ in
+            NotificationManager.shared.syncTopicSubscriptions()
+        }
     }
 }
 

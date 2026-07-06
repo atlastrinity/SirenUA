@@ -41,6 +41,10 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Ми використовуємо вашу локацію, щоб будувати маршрут до найближчого укриття та вести вас по ньому.</string>
     <key>NSAppTransportSecurity</key>

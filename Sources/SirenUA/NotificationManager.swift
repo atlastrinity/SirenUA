@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import AVFoundation
+import FirebaseMessaging
 
 struct PendingNotification {
     let title: String
@@ -8,7 +9,7 @@ struct PendingNotification {
     let soundName: String
 }
 
-class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
+class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
     static let shared = NotificationManager()
     private var audioPlayer: AVAudioPlayer?
     
@@ -18,6 +19,61 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     
     // Трекер часу програвання звуків для запобігання накладанню
     private var lastPlayedTimes: [String: Date] = [:]
+    
+    private let topicMapping = [
+        "Вінницька область": "region_vinnytsia",
+        "Волинська область": "region_volyn",
+        "Дніпропетровська область": "region_dnipro",
+        "Донецька область": "region_donetsk",
+        "Житомирська область": "region_zhytomyr",
+        "Закарпатська область": "region_zakarpattya",
+        "Запорізька область": "region_zaporizhzhya",
+        "Івано-Франківська область": "region_if",
+        "Київська область": "region_kyiv_oblast",
+        "м. Київ": "region_kyiv_city",
+        "Кіровоградська область": "region_kirovohrad",
+        "Луганська область": "region_luhansk",
+        "Львівська область": "region_lviv",
+        "Миколаївська область": "region_mykolaiv",
+        "Одеська область": "region_odesa",
+        "Полтавська область": "region_poltava",
+        "Рівненська область": "region_rivne",
+        "Сумська область": "region_sumy",
+        "Тернопільська область": "region_ternopil",
+        "Харківська область": "region_kharkiv",
+        "Херсонська область": "region_kherson",
+        "Хмельницька область": "region_khmelnytskyi",
+        "Черкаська область": "region_cherkasy",
+        "Чернівецька область": "region_chernivtsi",
+        "Чернігівська область": "region_chernihiv"
+    ]
+    
+    func syncTopicSubscriptions() {
+        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
+        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
+        let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
+        
+        for (region, topic) in topicMapping {
+            let shouldSubscribe = allTracked || trackedList.contains(region)
+            if shouldSubscribe {
+                Messaging.messaging().subscribe(toTopic: topic) { error in
+                    if let error = error {
+                        print("Error subscribing to \(topic): \(error.localizedDescription)")
+                    } else {
+                        print("Subscribed to topic: \(topic)")
+                    }
+                }
+            } else {
+                Messaging.messaging().unsubscribe(fromTopic: topic) { error in
+                    if let error = error {
+                        print("Error unsubscribing from \(topic): \(error.localizedDescription)")
+                    } else {
+                        print("Unsubscribed from topic: \(topic)")
+                    }
+                }
+            }
+        }
+    }
     
     private override init() {
         super.init()

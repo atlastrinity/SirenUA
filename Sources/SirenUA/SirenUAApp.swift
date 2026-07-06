@@ -3,6 +3,10 @@ import SwiftUI
 @main
 @available(iOS 16.0, *)
 struct SirenUAApp: App {
+#if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+#endif
+    
     init() {
         UserDefaults.standard.register(defaults: [
             "notificationsEnabled": true,

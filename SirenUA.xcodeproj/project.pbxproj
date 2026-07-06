@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		035D5A2A842685CDE3A8053F /* AlertRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E725A6AA00F1F2090A7BEA7 /* AlertRegion.swift */; };
 		0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BA16504A891512121DBF64D /* Assets.xcassets */; };
+		1D0C280BB11CFCDC3CAF26EC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */; };
 		2E6D12A84049E12DAD1085CD /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C09ADEA4D52330CA8C514F0 /* ErrorView.swift */; };
 		32861EDC02596352A97E2630 /* SirenUAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE89A0DCB959AB4DDF739E8 /* SirenUAApp.swift */; };
 		360CC8F390534947DC52FC7E /* AlertViewModelV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = D030500F1F4D0B8471A88103 /* AlertViewModelV3.swift */; };
@@ -20,7 +21,9 @@
 		6666B1AB2B572913D0B5AF33 /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC910745AFC030C9AA4221 /* StoreKitManager.swift */; };
 		70F0E935C5B499A74D89BBD8 /* warning.wav in Resources */ = {isa = PBXBuildFile; fileRef = EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */; };
 		76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */; };
+		7877DCE88DFB4E8DFC918AE5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */; };
 		8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F207912A937C87B6D7143563 /* ContentView.swift */; };
+		C0F781FEC3AD217C5038F12C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 75B406C5353E9D61FB78753B /* FirebaseMessaging */; };
 		DFD5CFBE2F924CA3EBAF8C12 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */; };
 		E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */; };
 		E7E9910F0D8585C65D4354B0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350F86D91B43A65872F753FF /* SettingsView.swift */; };
@@ -40,6 +43,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0339979594E28EFDB0679230 /* SirenUA.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUA.entitlements; sourceTree = "<group>"; };
 		091089E57CCE3C6765599515 /* AlertRegionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegionDetailView.swift; sourceTree = "<group>"; };
 		1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
 		350F86D91B43A65872F753FF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -52,18 +56,31 @@
 		68EC910745AFC030C9AA4221 /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOS16FallbackView.swift; sourceTree = "<group>"; };
 		75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
-		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8F2BECB950730B1B0C48EE56 /* siren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = siren.wav; sourceTree = "<group>"; };
-		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C04391E80219E2B099533C21 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C620D89A60507FFC74C69528 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
 		CD053B9754B66B36FE55849E /* GeoJSONManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJSONManager.swift; sourceTree = "<group>"; };
 		D030500F1F4D0B8471A88103 /* AlertViewModelV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModelV3.swift; sourceTree = "<group>"; };
 		EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = warning.wav; sourceTree = "<group>"; };
 		F207912A937C87B6D7143563 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9961641748FCAD5829CEF431 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0F781FEC3AD217C5038F12C /* FirebaseMessaging in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		18DE5B617B7269F367C75942 /* SirenUATests */ = {
@@ -90,11 +107,13 @@
 				5E725A6AA00F1F2090A7BEA7 /* AlertRegion.swift */,
 				091089E57CCE3C6765599515 /* AlertRegionDetailView.swift */,
 				D030500F1F4D0B8471A88103 /* AlertViewModelV3.swift */,
+				8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */,
 				8BA16504A891512121DBF64D /* Assets.xcassets */,
 				F207912A937C87B6D7143563 /* ContentView.swift */,
 				1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */,
 				3C09ADEA4D52330CA8C514F0 /* ErrorView.swift */,
 				CD053B9754B66B36FE55849E /* GeoJSONManager.swift */,
+				FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */,
 				C04391E80219E2B099533C21 /* Info.plist */,
 				6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */,
 				3F0013A9A66BAEA943D110B2 /* LocationManager.swift */,
@@ -102,6 +121,7 @@
 				75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */,
 				350F86D91B43A65872F753FF /* SettingsView.swift */,
 				8F2BECB950730B1B0C48EE56 /* siren.wav */,
+				0339979594E28EFDB0679230 /* SirenUA.entitlements */,
 				5BE89A0DCB959AB4DDF739E8 /* SirenUAApp.swift */,
 				68EC910745AFC030C9AA4221 /* StoreKitManager.swift */,
 				8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */,
@@ -148,6 +168,7 @@
 			buildPhases = (
 				554AB01A9DD75E57745827E7 /* Sources */,
 				79F8D7B3AB6FEF0DAEEB33DE /* Resources */,
+				9961641748FCAD5829CEF431 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -155,6 +176,7 @@
 			);
 			name = SirenUA;
 			packageProductDependencies = (
+				75B406C5353E9D61FB78753B /* FirebaseMessaging */,
 			);
 			productName = SirenUA;
 			productReference = ACB2942349EA5F82FA78C53B /* SirenUA.app */;
@@ -167,7 +189,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2650;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					D39A6B242D4A85E6D3CD2867 = {
 						DevelopmentTeam = B7WVJ3B4B7;
@@ -184,6 +206,9 @@
 			);
 			mainGroup = B78475888FF0DA172BCAF01B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E74F56CD5D8D536461D1E11C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 902EDB3201BBFAE7BF8E3479 /* Products */;
 			projectDirPath = "";
@@ -201,6 +226,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */,
+				1D0C280BB11CFCDC3CAF26EC /* GoogleService-Info.plist in Resources */,
 				F9981CFEFAF1962CC2C1E43D /* siren.wav in Resources */,
 				76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */,
 				6641B169DC12DCDDC2B1AF8F /* vidbiy.wav in Resources */,
@@ -218,6 +244,7 @@
 				035D5A2A842685CDE3A8053F /* AlertRegion.swift in Sources */,
 				59FB00679BD0DCE007DEDEE3 /* AlertRegionDetailView.swift in Sources */,
 				360CC8F390534947DC52FC7E /* AlertViewModelV3.swift in Sources */,
+				7877DCE88DFB4E8DFC918AE5 /* AppDelegate.swift in Sources */,
 				8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */,
 				DFD5CFBE2F924CA3EBAF8C12 /* CriticalAlertManager.swift in Sources */,
 				2E6D12A84049E12DAD1085CD /* ErrorView.swift in Sources */,
@@ -255,7 +282,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -275,6 +301,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_ENTITLEMENTS = Sources/SirenUA/SirenUA.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B7WVJ3B4B7;
@@ -296,6 +323,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_ENTITLEMENTS = Sources/SirenUA/SirenUA.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B7WVJ3B4B7;
@@ -316,7 +344,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -368,7 +395,6 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -388,7 +414,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -432,7 +457,6 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -445,7 +469,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -483,6 +506,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E74F56CD5D8D536461D1E11C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		75B406C5353E9D61FB78753B /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E74F56CD5D8D536461D1E11C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3334E6041B77B4CFD34C545C /* Project object */;
 }
