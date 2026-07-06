@@ -29,7 +29,7 @@ final class GeoJSONManager: ObservableObject {
     @Published private(set) var regions: [RegionPolygon] = []
     @Published private(set) var isLoaded = false
 
-    private static let fallbackCenter = CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656)
+    private nonisolated static let fallbackCenter = CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656)
 
     init() {
         Task { await loadGeoJSON() }
