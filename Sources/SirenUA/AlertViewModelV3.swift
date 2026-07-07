@@ -30,9 +30,7 @@ final class AlertViewModelV3: ObservableObject {
         UserDefaults.standard.object(forKey: "autoRefreshEnabled") as? Bool ?? true
     }
 
-    private var refreshInterval: Int {
-        max(UserDefaults.standard.object(forKey: "refreshInterval") as? Int ?? 30, 15)
-    }
+    private var refreshInterval: Int { 30 }
     
     var isPremium: Bool {
         UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false

@@ -21,7 +21,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("notificationsEnabled")      private var notificationsEnabled      = true
     @AppStorage("autoRefreshEnabled")        private var autoRefreshEnabled        = true
-    @AppStorage("refreshInterval")           private var refreshInterval           = 30
     @AppStorage("mapType")                   private var mapType                   = 0
     @AppStorage("walkingSearchRadius")       private var walkingSearchRadius       = 1.5
     @AppStorage("drivingSearchRadius")       private var drivingSearchRadius       = 5.0
@@ -303,40 +302,6 @@ struct SettingsView: View {
                 iconColor: .siGreen,
                 isOn: $autoRefreshEnabled
             )
-
-            if autoRefreshEnabled {
-                StyledDivider()
-                if !storeManager.isPremium {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Інтервал оновлення")
-                                .font(.subheadline)
-                                .foregroundColor(.white)
-                            Text("\(refreshInterval) секунд")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        Spacer()
-                        Stepper("", value: $refreshInterval, in: 15...300, step: 15)
-                            .labelsHidden()
-                            .onChange(of: refreshInterval) { _ in haptic() }
-                    }
-                } else {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Інтервал оновлення")
-                                .font(.subheadline)
-                                .foregroundColor(.white)
-                            Text("Оновлення в реальному часі (Premium)")
-                                .font(.caption)
-                                .foregroundColor(.yellow)
-                        }
-                        Spacer()
-                        Image(systemName: "bolt.fill")
-                            .foregroundColor(.yellow)
-                    }
-                }
-            }
         }
     }
 
