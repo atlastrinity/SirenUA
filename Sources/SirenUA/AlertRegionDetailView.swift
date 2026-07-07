@@ -185,14 +185,14 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Combined "Відомо" Card (cleaned of AI/Telegram terminology)
+                    // Card 1: Що відомо (Clean, readable text description)
                     if let detail = region.threatDetail, !detail.isEmpty {
-                        VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Image(systemName: "info.circle.fill")
+                                Image(systemName: "bell.badge.fill")
                                     .foregroundStyle(themeColor)
                                     .font(.system(size: 14))
-                                Text("Відомо")
+                                Text("Що відомо")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.secondary)
                             }
@@ -201,59 +201,6 @@ struct AlertRegionDetailView: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(.primary)
                                 .lineSpacing(4)
-
-                            // Badges for details if present
-                            if region.threatConfidence != nil || region.threatETA != nil || region.isThreatPredictive {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    if let eta = region.threatETA, !eta.isEmpty {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "clock.fill")
-                                                .font(.system(size: 11))
-                                                .foregroundStyle(.orange)
-                                            Text("Очікуваний час: \(eta)")
-                                                .font(.system(size: 11, weight: .semibold))
-                                                .foregroundStyle(.orange)
-                                        }
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Color.orange.opacity(0.12))
-                                        .cornerRadius(8)
-                                    }
-                                    
-                                    HStack(spacing: 8) {
-                                        if let confidence = region.threatConfidence {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "shield.checkered")
-                                                    .font(.system(size: 11))
-                                                    .foregroundStyle(confidenceColor(confidence))
-                                                Text("Достовірність: \(confidence)%")
-                                                    .font(.system(size: 11, weight: .semibold))
-                                                    .foregroundStyle(confidenceColor(confidence))
-                                            }
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 5)
-                                            .background(confidenceColor(confidence).opacity(0.12))
-                                            .cornerRadius(8)
-                                        }
-                                        
-                                        if region.isThreatPredictive {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "arrow.up.right.circle.fill")
-                                                    .font(.system(size: 11))
-                                                    .foregroundStyle(.purple)
-                                                Text("Очікуваний напрямок")
-                                                    .font(.system(size: 11, weight: .semibold))
-                                                    .foregroundStyle(.purple)
-                                            }
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 5)
-                                            .background(Color.purple.opacity(0.12))
-                                            .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .padding(.top, 4)
-                            }
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,6 +212,76 @@ struct AlertRegionDetailView: View {
                                 .stroke(
                                     LinearGradient(
                                         colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                    }
+                    
+                    // Card 2: Імовірність загрози (Circular confidence ring & laconic label)
+                    if let confidence = region.threatConfidence {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "shield.checkered")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Ймовірність загрози")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            HStack(spacing: 20) {
+                                // Circular confidence ring
+                                ZStack {
+                                    Circle()
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 6)
+                                        .frame(width: 70, height: 70)
+                                    
+                                    Circle()
+                                        .trim(from: 0, to: CGFloat(confidence) / 100.0)
+                                        .stroke(
+                                            confidenceColor(confidence),
+                                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                                        )
+                                        .frame(width: 70, height: 70)
+                                        .rotationEffect(.degrees(-90))
+                                    
+                                    VStack(spacing: 1) {
+                                        Text("\(confidence)%")
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                                            .foregroundStyle(confidenceColor(confidence))
+                                        Text("довіра")
+                                            .font(.system(size: 8, weight: .medium))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    // Laconic label based on confidence
+                                    Text(confidenceLabel(confidence))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(confidenceColor(confidence))
+                                    
+                                    Text("Оцінка ймовірності небезпеки на основі підтверджених векторів руху.")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.white.opacity(0.6))
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .shadow(radius: 15)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [themeColor.opacity(0.3), themeColor.opacity(0.1)],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ),
