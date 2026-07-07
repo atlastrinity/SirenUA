@@ -26,9 +26,9 @@ platform :ios do
       export_method: "app-store"
     )
 
-    # Upload to TestFlight and distribute to a specific group
+    # Upload to TestFlight and distribute to specific groups
     upload_to_testflight(
-      groups: ["Internal Testers Group"]
+      groups: ["Internal Testers Group", "External Testers"]
     )
   end
 end
