@@ -146,6 +146,7 @@ struct ThreatInfo: Codable {
     let confidence: Int?    // 0-100% AI confidence score
     let eta: String?        // "~20-40 хв" expected arrival time
     let is_predictive: Bool? // true if AI-predicted (not confirmed)
+    let is_active: Bool?     // true if official air alarm is active
 }
 
 // MARK: - Network Errors

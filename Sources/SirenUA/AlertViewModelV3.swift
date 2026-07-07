@@ -125,6 +125,13 @@ final class AlertViewModelV3: ObservableObject {
                 guard let self else { return }
                 try? await Task.sleep(for: .seconds(self.refreshInterval))
                 guard self.autoRefreshEnabled else { continue }
+                
+                // Skip client-side polling if premium and WebSocket is active
+                let wsConnected = ThreatWebSocketClient.shared.connectionState == .connected
+                if self.isPremium && wsConnected {
+                    continue
+                }
+                
                 await self.fetchLiveAlerts()
             }
         }
@@ -164,6 +171,12 @@ final class AlertViewModelV3: ObservableObject {
         alerts[index].threatETA = threat.eta
         alerts[index].isThreatPredictive = threat.is_predictive ?? false
         
+        if let isActive = threat.is_active {
+            alerts[index].isActive = isActive
+            alerts[index].level = isActive ? 3 : 0
+            alerts[index].description = isActive ? "Повітряна тривога!" : "Немає тривоги"
+        }
+        
         if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
             if !isFirstThreatFetch {
                 // Фільтрація: не сповіщати про предиктивні загрози з низькою довірою
@@ -202,6 +215,12 @@ final class AlertViewModelV3: ObservableObject {
             alerts[index].threatConfidence = threat.confidence
             alerts[index].threatETA = threat.eta
             alerts[index].isThreatPredictive = threat.is_predictive ?? false
+            
+            if let isActive = threat.is_active {
+                alerts[index].isActive = isActive
+                alerts[index].level = isActive ? 3 : 0
+                alerts[index].description = isActive ? "Повітряна тривога!" : "Немає тривоги"
+            }
             
             // Trigger local warning notification if there's a new threat and no active alert
             if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {

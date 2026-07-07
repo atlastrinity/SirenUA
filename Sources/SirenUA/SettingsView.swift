@@ -306,19 +306,35 @@ struct SettingsView: View {
 
             if autoRefreshEnabled {
                 StyledDivider()
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Інтервал оновлення")
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                        Text("\(refreshInterval) секунд")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
+                if !storeManager.isPremium {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Інтервал оновлення")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                            Text("\(refreshInterval) секунд")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        Spacer()
+                        Stepper("", value: $refreshInterval, in: 15...300, step: 15)
+                            .labelsHidden()
+                            .onChange(of: refreshInterval) { _ in haptic() }
                     }
-                    Spacer()
-                    Stepper("", value: $refreshInterval, in: 15...300, step: 15)
-                        .labelsHidden()
-                        .onChange(of: refreshInterval) { _ in haptic() }
+                } else {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Інтервал оновлення")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                            Text("Оновлення в реальному часі (Premium)")
+                                .font(.caption)
+                                .foregroundColor(.yellow)
+                        }
+                        Spacer()
+                        Image(systemName: "bolt.fill")
+                            .foregroundColor(.yellow)
+                    }
                 }
             }
         }

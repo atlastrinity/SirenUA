@@ -140,9 +140,10 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                     let confidence = stateDict["confidence"] as? Int
                     let eta = stateDict["eta"] as? String
                     let isPredictive = stateDict["is_predictive"] as? Bool
+                    let isActive = stateDict["is_active"] as? Bool
                     
                     let threat = ThreatInfo(level: level, type: threatType, detail: detail, since: since,
-                                            confidence: confidence, eta: eta, is_predictive: isPredictive)
+                                            confidence: confidence, eta: eta, is_predictive: isPredictive, is_active: isActive)
                     
                     DispatchQueue.main.async {
                         // Fallback connection state updates if initial_state was somehow missed
