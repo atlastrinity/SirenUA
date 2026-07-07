@@ -30,6 +30,12 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
     private init() {}
 
     func connect(to urlString: String) {
+        // Prevent redundant connections if already connected or connecting to the same URL
+        if (connectionState == .connected || connectionState == .connecting) && serverURLString == urlString {
+            wsLogger.info("Already connected or connecting to \(urlString), skipping connection request.")
+            return
+        }
+
         // Cancel existing task to prevent duplicates or resource leaks
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         
