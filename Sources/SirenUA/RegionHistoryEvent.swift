@@ -3,12 +3,21 @@ import Foundation
 /// Подія з хронології загроз для області
 @available(iOS 16.0, *)
 struct RegionHistoryEvent: Identifiable, Codable {
-    let id: Int
+    let serverId: Int
     let timestamp: String
     let threat_level: String
     let threat_type: String?
     let detail: String?
     let confidence: Int?
+    
+    var id: String {
+        "\(serverId)_\(timestamp)_\(threat_level)"
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case serverId = "id"
+        case timestamp, threat_level, threat_type, detail, confidence
+    }
     
     /// Formatted date for display
     var displayDate: String {

@@ -479,6 +479,68 @@ struct iOS16DetailView: View {
                     )
                     .padding(.horizontal, 24)
 
+                    // Card 2: Імовірність загрози (Confidence Ring) for iOS 16
+                    if let confidence = region.threatConfidence {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "shield.checkered")
+                                    .foregroundColor(statusThemeColor)
+                                    .font(.system(size: 14))
+                                Text("Ймовірність загрози")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            
+                            HStack(spacing: 20) {
+                                ZStack {
+                                    Circle()
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 6)
+                                        .frame(width: 70, height: 70)
+                                    
+                                    Circle()
+                                        .trim(from: 0, to: CGFloat(confidence) / 100.0)
+                                        .stroke(
+                                            confidenceColor(confidence),
+                                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                                        )
+                                        .frame(width: 70, height: 70)
+                                        .rotationEffect(.degrees(-90))
+                                    
+                                    VStack(spacing: 1) {
+                                        Text("\(confidence)%")
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                                            .foregroundColor(confidenceColor(confidence))
+                                        Text("довіра")
+                                            .font(.system(size: 8, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(confidenceLabel(confidence))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(confidenceColor(confidence))
+                                    
+                                    Text("Оцінка ймовірності небезпеки на основі підтверджених векторів руху.")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(statusThemeColor.opacity(0.3), lineWidth: 1)
+                        )
+                        .padding(.horizontal, 24)
+                    }
+
                     Spacer()
 
                     // Close Button
@@ -554,5 +616,17 @@ struct iOS16DetailView: View {
             }
         }
         return nil
+    }
+
+    private func confidenceColor(_ confidence: Int) -> Color {
+        if confidence >= 85 { return .red }
+        if confidence >= 60 { return .orange }
+        return .yellow
+    }
+
+    private func confidenceLabel(_ confidence: Int) -> String {
+        if confidence >= 85 { return "Висока ймовірність" }
+        if confidence >= 60 { return "Ймовірна загроза" }
+        return "Можлива загроза"
     }
 }
