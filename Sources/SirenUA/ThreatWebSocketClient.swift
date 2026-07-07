@@ -92,6 +92,7 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
     }
 
     private func handleMessage(_ jsonString: String) {
+        if jsonString == "pong" { return }
         guard let data = jsonString.data(using: .utf8) else { return }
         
         do {
