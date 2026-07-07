@@ -116,8 +116,35 @@ final class NetworkManager: Sendable {
             throw NetworkError.decodingFailed(error)
         }
     }
-}
 
+    // MARK: - Region History (Premium)
+
+    /// Fetches threat history for a specific region from the server
+    @available(iOS 16.0, *)
+    func fetchRegionHistory(serverURL: String, region: String, limit: Int = 50) async throws -> [RegionHistoryEvent] {
+        let base = serverURL.hasSuffix("/") ? serverURL : "\(serverURL)/"
+        let encoded = region.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? region
+        let urlString = "\(base)api/history/\(encoded)?limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidURL(urlString)
+        }
+
+        var request = makeRequest(url: url, agent: Self.premiumAgent)
+        request.timeoutInterval = 10.0
+        networkLogger.info("Fetching history for \(region)")
+
+        let data = try await fetch(request: request)
+
+        do {
+            let decoded = try JSONDecoder().decode(RegionHistoryResponse.self, from: data)
+            networkLogger.info("Fetched \(decoded.events.count) history events for \(region)")
+            return decoded.events
+        } catch {
+            networkLogger.error("History decoding failed: \(error.localizedDescription)")
+            throw NetworkError.decodingFailed(error)
+        }
+    }
+}
 // MARK: - Response Models
 
 struct AerialAlertsResponse: Codable {

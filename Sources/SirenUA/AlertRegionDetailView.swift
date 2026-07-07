@@ -7,6 +7,7 @@ struct AlertRegionDetailView: View {
     let region: AlertRegion
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmed = false
+    @State private var isPulsing = false
     
     private var isThreatActive: Bool {
         !region.isActive && region.threatLevel != nil
@@ -32,13 +33,17 @@ struct AlertRegionDetailView: View {
         }
     }
     
-    private var themeGradient: LinearGradient {
-        if region.isActive {
-            return LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing)
-        } else if isThreatActive {
-            return LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing)
-        } else {
-            return LinearGradient(colors: [.green, .blue], startPoint: .leading, endPoint: .trailing)
+    /// Emoji icon for the current threat type
+    private var threatTypeEmoji: String {
+        switch region.threatType {
+        case "shahed": return "🛩"
+        case "cruise_missile": return "🚀"
+        case "ballistic": return "💥"
+        case "mig31k": return "✈️"
+        case "kab": return "💣"
+        case "iskander": return "🎯"
+        case "tu95": return "✈️"
+        default: return "⚠️"
         }
     }
 
@@ -65,16 +70,20 @@ struct AlertRegionDetailView: View {
                             Circle()
                                 .fill(themeColor.opacity(0.15))
                                 .frame(width: 46, height: 46)
+                                .scaleEffect(isPulsing && (region.isActive || isThreatActive) ? 1.15 : 1.0)
+                                .opacity(isPulsing && (region.isActive || isThreatActive) ? 0.6 : 1.0)
+                                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isPulsing)
                             Image(systemName: region.isActive ? "exclamationmark.triangle.fill" : (isThreatActive ? "bell.badge.fill" : "checkmark.circle.fill"))
                                 .font(.system(size: 22, weight: .bold))
-                                .foregroundStyle(themeGradient)
+                                .foregroundStyle(themeColor)
                         }
                         .shadow(color: themeColor.opacity(0.4), radius: 8)
+                        .onAppear { isPulsing = true }
 
                         VStack(alignment: .leading, spacing: 3) {
                             Text(statusTitle)
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundStyle(themeGradient)
+                                .foregroundStyle(themeColor)
 
                             if let changed = region.lastChanged {
                                 Text(changed)
@@ -115,7 +124,7 @@ struct AlertRegionDetailView: View {
 
                         Text(region.name)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundStyle(themeGradient)
+                            .foregroundStyle(themeColor)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,7 +135,7 @@ struct AlertRegionDetailView: View {
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(
                                 LinearGradient(
-                                    colors: [.white.opacity(0.3), .white.opacity(0.1)],
+                                    colors: [themeColor.opacity(0.25), themeColor.opacity(0.06)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
@@ -145,17 +154,17 @@ struct AlertRegionDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(isThreatActive ? "Загроза: \(region.threatLevel?.uppercased() ?? "LOW")" : "Рівень \(region.level)")
-                            .font(.system(size: 16, weight: .bold))
+                        HStack(spacing: 8) {
+                            if isThreatActive {
+                                Text(threatTypeEmoji)
+                                    .font(.system(size: 18))
+                            }
+                            Text(isThreatActive ? "Загроза: \(region.threatLevel?.uppercased() ?? "LOW")" : "Рівень \(region.level)")
+                                .font(.system(size: 16, weight: .bold))
+                        }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
-                            .background(
-                                LinearGradient(
-                                    colors: [themeColor.opacity(0.2), themeColor.opacity(0.1)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(themeColor.opacity(0.12))
                             .foregroundStyle(themeColor)
                             .cornerRadius(12)
                     }
@@ -164,6 +173,17 @@ struct AlertRegionDetailView: View {
                     .background(.ultraThinMaterial)
                     .cornerRadius(20)
                     .shadow(radius: 15)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
 
                     // Threat Detail (from Telegram bot)
                     if let detail = region.threatDetail {
@@ -187,6 +207,17 @@ struct AlertRegionDetailView: View {
                         .background(.ultraThinMaterial)
                         .cornerRadius(20)
                         .shadow(radius: 15)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
                     }
                     
                     // AI Confidence & ETA Section (Premium threat intelligence)
@@ -328,6 +359,50 @@ struct AlertRegionDetailView: View {
                                 .stroke(themeColor.opacity(0.3), lineWidth: 1)
                         )
                     }
+
+                    // History button (Premium)
+                    NavigationLink(destination: RegionHistoryView(regionName: region.name, themeColor: themeColor)) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(themeColor.opacity(0.12))
+                                    .frame(width: 38, height: 38)
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(themeColor)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Хронологія подій")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                Text("Переглянути історію загроз")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.4))
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.3))
+                        }
+                        .padding(14)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding()
             }

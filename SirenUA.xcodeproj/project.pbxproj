@@ -33,6 +33,8 @@
 		EA5C79F241ACC26C7F16F20C /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C620D89A60507FFC74C69528 /* NetworkManager.swift */; };
 		F6ED65D08CBFBAA31215E71C /* iOS16FallbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D32ECD70639E932D11EA5CE /* iOS16FallbackView.swift */; };
 		F9981CFEFAF1962CC2C1E43D /* siren.wav in Resources */ = {isa = PBXBuildFile; fileRef = 8F2BECB950730B1B0C48EE56 /* siren.wav */; };
+		A1B2C3D4E5F60718AABB0001 /* RegionHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718AABB0011 /* RegionHistoryEvent.swift */; };
+		A1B2C3D4E5F60718AABB0002 /* RegionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718AABB0012 /* RegionHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +77,8 @@
 		F207912A937C87B6D7143563 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		FF7B30561A0055BC1C976AEF /* ShelterItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterItem.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718AABB0011 /* RegionHistoryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionHistoryEvent.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718AABB0012 /* RegionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +130,8 @@
 				7C1F55AFEC9A9333F2269F7A /* MapComponents.swift */,
 				C620D89A60507FFC74C69528 /* NetworkManager.swift */,
 				75D1CBFD6A5EF01AD76B8D06 /* NotificationManager.swift */,
+				A1B2C3D4E5F60718AABB0011 /* RegionHistoryEvent.swift */,
+				A1B2C3D4E5F60718AABB0012 /* RegionHistoryView.swift */,
 				350F86D91B43A65872F753FF /* SettingsView.swift */,
 				FF7B30561A0055BC1C976AEF /* ShelterItem.swift */,
 				8F2BECB950730B1B0C48EE56 /* siren.wav */,
@@ -262,6 +268,8 @@
 				53FE660B5C6B05FD97C2E3C3 /* MapComponents.swift in Sources */,
 				EA5C79F241ACC26C7F16F20C /* NetworkManager.swift in Sources */,
 				E25B06D0D4041BFD0F4145D3 /* NotificationManager.swift in Sources */,
+				A1B2C3D4E5F60718AABB0001 /* RegionHistoryEvent.swift in Sources */,
+				A1B2C3D4E5F60718AABB0002 /* RegionHistoryView.swift in Sources */,
 				E7E9910F0D8585C65D4354B0 /* SettingsView.swift in Sources */,
 				BBC73865F2DC5171206D69D5 /* ShelterItem.swift in Sources */,
 				32861EDC02596352A97E2630 /* SirenUAApp.swift in Sources */,
