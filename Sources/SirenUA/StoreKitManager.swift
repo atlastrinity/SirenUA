@@ -129,6 +129,11 @@ final class StoreKitManager: ObservableObject {
             hasActivePremium = false
         }
         
+        // If debug premium is forced/enabled, override and force true
+        if UserDefaults.standard.bool(forKey: "debugPremiumEnabled") {
+            hasActivePremium = true
+        }
+        
         self.purchasedSubscriptions = purchased
         self.isPremium = hasActivePremium
         
@@ -142,6 +147,7 @@ final class StoreKitManager: ObservableObject {
     func restorePurchases() async {
         storeLogger.info("Manually syncing purchases with App Store...")
         UserDefaults.standard.set(false, forKey: "debugPremiumMuted")
+        UserDefaults.standard.set(false, forKey: "debugPremiumEnabled")
         do {
             try await AppStore.sync()
             await updateCustomerProductStatus()
@@ -150,10 +156,21 @@ final class StoreKitManager: ObservableObject {
         }
     }
     
+    // Debug Enable for testers
+    func debugEnablePremium() {
+        storeLogger.info("Forcing premium enabled for testing purposes")
+        UserDefaults.standard.set(false, forKey: "debugPremiumMuted")
+        UserDefaults.standard.set(true, forKey: "debugPremiumEnabled")
+        Task {
+            await updateCustomerProductStatus()
+        }
+    }
+    
     // Debug Reset for testers
     func debugResetPremium() {
         storeLogger.info("Resetting premium for testing purposes")
         UserDefaults.standard.set(true, forKey: "debugPremiumMuted")
+        UserDefaults.standard.set(false, forKey: "debugPremiumEnabled")
         Task {
             await updateCustomerProductStatus()
         }

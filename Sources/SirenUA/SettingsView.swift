@@ -504,6 +504,22 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.4))
             }
+            
+            Divider().background(Color.white.opacity(0.08))
+            
+            Button(action: {
+                haptic(.medium)
+                storeManager.debugEnablePremium()
+            }) {
+                HStack {
+                    Image(systemName: "crown.fill")
+                    Text("Активувати Premium (для тестування)")
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.siGold)
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, 4)
         }
     }
 
