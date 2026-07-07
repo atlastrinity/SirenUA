@@ -197,10 +197,43 @@ struct AlertRegionDetailView: View {
                                     .foregroundStyle(.secondary)
                             }
 
-                            Text(detail)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(.primary)
-                                .lineSpacing(4)
+                            // Render text description and telemetry params separately
+                            let lines = detail.components(separatedBy: "\n")
+                            let descriptionLines = lines.filter { line in
+                                !isTelemetryLine(line)
+                            }
+                            let telemetryLines = lines.filter { line in
+                                isTelemetryLine(line)
+                            }
+
+                            if !descriptionLines.isEmpty {
+                                Text(descriptionLines.joined(separator: "\n"))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .lineSpacing(4)
+                            }
+
+                            if !telemetryLines.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(telemetryLines, id: \.self) { line in
+                                        if let (label, value) = parseTelemetryLine(line) {
+                                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                                Text(label + ":")
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundStyle(.secondary)
+                                                Text(value)
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .foregroundStyle(themeColor)
+                                            }
+                                        } else {
+                                            Text(line)
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundStyle(themeColor)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -414,6 +447,43 @@ struct AlertRegionDetailView: View {
         if confidence >= 85 { return "Висока ймовірність" }
         if confidence >= 60 { return "Ймовірна загроза" }
         return "Можлива загроза"
+    }
+
+    private func isTelemetryLine(_ line: String) -> Bool {
+        let prefixes = [
+            "Відстань до цілі:",
+            "Кількість цілей:",
+            "Напрямок запуску:",
+            "Тип:",
+            "Швидкість руху:",
+            "Висота польоту:",
+            "Очікуваний час:",
+            "Відстань:",
+            "Історичний маршрут підтверджено",
+            "Патерн підтверджений аналітикою"
+        ]
+        return prefixes.contains(where: { line.hasPrefix($0) })
+    }
+
+    private func parseTelemetryLine(_ line: String) -> (String, String)? {
+        let prefixes = [
+            "Відстань до цілі",
+            "Кількість цілей",
+            "Напрямок запуску",
+            "Тип",
+            "Швидкість руху",
+            "Висота польоту",
+            "Очікуваний час",
+            "Відстань"
+        ]
+        
+        for prefix in prefixes {
+            if line.hasPrefix(prefix + ":") {
+                let value = line.replacingOccurrences(of: prefix + ":", with: "").trimmingCharacters(in: .whitespaces)
+                return (prefix, value)
+            }
+        }
+        return nil
     }
 }
 

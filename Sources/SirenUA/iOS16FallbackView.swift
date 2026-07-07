@@ -409,14 +409,49 @@ struct iOS16DetailView: View {
                     }
 
                     // Description / Threat details
-                    VStack(alignment: .center, spacing: 14) {
-                        if let detail = region.threatDetail {
+                    VStack(alignment: .leading, spacing: 14) {
+                        if let detail = region.threatDetail, !detail.isEmpty {
                             Text("ДЕТАЛІ ЗАГРОЗИ")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.yellow.opacity(0.7))
-                            Text(detail)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(statusThemeColor.opacity(0.8))
+                            
+                            // Render text description and telemetry params separately
+                            let lines = detail.components(separatedBy: "\n")
+                            let descriptionLines = lines.filter { line in
+                                !isTelemetryLine(line)
+                            }
+                            let telemetryLines = lines.filter { line in
+                                isTelemetryLine(line)
+                            }
+
+                            if !descriptionLines.isEmpty {
+                                Text(descriptionLines.joined(separator: "\n"))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .lineSpacing(4)
+                            }
+
+                            if !telemetryLines.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(telemetryLines, id: \.self) { line in
+                                        if let (label, value) = parseTelemetryLine(line) {
+                                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                                Text(label + ":")
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(.gray)
+                                                Text(value)
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .foregroundColor(statusThemeColor)
+                                            }
+                                        } else {
+                                            Text(line)
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(statusThemeColor)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
                         } else {
                             Text("ОПИС СТАНУ")
                                 .font(.system(size: 11, weight: .bold))
@@ -427,7 +462,7 @@ struct iOS16DetailView: View {
                         }
                     }
                     .padding(20)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.ultraThinMaterial)
                     .background(Color.white.opacity(0.03))
                     .cornerRadius(20)
@@ -475,5 +510,42 @@ struct iOS16DetailView: View {
                 }
             }
         }
+    }
+
+    private func isTelemetryLine(_ line: String) -> Bool {
+        let prefixes = [
+            "Відстань до цілі:",
+            "Кількість цілей:",
+            "Напрямок запуску:",
+            "Тип:",
+            "Швидкість руху:",
+            "Висота польоту:",
+            "Очікуваний час:",
+            "Відстань:",
+            "Історичний маршрут підтверджено",
+            "Патерн підтверджений аналітикою"
+        ]
+        return prefixes.contains(where: { line.hasPrefix($0) })
+    }
+
+    private func parseTelemetryLine(_ line: String) -> (String, String)? {
+        let prefixes = [
+            "Відстань до цілі",
+            "Кількість цілей",
+            "Напрямок запуску",
+            "Тип",
+            "Швидкість руху",
+            "Висота польоту",
+            "Очікуваний час",
+            "Відстань"
+        ]
+        
+        for prefix in prefixes {
+            if line.hasPrefix(prefix + ":") {
+                let value = line.replacingOccurrences(of: prefix + ":", with: "").trimmingCharacters(in: .whitespaces)
+                return (prefix, value)
+            }
+        }
+        return nil
     }
 }
