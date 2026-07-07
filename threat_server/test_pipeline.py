@@ -155,6 +155,116 @@ async def run_tests():
     assert len(cleared) >= 24
     print("--------------------------------------------------")
 
+    # Тест 7: Загроза КАБів (LOW, type kab)
+    print("📌 Тест 7: Загроза КАБів...")
+    threat_manager.sent_notifications.clear()
+    msg = "🚀 КАБи на Донеччині"
+    await monitor._process_message(msg, "kpszsu")
+    
+    regions = [n["region"] for n in threat_manager.sent_notifications]
+    levels = [n["level"] for n in threat_manager.sent_notifications]
+    types = [n["type"] for n in threat_manager.sent_notifications]
+    
+    print(f"✅ Виявлені області: {regions}")
+    print(f"✅ Рівні загроз: {set(levels)}")
+    print(f"✅ Типи загроз: {set(types)}")
+    print(f"✅ Деталізація: {[n['detail'] for n in threat_manager.sent_notifications if 'Донецьк' in n['region']][0]}")
+    
+    assert "Донецька область" in regions
+    assert all(lvl == "low" for lvl in levels)
+    assert all(t == "kab" for t in types)
+    print("--------------------------------------------------")
+
+    # Тест 8: Макро-напрямок (Захід)
+    print("📌 Тест 8: Макро-напрямок (Захід)...")
+    threat_manager.sent_notifications.clear()
+    msg = "Увага! Крилаті ракети в напрямку західних областей!"
+    await monitor._process_message(msg, "kpszsu")
+    regions = [n["region"] for n in threat_manager.sent_notifications]
+    print(f"✅ Виявлені області: {regions}")
+    assert "Львівська область" in regions
+    assert "Хмельницька область" in regions
+    assert "Волинська область" in regions
+    print("--------------------------------------------------")
+
+    # Тест 9: Специфічне місто (Старокостянтинів)
+    print("📌 Тест 9: Специфічне місто (Старокостянтинів)...")
+    threat_manager.sent_notifications.clear()
+    msg = "БпЛА у бік Старокостянтинова!"
+    await monitor._process_message(msg, "monitorwarr")
+    regions = [n["region"] for n in threat_manager.sent_notifications]
+    print(f"✅ Виявлені області: {regions}")
+    assert "Хмельницька область" in regions
+    print("--------------------------------------------------")
+
+    # Тест 10: Варіант відмінка (Хмельниччину)
+    print("📌 Тест 10: Варіант відмінка (Хмельниччину)...")
+    threat_manager.sent_notifications.clear()
+    msg = "Ракети на Хмельниччину!"
+    await monitor._process_message(msg, "kpszsu")
+    regions = [n["region"] for n in threat_manager.sent_notifications]
+    print(f"✅ Виявлені області: {regions}")
+    assert "Хмельницька область" in regions
+    print("--------------------------------------------------")
+
+    # Тест 11: Мікрорайон Києва (Оболонь)
+    print("📌 Тест 11: Мікрорайон Києва (Оболонь)...")
+    threat_manager.sent_notifications.clear()
+    msg = "Шахед на Оболонь!"
+    await monitor._process_message(msg, "monitorwarr")
+    regions = [n["region"] for n in threat_manager.sent_notifications]
+    print(f"✅ Виявлені області: {regions}")
+    assert "м. Київ" in regions
+    print("--------------------------------------------------")
+
+    # Тест 12: Полтава без пробілу на початку повідомлення
+    print("📌 Тест 12: Полтава на початку повідомлення...")
+    threat_manager.sent_notifications.clear()
+    msg = "Полтава — в укриття!"
+    await monitor._process_message(msg, "monitorwarr")
+    regions = [n["region"] for n in threat_manager.sent_notifications]
+    print(f"✅ Виявлені області: {regions}")
+    assert "Полтавська область" in regions
+    print("--------------------------------------------------")
+
+    # Тест 13: Змішане повідомлення (відбій + нова загроза)
+    print("📌 Тест 13: Змішане повідомлення (відбій + нова загроза)...")
+    threat_manager.set_threat("Одеська область", "medium", "shahed", "БпЛА в напрямку Одеси")
+    threat_manager.sent_notifications.clear()
+    msg = "Відбій повітряної тривоги на Одещині. Натомість зафіксовано пуски ракет у напрямку Хмельниччини!"
+    await monitor._process_message(msg, "kpszsu")
+    cleared = [n["region"] for n in threat_manager.sent_notifications if n["level"] == "none"]
+    set_high = [n["region"] for n in threat_manager.sent_notifications if n["level"] == "high"]
+    print(f"✅ Знято загрозу для: {cleared}")
+    print(f"✅ Встановлено загрозу для: {set_high}")
+    assert "Одеська область" in cleared
+    assert "Хмельницька область" in set_high
+    assert "Одеська область" not in set_high
+    assert "Хмельницька область" not in cleared
+    print("--------------------------------------------------")
+
+    # Тест 14: Предиктивний аналіз (Вектори та транзитні області)
+    print("📌 Тест 14: Предиктивний аналіз (Вектори та транзитні області)...")
+    threat_manager.sent_notifications.clear()
+    msg = "Шахеди на Сумщині! Рух у напрямку Київщини."
+    await monitor._process_message(msg, "monitorwarr")
+    regions = [n["region"] for n in threat_manager.sent_notifications if n["level"] == "medium"]
+    print(f"✅ Виявлені області: {regions}")
+    assert "Сумська область" in regions
+    assert "Київська область" in regions
+    assert "Чернігівська область" in regions or "Полтавська область" in regions
+    print("--------------------------------------------------")
+
+    # Тест 15: Розрахунок ETA (Кінематика)
+    print("📌 Тест 15: Перевірка ETA (Кінематика) для балістики...")
+    threat_manager.sent_notifications.clear()
+    msg = "Загроза балістики з Криму на Харків!"
+    await monitor._process_message(msg, "monitorwarr")
+    kharkiv_threat = next((n for n in threat_manager.sent_notifications if n["region"] == "Харківська область"), None)
+    print(f"✅ Деталізація загрози Харкова: {kharkiv_threat['detail']}")
+    assert "~2-5 хв" in kharkiv_threat["detail"]
+    print("--------------------------------------------------")
+
     print("\n🎉 ВСІ ТЕСТИ ПРОЙДЕНО УСПІШНО! Логіка та парсер працюють ідеально!")
     print("==================================================")
 

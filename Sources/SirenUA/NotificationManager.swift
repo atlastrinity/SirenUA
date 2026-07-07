@@ -71,7 +71,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     func requestAuthorization() {
         guard notificationsEnabled else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound, .criticalAlert]) { granted, error in
             if let error {
                 notifLogger.error("Permission request error: \(error.localizedDescription)")
             } else {

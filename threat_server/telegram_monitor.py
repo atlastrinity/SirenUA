@@ -6,7 +6,8 @@ from typing import Optional
 from telethon import TelegramClient, events
 import aiohttp
 from bs4 import BeautifulSoup
-from mock_mode import ThreatState, ALL_REGIONS, THREAT_TYPES
+from mock_mode import ThreatState, ALL_REGIONS, THREAT_TYPES, UKRAINE_TOPOLOGY
+from gemini_analyzer import GeminiThreatAnalyzer
 
 try:
     sys.stdout.reconfigure(line_buffering=True)
@@ -45,10 +46,12 @@ HIGH_KEYWORDS = [
     r"Іскандер", 
     r"балісти",            # Matches "балістика", "балістичний", "балістики" (99% chance of siren)
     r"пуски?\s*ракет",
-    r"ракета\s*(в\s*напрямку|на)",  # Missile heading directly towards a region
+    r"ракет[аи]\s*(в\s*напрямку|на)",  # Missile heading directly towards a region
     r"керована\s*авіаційна\s*ракета",
     r"[ХX][-\s]?59",
-    r"[ХX][-\s]?69"
+    r"[ХX][-\s]?69",
+    r"\bукритт[яі]\b",
+    r"\bтривог[аи]\b"
 ]
 
 MEDIUM_KEYWORDS = [
@@ -68,7 +71,10 @@ LOW_KEYWORDS = [
     r"активність\s*авіаці", 
     r"загроза\s*застосування\s*каб",
     r"пусти\s*каб",
-    r"каб\s*в\s*напрямку"
+    r"каб\s*в\s*напрямку",
+    r"\bкаб(и|ів)?\b",
+    r"пуск\w*\s*каб[и]?",
+    r"керован\w*\s*авіаційн\w*\s*бомб\w*"
 ]
 
 CLEAR_KEYWORDS = [
@@ -94,6 +100,10 @@ class TelegramThreatMonitor:
         self.client: Optional[TelegramClient] = None
         self._clear_tasks = {}
         
+        self.analyzer = GeminiThreatAnalyzer()
+        self.message_queue = asyncio.Queue()
+        self.batch_task = None
+        
         # Session file path detection
         self.session_paths = [
             "sirenua_userbot_session.session",
@@ -117,6 +127,9 @@ class TelegramThreatMonitor:
     async def start(self):
         self.is_running = True
         self._schedule_initial_auto_clears()
+        
+        # Запускаємо фоновий процес батч-аналізу через Gemini
+        self.batch_task = asyncio.create_task(self._batch_processor_loop())
         
         # 1. Try to load from environment variable (StringSession) - best for Render production
         session_string = os.environ.get("TELEGRAM_SESSION_STRING")
@@ -267,45 +280,283 @@ class TelegramThreatMonitor:
         except Exception as e:
             pass
 
-    # --- Message Parser Logic (Shared by both MTProto & Web Scraper) ---
-    async def _process_message(self, text, channel):
-        is_clear = any(re.search(kw, text, re.IGNORECASE) for kw in CLEAR_KEYWORDS)
+    def _find_path(self, start_region: str, end_region: str) -> list[str]:
+        """BFS algorithm to find the shortest path between two regions."""
+        if start_region not in UKRAINE_TOPOLOGY or end_region not in UKRAINE_TOPOLOGY:
+            return []
         
-        if is_clear:
-            regions = self._extract_regions(text)
-            if regions:
-                for region in regions:
-                    self.threat_manager.clear_threat(region)
-                    if region in self._clear_tasks:
-                        self._clear_tasks[region].cancel()
-                print(f"🟢 [{channel}] Зняття загрози розпізнано для: {', '.join(regions)}")
-            else:
-                self.threat_manager.clear_all()
-                print(f"🟢 [{channel}] Зняття загрози розпізнано для ВСІХ областей (відбій/чисто)")
-            return
-
-        level = self._detect_threat_level(text)
-        if not level:
-            print(f"💡 [{channel}] Повідомлення проігноровано (не містить ключових слів загроз)")
-            return
-
-        threat_type = self._detect_threat_type(text)
-        regions = self._extract_regions(text)
+        queue = [[start_region]]
+        visited = set([start_region])
         
-        if not regions and level in ("critical", "high"):
-            regions = list(ALL_REGIONS)
-            print(f"🚨 [{channel}] Виявлено загальну небезпеку {level.upper()} для всієї України")
+        while queue:
+            path = queue.pop(0)
+            node = path[-1]
             
-        if not regions:
-            print(f"💡 [{channel}] Рівень {level.upper()} розпізнано, але не знайдено відповідних областей")
+            if node == end_region:
+                return path
+                
+            for adjacent in UKRAINE_TOPOLOGY.get(node, []):
+                if adjacent not in visited:
+                    visited.add(adjacent)
+                    new_path = list(path)
+                    new_path.append(adjacent)
+                    queue.append(new_path)
+        return []
+
+    # --- LLM Batching Loop ---
+    async def _batch_processor_loop(self):
+        """Фоновий процес, що збирає повідомлення та відправляє їх до Gemini раз на 60с."""
+        while self.is_running:
+            await asyncio.sleep(60) # Wait 60 seconds
+            
+            messages = []
+            while not self.message_queue.empty():
+                try:
+                    msg = self.message_queue.get_nowait()
+                    messages.append(msg)
+                except asyncio.QueueEmpty:
+                    break
+                    
+            if messages:
+                print(f"🧠 Відправка батчу ({len(messages)} повідомлень) до Gemini API...")
+                results = await self.analyzer.analyze_batch(messages)
+                if results:
+                    await self._apply_gemini_analysis(results)
+
+    async def _apply_gemini_analysis(self, results):
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+                
+            level = item.get("threat_level", "none")
+            threat_type = item.get("threat_type")
+            is_clear = item.get("is_clear", False)
+            source_channel = item.get("source_channel", "AI")
+            text = item.get("text", "")
+            
+            # Обробка відбою
+            if is_clear:
+                targets = item.get("target_regions", [])
+                if not targets:
+                    self.threat_manager.clear_all()
+                    print(f"🟢 [Gemini] Зняття загрози розпізнано для ВСІХ областей")
+                else:
+                    for tgt in targets:
+                        region = tgt if isinstance(tgt, str) else tgt.get("name")
+                        if region:
+                            self.threat_manager.clear_threat(region)
+                            if region in self._clear_tasks:
+                                self._clear_tasks[region].cancel()
+                                del self._clear_tasks[region]
+                            print(f"🟢 [Gemini] Зняття загрози: {region}")
+                continue
+
+            if level == "none":
+                continue
+
+            target_regions = item.get("target_regions", [])
+            for tgt in target_regions:
+                if isinstance(tgt, dict):
+                    region = tgt.get("name")
+                    is_pred = tgt.get("is_predictive", False)
+                else:
+                    region = tgt
+                    is_pred = False
+                
+                if not region or region not in ALL_REGIONS:
+                    continue
+                    
+                delay = 3600
+                eta_str = ""
+                if threat_type == "mig31k":
+                    delay = 2700
+                    eta_str = "~20-40 хв"
+                elif threat_type == "ballistic":
+                    delay = 1800
+                    eta_str = "~2-5 хв"
+                elif threat_type == "shahed":
+                    delay = 10800
+                    eta_str = "+1-2 год"
+                elif threat_type == "cruise_missile":
+                    delay = 3600
+                    eta_str = "+15-30 хв"
+                    
+                detail = f"[{source_channel}] {text}"
+                if is_pred:
+                    detail += f"\n⚠️ Предиктивний аналіз ШІ: ціль може прямувати через область."
+                    if eta_str:
+                        detail += f" Очікуваний час: {eta_str}"
+                elif eta_str:
+                    detail += f"\n(Очікуваний час: {eta_str})"
+
+                self.threat_manager.set_threat(region, level, threat_type, detail)
+                self._schedule_auto_clear(region, delay)
+                print(f"🔴 [Gemini] Встановлено загрозу ({level}) для: {region}")
+
+
+    async def _process_message(self, text, channel):
+        if self.analyzer.is_configured:
+            # Queue for Gemini
+            await self.message_queue.put({"channel": channel, "text": text})
+            print(f"📥 Повідомлення додано до черги ШІ. В черзі: {self.message_queue.qsize()}")
+        else:
+            # Fallback to Regex
+            await self._process_message_regex(text, channel)
+
+    # --- Message Parser Logic (Shared by both MTProto & Web Scraper) ---
+    async def _process_message_regex(self, text, channel):
+        # Clean double spaces and split into lines, then logical sentences
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        segments = []
+        for line in lines:
+            parts = re.split(r'(?<=[.!?])\s+', line)
+            for part in parts:
+                p = part.strip()
+                if p:
+                    segments.append(p)
+                    
+        if not segments:
             return
 
-        for region in regions:
-            detail = self._build_region_detail(text, region, threat_type)
-            self.threat_manager.set_threat(region, level, threat_type, detail)
-            self._schedule_auto_clear(region)
+        # We will parse segment by segment with a stateful context
+        context_level = None
+        context_type = None
+        context_text = None
+        context_regions = []
+        
+        # Keep track of modified regions in this execution
+        set_regions = {}
+        cleared_regions = set()
+        cleared_all = False
 
-        print(f"🔴 [{channel}] Рівень {level.upper()} встановлено для {len(regions)} областей: {', '.join(regions)}")
+        for segment in segments:
+            is_seg_clear = any(re.search(kw, segment, re.IGNORECASE) for kw in CLEAR_KEYWORDS)
+            
+            if is_seg_clear:
+                seg_regions = self._extract_regions(segment)
+                if seg_regions:
+                    for region in seg_regions:
+                        self.threat_manager.clear_threat(region)
+                        if region in self._clear_tasks:
+                            self._clear_tasks[region].cancel()
+                            del self._clear_tasks[region]
+                        cleared_regions.add(region)
+                else:
+                    # If it says 'clear' but names no regions, it might be a general clear.
+                    # We only clear all if the entire message contains no other region mentions
+                    if not self._extract_regions(text):
+                        self.threat_manager.clear_all()
+                        cleared_all = True
+                    else:
+                        if "област" in segment or "всіх" in segment or not seg_regions:
+                            self.threat_manager.clear_all()
+                            cleared_all = True
+                
+                # Reset context on clear
+                context_level = None
+                context_type = None
+                context_text = None
+                context_regions = []
+                continue
+
+            # Detect threat level and type for this segment
+            level = self._detect_threat_level(segment)
+            threat_type = self._detect_threat_type(segment)
+            
+            # If this segment has a threat level, update our active context
+            if level:
+                context_level = level
+                context_type = threat_type
+                context_text = segment
+            
+            # Extract regions for this segment
+            regions = self._extract_regions(segment)
+            
+            # If no regions in segment, but we detected a threat context, apply it to the whole country
+            # if the level is critical or high (like MiG-31 takeoff, cruise missiles)
+            if not regions and context_level in ("critical", "high"):
+                if not self._extract_regions(text):
+                    regions = list(ALL_REGIONS)
+            
+            # Extract Vector Context (Predictive routing)
+            predictive_regions = set()
+            
+            # If we have regions in context from previous segment, maybe this is a vector
+            if context_regions and regions and not level:
+                # previous segment had regions, current segment has new regions
+                source_region = context_regions[-1]
+                target_region = regions[0]
+                path = self._find_path(source_region, target_region)
+                if len(path) > 2:
+                    for r in path[1:-1]:
+                        predictive_regions.add(r)
+            
+            # Also check if multiple regions are in the same segment
+            if len(regions) >= 2:
+                for i in range(len(regions) - 1):
+                    path = self._find_path(regions[i], regions[i+1])
+                    if len(path) > 2:
+                        for r in path[1:-1]:
+                            predictive_regions.add(r)
+
+            # Update context_regions
+            if regions:
+                context_regions = regions
+
+            # Stateful fallback: if segment has regions but no threat level was detected in it,
+            # we use the context from the previous segment of the same message (if available)
+            if not level and regions and context_level:
+                level = context_level
+                threat_type = context_type
+                detail_text = f"{context_text} {segment}"
+            else:
+                detail_text = segment
+
+            # Combine explicit regions and predictive regions
+            final_regions = list(set(regions) | predictive_regions)
+
+            # Set threat for the detected regions
+            if level and final_regions:
+                for region in final_regions:
+                    # Determine dynamic auto-clear delay and ETA based on threat type
+                    delay = 3600
+                    eta_str = ""
+                    if threat_type == "mig31k":
+                        delay = 2700
+                        eta_str = "~20-40 хв"
+                    elif threat_type == "ballistic":
+                        delay = 1800
+                        eta_str = "~2-5 хв"
+                    elif threat_type == "shahed":
+                        delay = 10800
+                        eta_str = "+1-2 год"
+                    elif threat_type == "cruise_missile":
+                        delay = 3600
+                        eta_str = "+15-30 хв"
+                        
+                    is_pred = region in predictive_regions
+                    
+                    detail = self._build_region_detail(detail_text, region, threat_type)
+                    if is_pred:
+                        detail += f" ⚠️ Предиктивний аналіз: ціль може прямувати через область. Очікуваний час: {eta_str}" if eta_str else " ⚠️ Предиктивний аналіз: ціль може прямувати через область."
+                    elif eta_str:
+                        detail += f" (Очікуваний час: {eta_str})"
+
+                    self.threat_manager.set_threat(region, level, threat_type, detail)
+                    self._schedule_auto_clear(region, delay)
+                    set_regions[region] = level
+
+        # Print consolidated status update for the logs
+        if cleared_all:
+            print(f"🟢 [{channel}] Зняття загрози розпізнано для ВСІХ областей (відбій/чисто)")
+        elif cleared_regions:
+            print(f"🟢 [{channel}] Зняття загрози розпізнано для: {', '.join(cleared_regions)}")
+            
+        if set_regions:
+            for lvl in ["low", "medium", "high", "critical"]:
+                matching = [r for r, l in set_regions.items() if l == lvl]
+                if matching:
+                    print(f"🔴 [{channel}] Рівень {lvl.upper()} встановлено для {len(matching)} областей: {', '.join(matching)}")
 
     def _build_region_detail(self, text: str, region: str, threat_type: str) -> str:
         prefix = THREAT_TYPES.get(threat_type, "Загроза")
@@ -364,6 +615,8 @@ class TelegramThreatMonitor:
             return "cruise_missile"
         if any(kw in text_lower for kw in ["артилерія", "рсзв", "обстріл"]):
             return "artillery"
+        if re.search(r"\bкаб(и|ів)?\b|авіабомб", text_lower):
+            return "kab"
         return "unknown"
 
     def _extract_regions(self, text: str):
@@ -372,6 +625,43 @@ class TelegramThreatMonitor:
             for kw in info["keywords"]:
                 if re.search(kw, text, re.IGNORECASE):
                     found.add(region)
+                    
+        # Macro-directions mapping
+        text_lower = text.lower()
+        
+        west_regions = ["Львівська область", "Волинська область", "Рівненська область", "Тернопільська область", "Хмельницька область", "Івано-Франківська область", "Закарпатська область", "Чернівецька область"]
+        north_regions = ["Київська область", "м. Київ", "Чернігівська область", "Сумська область", "Житомирська область"]
+        center_regions = ["Черкаська область", "Кіровоградська область", "Полтавська область", "Вінницька область", "Дніпропетровська область"]
+        south_regions = ["Одеська область", "Миколаївська область", "Херсонська область", "Запорізька область"]
+        east_regions = ["Харківська область", "Донецька область", "Луганська область", "Дніпропетровська область", "Запорізька область"]
+
+        # Check for West
+        if re.search(r"\bзахідн\w*\b|\bзаході\b|\bзахід\b", text_lower):
+            if not any(landing_kw in text_lower for landing_kw in ["посадка", "захід на посадку"]):
+                for r in west_regions:
+                    found.add(r)
+                    
+        # Check for North
+        if re.search(r"\bпівнічн\w*\b|\bпівночі\b|\bпівніч\b", text_lower):
+            for r in north_regions:
+                found.add(r)
+                
+        # Check for Center
+        if re.search(r"\bцентральн\w*\b|\bцентрі\b|\bцентр\b", text_lower):
+            if not any(skip in text_lower for skip in ["прес-центр", "інфо-центр"]):
+                for r in center_regions:
+                    found.add(r)
+                    
+        # Check for South
+        if re.search(r"\bпівденн\w*\b|\bпівдні\b|\bпівдень\b", text_lower):
+            for r in south_regions:
+                found.add(r)
+                
+        # Check for East
+        if re.search(r"\bсхідн\w*\b|\bсході\b|\bсхід\b", text_lower):
+            for r in east_regions:
+                found.add(r)
+                
         return list(found)
 
     def _schedule_auto_clear(self, region: str, delay_seconds: float = 3600):

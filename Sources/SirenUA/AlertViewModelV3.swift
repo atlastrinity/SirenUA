@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import CoreLocation
+import Combine
 import OSLog
 
 private let vmLogger = Logger(subsystem: "com.sirenua", category: "AlertViewModel")
@@ -20,10 +21,10 @@ final class AlertViewModelV3: ObservableObject {
 
     private let networkManager = NetworkManager()
     private var refreshTask: Task<Void, Never>?
-    private var threatRefreshTask: Task<Void, Never>?
     private var isFirstFetch: Bool = true
     private var isFirstThreatFetch: Bool = true
     private var isFetching: Bool = false
+    private var cancellables = Set<AnyCancellable>()
 
     private var autoRefreshEnabled: Bool {
         UserDefaults.standard.object(forKey: "autoRefreshEnabled") as? Bool ?? true
@@ -48,7 +49,7 @@ final class AlertViewModelV3: ObservableObject {
         initializeRegions()
         refreshAlerts()
         setupRefreshLoop()
-        setupThreatRefreshLoop()
+        setupWebSocket()
         
         // Instantly refresh threats when premium status changes in UserDefaults
         premiumObserver = NotificationCenter.default.addObserver(
@@ -59,17 +60,21 @@ final class AlertViewModelV3: ObservableObject {
             guard let self else { return }
             DispatchQueue.main.async {
                 self.objectWillChange.send()
-                self.refreshThreats()
+                if self.isPremium {
+                    ThreatWebSocketClient.shared.connect(to: self.threatServerURL)
+                } else {
+                    ThreatWebSocketClient.shared.disconnect()
+                }
             }
         }
     }
 
     deinit {
         refreshTask?.cancel()
-        threatRefreshTask?.cancel()
         if let premiumObserver {
             NotificationCenter.default.removeObserver(premiumObserver)
         }
+        ThreatWebSocketClient.shared.disconnect()
     }
 
     private func initializeRegions() {
@@ -125,25 +130,44 @@ final class AlertViewModelV3: ObservableObject {
         }
     }
 
-    private func setupThreatRefreshLoop() {
-        threatRefreshTask = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                if self.isPremium {
-                    await self.fetchThreats()
+    // setupThreatRefreshLoop has been removed in favor of WebSockets.
+    
+    private func setupWebSocket() {
+        ThreatWebSocketClient.shared.events
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] event in
+                guard let self = self, self.isPremium else { return }
+                switch event {
+                case .initialState(let threats):
+                    self.applyThreats(threats)
+                case .threatUpdate(let region, let threat):
+                    self.applySingleThreat(region: region, threat: threat)
                 }
-                try? await Task.sleep(for: .seconds(30))
             }
+            .store(in: &cancellables)
+            
+        // If premium, connect automatically
+        if isPremium {
+            ThreatWebSocketClient.shared.connect(to: threatServerURL)
         }
     }
     
-    private func fetchThreats() async {
-        guard isPremium else { return }
-        do {
-            let threatData = try await networkManager.fetchThreats(serverURL: threatServerURL)
-            applyThreats(threatData)
-        } catch {
-            vmLogger.error("Threat fetch error: \(error.localizedDescription)")
+    private func applySingleThreat(region: String, threat: ThreatInfo) {
+        guard let index = alerts.firstIndex(where: { $0.name == region }) else { return }
+        let oldThreatLevel = alerts[index].threatLevel
+        let newThreatLevel = threat.level == "none" ? nil : threat.level
+        
+        alerts[index].threatLevel = newThreatLevel
+        alerts[index].threatType = threat.type
+        alerts[index].threatDetail = threat.detail
+        
+        if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
+            if !isFirstThreatFetch {
+                let typeDesc = getThreatTypeDescription(threat.type ?? "")
+                let title = "⚠️ Попередження: \(threat.type == "mig31k" ? "Авіаційна загроза" : "Виявлено цілі")"
+                let body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(region)."
+                NotificationManager.shared.sendThreatNotification(for: region, title: title, body: body)
+            }
         }
     }
     
@@ -180,13 +204,18 @@ final class AlertViewModelV3: ObservableObject {
             return "ударних безпілотників Шахед"
         case "cruise_missile":
             return "крилатих ракет"
+        case "kab":
+            return "ударів керованими авіабомбами (КАБ)"
         default:
             return "повітряної атаки"
         }
     }
     
     func refreshThreats() {
-        Task { await fetchThreats() }
+        if isPremium {
+            ThreatWebSocketClient.shared.disconnect()
+            ThreatWebSocketClient.shared.connect(to: threatServerURL)
+        }
     }
 
     private func fetchLiveAlerts() async {
@@ -194,11 +223,6 @@ final class AlertViewModelV3: ObservableObject {
         isFetching = true
         isLoading = true
         errorMessage = nil
-
-        // Also fetch active threat levels for premium users simultaneously
-        if isPremium {
-            await fetchThreats()
-        }
 
         do {
             let liveData = try await networkManager.fetchLiveAlerts()
