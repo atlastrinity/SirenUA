@@ -53,6 +53,7 @@ struct RegionHistoryEvent: Identifiable, Codable {
     /// Emoji icon for threat type
     var typeIcon: String {
         switch threat_type {
+        case "official_alarm": return threat_level == "none" ? "🟢" : "🚨"
         case "shahed": return "🛩"
         case "cruise_missile": return "🚀"
         case "ballistic": return "💥"
@@ -67,6 +68,7 @@ struct RegionHistoryEvent: Identifiable, Codable {
     /// Human-readable threat type name
     var typeName: String {
         switch threat_type {
+        case "official_alarm": return threat_level == "none" ? "Відбій тривоги" : "Повітряна тривога"
         case "shahed": return "БПЛА Шахед"
         case "cruise_missile": return "Крилаті ракети"
         case "ballistic": return "Балістика"

@@ -342,6 +342,7 @@ struct RegionHistoryView: View {
         case "high": return .orange
         case "medium": return .yellow
         case "low": return Color(red: 0.4, green: 0.8, blue: 1.0)
+        case "none": return .green
         default: return .gray
         }
     }
@@ -352,6 +353,7 @@ struct RegionHistoryView: View {
         case "high": return "Високий"
         case "medium": return "Середній"
         case "low": return "Низький"
+        case "none": return "Відбій"
         default: return level
         }
     }
