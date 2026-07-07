@@ -42,6 +42,7 @@ struct SettingsView: View {
     @State private var alertsServerStatus:  ServerStatus = .checking
     @State private var threatsServerStatus: ServerStatus = .checking
     @State private var geminiServerStatus:  ServerStatus = .checking
+    @State private var webSocketServerStatus: ServerStatus = .checking
     // MARK: Region list
     private let allRegionsList = [
         "Вінницька область",    "Волинська область",       "Дніпропетровська область",
@@ -81,6 +82,7 @@ struct SettingsView: View {
         alertsServerStatus  = .checking
         threatsServerStatus = .checking
         geminiServerStatus  = .checking
+        webSocketServerStatus = .checking
 
         async let alertsPing  = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
         async let threatsPing = ping(url: "https://sirenua-threatserver.onrender.com/api/threats", method: "GET")
@@ -89,6 +91,15 @@ struct SettingsView: View {
         alertsServerStatus  = await alertsPing
         threatsServerStatus = await threatsPing
         geminiServerStatus  = await geminiPing
+        
+        switch wsClient.connectionState {
+        case .disconnected:
+            webSocketServerStatus = .offline(error: "Відключено")
+        case .connecting:
+            webSocketServerStatus = .checking
+        case .connected:
+            webSocketServerStatus = .online(label: "Активне")
+        }
     }
 
     private func checkGeminiStatus() async -> ServerStatus {
@@ -639,6 +650,7 @@ struct SettingsView: View {
                         alertsServerStatus  = .checking
                         threatsServerStatus = .checking
                         geminiServerStatus  = .checking
+                        webSocketServerStatus = .checking
                         Task { await checkServerStatus() }
                     }) {
                         Label("Оновити статус", systemImage: "arrow.clockwise")
@@ -658,16 +670,7 @@ struct SettingsView: View {
         }
     }
 
-    private var webSocketServerStatus: ServerStatus {
-        switch wsClient.connectionState {
-        case .disconnected:
-            return .offline(error: "Відключено")
-        case .connecting:
-            return .checking
-        case .connected:
-            return .online(label: "Активне")
-        }
-    }
+
 
     private var aboutCard: some View {
         VStack(spacing: 14) {
