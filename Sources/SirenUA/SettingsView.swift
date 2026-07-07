@@ -151,6 +151,31 @@ struct SettingsView: View {
         }
     }
 
+    private func triggerScenario(_ scenario: String) {
+        guard let url = URL(string: "https://sirenua-threatserver.onrender.com/api/threats/scenario") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: String] = ["scenario": scenario]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        Task {
+            do {
+                let (_, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    settingsLogger.info("Successfully triggered scenario \(scenario)")
+                    // Refresh server status to update UI immediately
+                    await checkServerStatus()
+                } else {
+                    settingsLogger.error("Failed to trigger scenario: invalid response")
+                }
+            } catch {
+                settingsLogger.error("Error triggering scenario: \(error.localizedDescription)")
+            }
+        }
+    }
+
     // MARK: - Body
     var body: some View {
         ZStack {
@@ -167,6 +192,9 @@ struct SettingsView: View {
                         premiumCard
                         regionsCard
                         diagnosticsCard
+                        if storeManager.isPremium {
+                            mockScenariosCard
+                        }
                         aboutCard
                     }
                     .padding(.horizontal, 16)
@@ -691,7 +719,90 @@ struct SettingsView: View {
         }
     }
 
-
+    private var mockScenariosCard: some View {
+        SettingsCard(title: "Симуляція загроз (Розробка)", icon: "terminal.fill", iconColor: .siGold) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Запустіть один із тестових сценаріїв для перевірки жовтих областей, телеметрії, відстані та кругових діаграм ймовірностей.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.5))
+                    .lineSpacing(4)
+                
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        Button(action: {
+                            haptic(.medium)
+                            triggerScenario("shaheds_south")
+                        }) {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text("Шахеди з півдня")
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.siGold.opacity(0.25))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.siGold.opacity(0.4), lineWidth: 1))
+                        }
+                        
+                        Button(action: {
+                            haptic(.medium)
+                            triggerScenario("mig_takeoff")
+                        }) {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text("Зліт МіГ-31К")
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.siOrange.opacity(0.25))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.siOrange.opacity(0.4), lineWidth: 1))
+                        }
+                    }
+                    
+                    HStack(spacing: 10) {
+                        Button(action: {
+                            haptic(.medium)
+                            triggerScenario("cruise_missiles_west")
+                        }) {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text("Ракети (Захід)")
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.siBlue.opacity(0.25))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.siBlue.opacity(0.4), lineWidth: 1))
+                        }
+                        
+                        Button(action: {
+                            haptic(.medium)
+                            triggerScenario("clear")
+                        }) {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                Text("Очистити все")
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.red.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.35), lineWidth: 1))
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private var aboutCard: some View {
         VStack(spacing: 14) {
