@@ -10,3 +10,6 @@ build/
 /.env
 *.session
 *.session-journal
+*.ipa
+*.dSYM.zip
+*.app.dSYM.zip
