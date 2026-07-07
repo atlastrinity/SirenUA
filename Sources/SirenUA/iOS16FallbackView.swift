@@ -541,6 +541,46 @@ struct iOS16DetailView: View {
                         .padding(.horizontal, 24)
                     }
 
+                    // History button (Premium) for iOS 16
+                    NavigationLink(destination: RegionHistoryView(regionName: region.name, themeColor: statusThemeColor)) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(statusThemeColor.opacity(0.12))
+                                    .frame(width: 38, height: 38)
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(statusThemeColor)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Хронологія подій")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text("Переглянути історію загроз")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white.opacity(0.3))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.04))
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        )
+                        .padding(.horizontal, 24)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
+
                     Spacer()
 
                     // Close Button
