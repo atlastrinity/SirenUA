@@ -231,4 +231,29 @@ final class SirenUATests: XCTestCase {
             coordinate: CLLocationCoordinate2D(latitude: 50.0, longitude: 30.0)
         )
     }
+
+    func testThreatInfoDecodingWithNewAIFields() throws {
+        let json = """
+        {
+            "level": "medium",
+            "type": "shahed",
+            "detail": "БпЛА курсом на Київщину",
+            "since": "2026-07-07T12:00:00Z",
+            "confidence": 85,
+            "eta": "~1-2 год",
+            "is_predictive": true
+        }
+        """
+        
+        let data = Data(json.utf8)
+        let threat = try JSONDecoder().decode(ThreatInfo.self, from: data)
+        
+        XCTAssertEqual(threat.level, "medium")
+        XCTAssertEqual(threat.type, "shahed")
+        XCTAssertEqual(threat.detail, "БпЛА курсом на Київщину")
+        XCTAssertEqual(threat.since, "2026-07-07T12:00:00Z")
+        XCTAssertEqual(threat.confidence, 85)
+        XCTAssertEqual(threat.eta, "~1-2 год")
+        XCTAssertEqual(threat.is_predictive, true)
+    }
 }
