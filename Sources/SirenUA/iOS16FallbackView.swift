@@ -426,30 +426,37 @@ struct iOS16DetailView: View {
 
                             if !descriptionLines.isEmpty {
                                 Text(descriptionLines.joined(separator: "\n"))
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .lineSpacing(4)
+                                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .lineSpacing(6)
                             }
 
                             if !telemetryLines.isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
                                     ForEach(telemetryLines, id: \.self) { line in
                                         if let (label, value) = parseTelemetryLine(line) {
-                                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                            HStack(alignment: .firstTextBaseline, spacing: 8) {
                                                 Text(label + ":")
-                                                    .font(.system(size: 14, weight: .medium))
-                                                    .foregroundColor(.gray)
+                                                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                                                    .foregroundColor(.white.opacity(0.6))
                                                 Text(value)
-                                                    .font(.system(size: 14, weight: .bold))
+                                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
                                                     .foregroundColor(statusThemeColor)
                                             }
                                         } else {
                                             Text(line)
-                                                .font(.system(size: 14, weight: .bold))
+                                                .font(.system(size: 14, weight: .bold, design: .monospaced))
                                                 .foregroundColor(statusThemeColor)
                                         }
                                     }
                                 }
+                                .padding(12)
+                                .background(Color.black.opacity(0.25))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(statusThemeColor.opacity(0.3), lineWidth: 1)
+                                )
                                 .padding(.top, 4)
                             }
                         } else {
