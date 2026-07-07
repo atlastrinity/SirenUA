@@ -409,15 +409,29 @@ struct ContentView: View {
                 findNearestShelter()
             }
         }
-        .onAppear {
-            locationManager.requestPermission()
-            viewModel.markLastAlertAsViewed()
-            
-            // Автовіддалення карти через пару секунд, щоб показати інші області
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                centerMapOnAlerts()
-            }
-        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail"))) { notification in
+                    if let regionName = notification.userInfo?["regionName"] as? String {
+                        if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
+                            selectedRegionForDetail = region
+                        }
+                    }
+                }
+                .onAppear {
+                    locationManager.requestPermission()
+                    viewModel.markLastAlertAsViewed()
+
+                    if let pending = NotificationManager.shared.pendingTappedRegion {
+                        if let region = viewModel.alerts.first(where: { $0.name == pending }) {
+                            selectedRegionForDetail = region
+                        }
+                        NotificationManager.shared.pendingTappedRegion = nil
+                    }
+
+                    // Автовіддалення карти через пару секунд, щоб показати інші області
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        centerMapOnAlerts()
+                    }
+                }
     }
     
     @ViewBuilder

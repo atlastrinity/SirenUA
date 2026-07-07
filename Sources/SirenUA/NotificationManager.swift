@@ -15,6 +15,7 @@ struct PendingNotification {
     let interruptionLevel: UNNotificationInterruptionLevel
     let relevanceScore: Double
     let isCritical: Bool
+    let regionName: String
 }
 
 // MARK: - NotificationManager
@@ -23,7 +24,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     static let shared = NotificationManager()
 
-    private var audioPlayer: AVAudioPlayer?
+        /// Track the region name when user taps a push notification
+        var pendingTappedRegion: String? = nil
+
+        private var audioPlayer: AVAudioPlayer?
 
     /// Serial queue for notification delivery to prevent overlap
     private var notificationQueue: [PendingNotification] = []
@@ -140,14 +144,45 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 completionHandler([.banner, .badge, .list])
             } else {
                 if notification.request.content.sound != nil {
-                    self.lastPlayedTime = now
-                }
-                completionHandler([.banner, .sound, .badge, .list])
-            }
-        }
-    }
+                                    self.lastPlayedTime = now
+                                }
+                                completionHandler([.banner, .sound, .badge, .list])
+                            }
+                        }
+                    }
 
-    private var syncTask: Task<Void, Never>? = nil
+                    func userNotificationCenter(
+                        _ center: UNUserNotificationCenter,
+                        didReceive response: UNNotificationResponse,
+                        withCompletionHandler completionHandler: @escaping () -> Void
+                    ) {
+                        let userInfo = response.notification.request.content.userInfo
+
+                        var regionName: String? = nil
+                        if let reg = userInfo["region"] as? String {
+                            regionName = reg
+                        } else if let reg = userInfo["regionName"] as? String {
+                            regionName = reg
+                        } else if let reg = userInfo["aps"] as? [String: Any],
+                                  let custom = reg["custom_data"] as? [String: Any],
+                                  let region = custom["region"] as? String {
+                            regionName = region
+                        }
+
+                        if let regionName = regionName, !regionName.isEmpty {
+                            DispatchQueue.main.async {
+                                NotificationManager.shared.pendingTappedRegion = regionName
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("OpenRegionDetail"),
+                                    object: nil,
+                                    userInfo: ["regionName": regionName]
+                                )
+                            }
+                        }
+                        completionHandler()
+                    }
+
+                    private var syncTask: Task<Void, Never>? = nil
 
     func syncTopicSubscriptions() {
         DispatchQueue.main.async { [weak self] in
@@ -266,13 +301,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             }
 
             self.notificationQueue.append(PendingNotification(
-                title: title,
-                body: body,
-                soundName: playSoundForThis ? soundName : "",
-                interruptionLevel: interruptionLevel,
-                relevanceScore: relevanceScore,
-                isCritical: isCritical
-            ))
+                            title: title,
+                            body: body,
+                            soundName: playSoundForThis ? soundName : "",
+                            interruptionLevel: interruptionLevel,
+                            relevanceScore: relevanceScore,
+                            isCritical: isCritical,
+                            regionName: regionName
+                        ))
             self.processQueue()
         }
     }
@@ -283,10 +319,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let item = notificationQueue.removeFirst()
 
         let content       = UNMutableNotificationContent()
-        content.title     = item.title
-        content.body      = item.body
-        
-        // Interruption level for lock screen / Focus delivery
+                content.title     = item.title
+                content.body      = item.body
+                content.userInfo  = ["region": item.regionName]
+
+                // Interruption level for lock screen / Focus delivery
         content.interruptionLevel = item.interruptionLevel
         content.relevanceScore = item.relevanceScore
         

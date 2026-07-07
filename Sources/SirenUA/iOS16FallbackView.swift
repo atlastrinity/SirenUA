@@ -102,9 +102,23 @@ struct iOS16FallbackView: View {
                     iOS16DetailView(region: region)
                 }
             }
-            .onAppear {
-                viewModel.refreshAlerts()
-            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail"))) { notification in
+                            if let regionName = notification.userInfo?["regionName"] as? String {
+                                if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
+                                    selectedRegionForDetail = region
+                                }
+                            }
+                        }
+                        .onAppear {
+                            viewModel.refreshAlerts()
+
+                            if let pending = NotificationManager.shared.pendingTappedRegion {
+                                if let region = viewModel.alerts.first(where: { $0.name == pending }) {
+                                    selectedRegionForDetail = region
+                                }
+                                NotificationManager.shared.pendingTappedRegion = nil
+                            }
+                        }
         }
         .preferredColorScheme(.dark)
     }
