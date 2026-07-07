@@ -20,7 +20,6 @@ targets:
         SWIFT_VERSION: 5.0
         DEVELOPMENT_TEAM: "B7WVJ3B4B7"
         CODE_SIGNING_REQUIRED: "YES"
-        CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   SirenUATests:
