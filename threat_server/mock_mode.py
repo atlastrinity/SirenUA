@@ -94,13 +94,22 @@ class ThreatState:
         self.detail: Optional[str] = None
         self.since: Optional[str] = None
         self.eta: Optional[str] = None
+        self.confidence: Optional[int] = None  # 0-100% AI confidence
         self.is_predictive: bool = False
+        self.is_active: bool = False
+        self.is_test: bool = False
 
     def set_threat(self, level: str, threat_type: Optional[str] = None,
-                   detail: Optional[str] = None):
+                   detail: Optional[str] = None, confidence: Optional[int] = None,
+                   eta: Optional[str] = None, is_predictive: bool = False,
+                   is_test: bool = False):
         self.level = level
         self.threat_type = threat_type
         self.detail = detail
+        self.confidence = confidence
+        self.eta = eta
+        self.is_predictive = is_predictive
+        self.is_test = is_test
         if level != "none":
             self.since = datetime.now(timezone.utc).isoformat()
         else:
@@ -112,6 +121,11 @@ class ThreatState:
             "type": self.threat_type,
             "detail": self.detail,
             "since": self.since,
+            "confidence": self.confidence,
+            "eta": self.eta,
+            "is_predictive": self.is_predictive,
+            "is_active": self.is_active,
+            "is_test": self.is_test,
         }
 
     def clear(self):
@@ -119,7 +133,11 @@ class ThreatState:
         self.threat_type = None
         self.detail = None
         self.since = None
-
+        self.confidence = None
+        self.eta = None
+        self.is_predictive = False
+        self.is_active = False
+        self.is_test = False
 
 try:
     import firebase_admin
@@ -166,8 +184,72 @@ TOPIC_MAPPING = {
     "Чернігівська область": "region_chernihiv"
 }
 
-def send_fcm_notification(region: str, level: str, threat_type: Optional[str] = None, detail: Optional[str] = None, play_sound: bool = True):
-    """Надсилає Push-сповіщення у Firebase топік для відповідного регіону."""
+import asyncio
+
+fcm_queue = None
+fcm_worker_task = None
+
+async def fcm_queue_worker():
+    global fcm_queue
+    while True:
+        try:
+            item = await fcm_queue.get()
+            # Send the FCM notification synchronously in a thread pool so we do not block the event loop
+            await asyncio.to_thread(
+                _send_fcm_notification_sync,
+                item["region"],
+                item["level"],
+                item["threat_type"],
+                item["detail"],
+                item["play_sound"],
+                item["confidence"],
+                item["eta"],
+                item.get("is_official_alarm", False)
+            )
+            # Sleep 1.5 seconds between notifications to space out the sounds on user devices
+            await asyncio.sleep(1.5)
+            fcm_queue.task_done()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"⚠️ Помилка у воркері черги FCM: {e}")
+            await asyncio.sleep(1.0)
+
+async def start_fcm_worker():
+    global fcm_queue, fcm_worker_task
+    if fcm_queue is None:
+        fcm_queue = asyncio.Queue()
+    if fcm_worker_task is None:
+        fcm_worker_task = asyncio.create_task(fcm_queue_worker())
+        print("🚀 FCM Queue Worker успішно запущено.")
+
+def send_fcm_notification(region: str, level: str, threat_type: Optional[str] = None, detail: Optional[str] = None, play_sound: bool = True, confidence: Optional[int] = None, eta: Optional[str] = None, is_official_alarm: bool = False):
+    """Додає Push-сповіщення у чергу відправки FCM (якщо працює асинхронний режим) або відправляє синхронно."""
+    global fcm_queue
+    if fcm_queue is not None:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.call_soon_threadsafe(
+                fcm_queue.put_nowait,
+                {
+                    "region": region,
+                    "level": level,
+                    "threat_type": threat_type,
+                    "detail": detail,
+                    "play_sound": play_sound,
+                    "confidence": confidence,
+                    "eta": eta,
+                    "is_official_alarm": is_official_alarm
+                }
+            )
+            return
+        except RuntimeError:
+            pass # Event loop not running yet
+
+    _send_fcm_notification_sync(region, level, threat_type, detail, play_sound, confidence, eta, is_official_alarm)
+
+def _send_fcm_notification_sync(region: str, level: str, threat_type: Optional[str] = None, detail: Optional[str] = None, play_sound: bool = True, confidence: Optional[int] = None, eta: Optional[str] = None, is_official_alarm: bool = False):
+    """Надсилає Push-сповіщення у Firebase топік для відповідного регіону (синхронний метод)."""
     if not HAS_FIREBASE:
         return
 
@@ -176,35 +258,86 @@ def send_fcm_notification(region: str, level: str, threat_type: Optional[str] = 
         return
 
     if level == "none":
-        title = "🟢 Відбій тривоги!"
+        title = f"🟢 Відбій тривоги — {region}"
         body = f"Відбій повітряної тривоги в: {region}."
         sound = "vidbiy.wav"
+        is_critical = False
     else:
-        if threat_type == "mig31k":
-            title = "🚨 Авіаційна небезпека!"
-            sound = "siren.wav"
-        elif level in ("high", "critical"):
-            title = "🚨 Повітряна тривога!"
-            sound = "siren.wav"
-        else:
-            title = "⚠️ Попередження про загрозу"
-            sound = "warning.wav"
-            
-        body = detail if detail else f"Повітряна тривога в: {region}. Прямуйте в укриття!"
+        if threat_type is not None:
+            # It's a specific tactical threat warning (Shaheds, missiles, etc.)
+            type_desc = "Загроза"
+            if threat_type == "mig31k":
+                type_desc = "МіГ-31К"
+            elif threat_type == "shahed":
+                type_desc = "Шахеди"
+            elif threat_type == "ballistic":
+                type_desc = "Балістика"
+            elif threat_type == "cruise_missile":
+                type_desc = "Крилаті ракети"
 
-    # Створюємо повідомлення для топіку з налаштуваннями звуку для iOS (APNs)
-    # Для Critical Alerts (обхід беззвучного режиму) використовуємо CriticalSound
-    aps = messaging.Aps(badge=1)
+            title = f"⚠️ Загроза: {type_desc} — {region}"
+            sound = "warning.wav"
+            # Keep it critical if the region is already under an official alarm
+            # so the warning plays even if the device is muted/DND
+            is_critical = is_official_alarm
+        else:
+            # It's a general official alarm trigger (no specific threat type)
+            title = f"🚨 Повітряна тривога — {region}"
+            sound = "siren.wav"
+            is_critical = True
+            
+        body = detail if detail else f"Загроза в: {region}."
+        extra_info = []
+        if confidence is not None:
+            extra_info.append(f"Ймовірність: {confidence}%")
+        if eta:
+            extra_info.append(f"Час: {eta}")
+        if extra_info:
+            body += f" ({', '.join(extra_info)})"
+
+    # Створюємо Aps з interruption_level для коректного відображення на Lock Screen
     if play_sound:
-        critical_sound = messaging.CriticalSound(name=sound, critical=True, volume=1.0)
-        aps = messaging.Aps(sound=critical_sound, badge=1)
+        if is_critical:
+            critical_sound = messaging.CriticalSound(name=sound, critical=True, volume=1.0)
+        else:
+            critical_sound = messaging.CriticalSound(name=sound, critical=False, volume=0.8)
+        aps = messaging.Aps(
+            sound=critical_sound, 
+            badge=1, 
+            content_available=True, 
+            mutable_content=True,
+            custom_data={"interruption-level": "critical" if is_critical else "time-sensitive"}
+        )
+    else:
+        aps = messaging.Aps(
+            badge=1, 
+            content_available=True, 
+            mutable_content=True,
+            custom_data={"interruption-level": "critical" if is_critical else "time-sensitive"}
+        )
+
+    data_payload = {
+        "region": region,
+        "level": level,
+        "threat_type": threat_type or "",
+        "is_critical": str(is_critical).lower(),
+    }
+    if confidence is not None:
+        data_payload["confidence"] = str(confidence)
+    if eta:
+        data_payload["eta"] = eta
 
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
             body=body,
         ),
+        data=data_payload,
         apns=messaging.APNSConfig(
+            headers={
+                "apns-priority": "10",
+                "apns-push-type": "alert",
+            },
             payload=messaging.APNSPayload(aps=aps)
         ),
         topic=topic,
@@ -212,8 +345,9 @@ def send_fcm_notification(region: str, level: str, threat_type: Optional[str] = 
 
     try:
         response = messaging.send(message)
-        sound_status = "ЗІ ЗВУКОМ" if play_sound else "БЕЗ ЗВУКУ (ліміт 20с)"
-        print(f"🚀 FCM Push [{sound_status}] sent successfully for {region} (topic: {topic}), response: {response}")
+        sound_status = "ЗІ ЗВУКОМ" if play_sound else "БЕЗ ЗВУКУ"
+        priority = "CRITICAL" if is_critical else "NORMAL"
+        print(f"🚀 FCM Push [{sound_status}|{priority}] sent for {region} (topic: {topic}), confidence: {confidence}%, response: {response}")
     except Exception as e:
         print(f"⚠️ Помилка відправки FCM Push для {region}: {e}")
 
@@ -226,7 +360,6 @@ class MockThreatManager:
         self.last_sound_time: float = 0.0
         for region in ALL_REGIONS:
             self.threats[region] = ThreatState()
-        self.load_from_db()
 
     def save_to_db(self):
         db = get_db()
@@ -257,6 +390,10 @@ class MockThreatManager:
                             state.threat_type = data.get("type")
                             state.detail = data.get("detail")
                             state.since = data.get("since")
+                            state.confidence = data.get("confidence")
+                            state.eta = data.get("eta")
+                            state.is_predictive = data.get("is_predictive", False)
+                            state.is_active = data.get("is_active", False)
                     print("💾 Завантажено збережений стан загроз з Firebase Firestore")
                 else:
                     print("⚠️ Документ загроз у Firebase не знайдено.")
@@ -300,22 +437,33 @@ class MockThreatManager:
                         state.threat_type = data.get("type")
                         state.detail = data.get("detail")
                         state.since = data.get("since")
+                        state.confidence = data.get("confidence")
+                        state.eta = data.get("eta")
+                        state.is_predictive = data.get("is_predictive", False)
+                        state.is_active = data.get("is_active", False)
                 print(f"💾 Завантажено збережений стан загроз з {filepath}")
             except Exception as e:
                 print(f"⚠️ Помилка завантаження стану загроз: {e}")
 
     def set_threat(self, region: str, level: str,
                    threat_type: Optional[str] = None,
-                   detail: Optional[str] = None) -> bool:
+                   detail: Optional[str] = None,
+                   confidence: Optional[int] = None,
+                   eta: Optional[str] = None,
+                   is_predictive: bool = False,
+                   is_test: bool = False,
+                   telemetry: dict = None) -> bool:
         if region not in self.threats:
             return False
-            
+
         old_state = self.threats[region]
         has_changed = (old_state.level != level or 
                        old_state.threat_type != threat_type or 
-                       old_state.detail != detail)
-                       
-        self.threats[region].set_threat(level, threat_type, detail)
+                       old_state.detail != detail or
+                       old_state.confidence != confidence or
+                       old_state.is_test != is_test)
+
+        self.threats[region].set_threat(level, threat_type, detail, confidence, eta, is_predictive, is_test)
         
         if has_changed:
             import time
@@ -326,14 +474,14 @@ class MockThreatManager:
             else:
                 self.last_sound_time = now
                 
-            send_fcm_notification(region, level, threat_type, detail, play_sound=play_sound)
+            send_fcm_notification(region, level, threat_type, detail, play_sound=play_sound, confidence=confidence, eta=eta, is_official_alarm=self.threats[region].is_active)
             self.save_to_db()
             if hasattr(self, 'on_change'):
-                self.on_change(region, self.threats[region])
+                self.on_change(region, self.threats[region], telemetry=telemetry)
             
         return True
 
-    def clear_threat(self, region: str) -> bool:
+    def clear_threat(self, region: str, clearing_telemetry: dict = None) -> bool:
         if region not in self.threats:
             return False
         old_state = self.threats[region]
@@ -351,16 +499,24 @@ class MockThreatManager:
             send_fcm_notification(region, "none", play_sound=play_sound)
             self.save_to_db()
             if hasattr(self, 'on_change'):
-                self.on_change(region, self.threats[region])
+                self.on_change(region, self.threats[region], telemetry=None)
         return True
 
-    def clear_all(self):
+    def clear_all(self, only_test: bool = False):
+        any_changed = False
         for region, state in self.threats.items():
+            if only_test and not state.is_test:
+                continue
             has_changed = (state.level != "none")
-            state.clear()
             if has_changed:
+                state.clear()
                 send_fcm_notification(region, "none")
-        self.save_to_file()
+                any_changed = True
+                if hasattr(self, 'on_change'):
+                    self.on_change(region, state, telemetry=None)
+        if any_changed:
+            self.save_to_db()
+            self.save_to_file()
 
     def get_all_threats(self) -> dict:
         return {
@@ -368,47 +524,74 @@ class MockThreatManager:
             for region, state in self.threats.items()
         }
 
+    def set_alarm_active(self, region: str, is_active: bool) -> bool:
+        if region not in self.threats:
+            return False
+        
+        old_active = self.threats[region].is_active
+        if old_active != is_active:
+            self.threats[region].is_active = is_active
+            
+            import time
+            now = time.time()
+            play_sound = True
+            if now - self.last_sound_time < 10.0:
+                play_sound = False
+            else:
+                self.last_sound_time = now
+            
+            # Send Push Notification for official Alarm / Off
+            detail = f"Офіційне повідомлення про повітряну тривогу в: {region}!" if is_active else f"Відбій повітряної тривоги в: {region}."
+            send_fcm_notification(
+                region=region,
+                level="high" if is_active else "none",
+                threat_type=None,
+                detail=detail,
+                play_sound=play_sound,
+                is_official_alarm=is_active
+            )
+            
+            self.save_to_db()
+            if hasattr(self, 'on_change'):
+                self.on_change(region, self.threats[region], telemetry=None)
+            return True
+        return False
+
     def set_scenario(self, scenario: str):
-        """Встановлює попередньо визначений сценарій для тестування."""
-        self.clear_all()
-
+        """Встановлює попередньо визначений сценарій для тестування з інтелектуальним оновленням та чергою."""
+        new_threats = {}
         if scenario == "mig_takeoff":
-            # Зліт МіГ-31К — загроза для всієї України
-            for region in ALL_REGIONS:
-                self.set_threat(region, "high", "mig31k",
-                                "Зліт МіГ-31К з аеродрому Сольці")
-
+            for r in ALL_REGIONS:
+                new_threats[r] = ("high", "mig31k", "Зліт МіГ-31К з аеродрому Сольці")
         elif scenario == "shaheds_south":
-            # Шахеди з півдня
             south_regions = [
                 "Одеська область", "Миколаївська область",
                 "Херсонська область", "Запорізька область",
                 "Дніпропетровська область", "Кіровоградська область",
             ]
-            for region in south_regions:
-                self.set_threat(region, "medium", "shahed",
-                                "Шахеди в напрямку з півдня")
-
+            for r in south_regions:
+                new_threats[r] = ("medium", "shahed", "Шахеди в напрямку з півдня")
         elif scenario == "cruise_missiles_west":
-            # Крилаті ракети на захід
             west_regions = [
                 "Київська область", "м. Київ", "Житомирська область",
                 "Хмельницька область", "Вінницька область",
                 "Львівська область", "Рівненська область",
             ]
-            for region in west_regions:
-                self.set_threat(region, "high", "cruise_missile",
-                                "Крилаті ракети Х-101 в напрямку заходу")
-
+            for r in west_regions:
+                new_threats[r] = ("high", "cruise_missile", "Крилаті ракети Х-101 в напрямку заходу")
         elif scenario == "massive_attack":
-            # Масований удар — критична загроза для всіх
-            for region in ALL_REGIONS:
-                self.set_threat(region, "critical", "tu95",
-                                "Масований ракетний удар! Ту-95МС пуски крилатих ракет")
-
+            for r in ALL_REGIONS:
+                new_threats[r] = ("critical", "tu95", "Масований ракетний удар! Ту-95МС пуски крилатих ракет")
         elif scenario == "ballistic_kharkiv":
-            # Балістика на Харків
-            self.set_threat("Харківська область", "critical", "ballistic",
-                            "Балістична загроза! Іскандер-М")
-            self.set_threat("Сумська область", "medium", "ballistic",
-                            "Можлива балістична загроза")
+            new_threats["Харківська область"] = ("critical", "ballistic", "Балістична загроза! Іскандер-М")
+            new_threats["Сумська область"] = ("medium", "ballistic", "Можлива балістична загроза")
+
+        for region in ALL_REGIONS:
+            old_state = self.threats[region]
+            if region in new_threats:
+                level, t_type, detail = new_threats[region]
+                if old_state.level != level or old_state.threat_type != t_type or old_state.detail != detail:
+                    self.set_threat(region, level, t_type, detail)
+            else:
+                if old_state.level != "none":
+                    self.clear_threat(region)
