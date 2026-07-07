@@ -394,6 +394,21 @@ struct ContentView: View {
                 }
             }
         }
+        .onChange(of: transportType) { _, _ in
+            if selectedShelter != nil || route != nil {
+                findNearestShelter()
+            }
+        }
+        .onChange(of: walkingSearchRadius) { _, _ in
+            if selectedShelter != nil || route != nil {
+                findNearestShelter()
+            }
+        }
+        .onChange(of: drivingSearchRadius) { _, _ in
+            if selectedShelter != nil || route != nil {
+                findNearestShelter()
+            }
+        }
         .onAppear {
             locationManager.requestPermission()
             viewModel.markLastAlertAsViewed()
@@ -628,6 +643,7 @@ struct ContentView: View {
                     route = nil
                     routeErrorMessage = nil
                     isCalculatingRoute = false
+                    calculateRoute(to: closest)
 
                     withAnimation(.easeInOut(duration: 1.0)) {
                         cameraPosition = .region(
@@ -739,6 +755,7 @@ struct ContentView: View {
                 route = nil
                 routeErrorMessage = nil
                 isCalculatingRoute = false
+                calculateRoute(to: closestItem)
 
                 withAnimation(.easeInOut(duration: 1.0)) {
                     cameraPosition = .region(
