@@ -190,7 +190,7 @@ struct AlertRegionDetailView: View {
                     }
                     
                     // AI Confidence & ETA Section (Premium threat intelligence)
-                    if isThreatActive, let confidence = region.threatConfidence {
+                    if let confidence = region.threatConfidence {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Image(systemName: "cpu.fill")

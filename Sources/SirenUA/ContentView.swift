@@ -547,7 +547,7 @@ struct ContentView: View {
                             }
                             
                             // Show confidence badge for threat zones
-                            if viewModel.isPremium, !alert.isActive, alert.threatLevel != nil {
+                            if viewModel.isPremium, alert.threatLevel != nil {
                                 HStack(spacing: 3) {
                                     if let conf = alert.threatConfidence {
                                         Text("⚙️ \(conf)%")
@@ -572,7 +572,7 @@ struct ContentView: View {
                         )
                     }
                 } label: {
-                    Text(alert.name)
+                    EmptyView()
                 }
             }
         }
