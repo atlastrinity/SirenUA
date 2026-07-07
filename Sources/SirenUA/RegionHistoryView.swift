@@ -196,57 +196,68 @@ struct RegionHistoryView: View {
     // MARK: - Event Card
     
     private func eventCard(_ event: RegionHistoryEvent) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Top row: type icon + name + time
-            HStack(spacing: 8) {
-                Text(event.typeIcon)
-                    .font(.system(size: 16))
-                
-                Text(event.typeName)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(levelColor(event.threat_level))
-                
-                Spacer()
-                
-                Text(event.displayTime)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.4))
-            }
-            
-            // Detail text
-            if let detail = event.detail, !detail.isEmpty {
-                Text(detail)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            
-            // Bottom badges
-            HStack(spacing: 8) {
-                // Level badge
-                Text(levelLabel(event.threat_level).uppercased())
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(levelColor(event.threat_level))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(levelColor(event.threat_level).opacity(0.12))
-                    .clipShape(Capsule())
-                
-                // Confidence badge
-                if let conf = event.confidence {
-                    HStack(spacing: 3) {
-                        Image(systemName: "shield.checkered")
-                            .font(.system(size: 8))
-                        Text("\(conf)%")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundStyle(.white.opacity(0.5))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(.white.opacity(0.06))
-                    .clipShape(Capsule())
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                // Top row: type icon + name + time
+                HStack(spacing: 8) {
+                    Text(event.typeIcon)
+                        .font(.system(size: 16))
+                    
+                    Text(event.typeName)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(levelColor(event.threat_level))
+                    
+                    Spacer()
+                    
+                    Text(event.displayTime)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
+                
+                // Detail text
+                if let detail = event.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                // Bottom badges
+                HStack(spacing: 8) {
+                    // Level badge
+                    Text(levelLabel(event.threat_level).uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(levelColor(event.threat_level))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(levelColor(event.threat_level).opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+            
+            // Circular probability ring on the right (if confidence is available)
+            if let confidence = event.confidence {
+                ZStack {
+                    Circle()
+                        .stroke(Color.white.opacity(0.08), lineWidth: 3)
+                        .frame(width: 44, height: 44)
+                    
+                    Circle()
+                        .trim(from: 0, to: CGFloat(confidence) / 100.0)
+                        .stroke(
+                            levelColor(event.threat_level),
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                        )
+                        .frame(width: 44, height: 44)
+                        .rotationEffect(.degrees(-90))
+                    
+                    Text("\(confidence)%")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(levelColor(event.threat_level))
+                }
+                .frame(width: 44)
+                .padding(.leading, 4)
             }
         }
         .padding(14)
