@@ -222,47 +222,54 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     // MARK: - Public API
 
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
-        let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
-        
-        // Use .critical if entitled, otherwise .timeSensitive (bypasses Focus but not full DND)
-        let level: UNNotificationInterruptionLevel = hasCriticalAlerts ? .critical : .timeSensitive
-        
-        enqueue(title: title, body: body, soundName: "siren.wav", regionName: regionName,
-                interruptionLevel: level, relevanceScore: 1.0, isCritical: hasCriticalAlerts)
-        
-        // Also fire through CriticalAlertManager for redundant lock-screen delivery
-        if hasCriticalAlerts, #available(iOS 16.0, *) {
-            CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
-        }
-    }
+            let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
 
-    func sendThreatNotification(for regionName: String, title: String, body: String,
-                                confidence: Int = 75, isCritical: Bool = false) {
-        let level: UNNotificationInterruptionLevel
-        let relevance: Double
-        
-        if isCritical || confidence >= 85 {
-            level = .timeSensitive  // Pierces Focus, but not DND without entitlement
-            relevance = 0.8
-        } else if confidence >= 60 {
-            level = .timeSensitive
-            relevance = 0.6
-        } else {
-            level = .active
-            relevance = 0.4
-        }
-        
-        let soundName = isCritical ? "siren.wav" : "warning.wav"
-        enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: level, relevanceScore: relevance, isCritical: isCritical)
-    }
+            // Use .critical if entitled, otherwise .timeSensitive (bypasses Focus but not full DND)
+            let level: UNNotificationInterruptionLevel = hasCriticalAlerts ? .critical : .timeSensitive
 
-    func sendClearNotification(for regionName: String) {
-        let title = "🟢 Відбій тривоги!"
-        let body  = "Відбій повітряної тривоги в: \(regionName)."
-        enqueue(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName,
-                interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
-    }
+            let fullTitle = "🚨 Повітряна тривога — \(regionName)"
+            enqueue(title: fullTitle, body: body, soundName: "siren.wav", regionName: regionName,
+                    interruptionLevel: level, relevanceScore: 1.0, isCritical: hasCriticalAlerts)
+
+            // Also fire through CriticalAlertManager for redundant lock-screen delivery
+            if hasCriticalAlerts, #available(iOS 16.0, *) {
+                CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
+            }
+        }
+
+        func sendThreatNotification(for regionName: String, title: String, body: String,
+                                    confidence: Int = 75, isCritical: Bool = false) {
+            let level: UNNotificationInterruptionLevel
+            let relevance: Double
+
+            if isCritical || confidence >= 85 {
+                level = .timeSensitive  // Pierces Focus, but not DND without entitlement
+                relevance = 0.8
+            } else if confidence >= 60 {
+                level = .timeSensitive
+                relevance = 0.6
+            } else {
+                level = .active
+                relevance = 0.4
+            }
+
+            let soundName = isCritical ? "siren.wav" : "warning.wav"
+
+            var fullTitle = title
+            if !title.contains(regionName) {
+                fullTitle = "\(title) — \(regionName)"
+            }
+
+            enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
+                    interruptionLevel: level, relevanceScore: relevance, isCritical: isCritical)
+        }
+
+        func sendClearNotification(for regionName: String) {
+            let title = "🟢 Відбій тривоги — \(regionName)"
+            let body  = "Відбій повітряної тривоги в: \(regionName)."
+            enqueue(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName,
+                    interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
+        }
 
     // MARK: - Private helpers
 
