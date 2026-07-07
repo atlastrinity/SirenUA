@@ -193,14 +193,35 @@ struct SettingsView: View {
             Color(red: 0.06, green: 0.06, blue: 0.10)
                 .ignoresSafeArea()
             
-            // Subtle radial glow
-            RadialGradient(
-                colors: [Color.siBlue.opacity(0.08), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 400
-            )
+            // Top glow (Blue mixed with Yellow/Gold, transitioning to transparent)
+            VStack {
+                LinearGradient(
+                    colors: [
+                        Color.siBlue.opacity(0.22),
+                        Color.siGold.opacity(0.10),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 260)
+                Spacer()
+            }
             .ignoresSafeArea()
+            .allowsHitTesting(false)
+            
+            // Bottom glow (Blue transitioning to transparent)
+            VStack {
+                Spacer()
+                LinearGradient(
+                    colors: [.clear, Color.siBlue.opacity(0.20)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 260)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
         }
     }
 
@@ -299,14 +320,14 @@ struct SettingsView: View {
                 title: "Автооновлення даних",
                 subtitle: "Фоновий моніторинг статусу",
                 icon: "arrow.clockwise.circle.fill",
-                iconColor: .siGreen,
+                iconColor: .siBlue,
                 isOn: $autoRefreshEnabled
             )
         }
     }
 
     private var mapCard: some View {
-        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .siGreen) {
+        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .siBlue) {
             VStack(alignment: .leading, spacing: 8) {
                 Label {
                     Text("Тип карти")
@@ -314,7 +335,7 @@ struct SettingsView: View {
                         .foregroundColor(.white.opacity(0.7))
                 } icon: {
                     Image(systemName: "square.3.layers.3d")
-                        .foregroundColor(.siGreen)
+                        .foregroundColor(.siBlue)
                         .font(.system(size: 12))
                 }
 
@@ -332,7 +353,7 @@ struct SettingsView: View {
             radiusRow(
                 title: "Радіус пошуку пішки",
                 icon: "figure.walk",
-                iconColor: .siGreen,
+                iconColor: .siBlue,
                 value: $walkingSearchRadius,
                 range: 0.5...3.0,
                 step: 0.5,
@@ -342,7 +363,7 @@ struct SettingsView: View {
             radiusRow(
                 title: "Радіус пошуку авто",
                 icon: "car.fill",
-                iconColor: .siOrange,
+                iconColor: .siGold,
                 value: $drivingSearchRadius,
                 range: 1.0...20.0,
                 step: 1.0,
@@ -388,7 +409,7 @@ struct SettingsView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundStyle(
-                            LinearGradient(colors: [.siGold, .siOrange], startPoint: .top, endPoint: .bottom)
+                            LinearGradient(colors: [.siBlue, .siGold], startPoint: .top, endPoint: .bottom)
                         )
                         .font(.title3)
                     VStack(alignment: .leading, spacing: 2) {
@@ -434,7 +455,7 @@ struct SettingsView: View {
                 .foregroundColor(.white.opacity(0.6))
 
             VStack(spacing: 8) {
-                premiumFeatureRow(icon: "antenna.radiowaves.left.and.right", text: "Моніторинг загроз (Сервер)", color: .siPurple)
+                premiumFeatureRow(icon: "antenna.radiowaves.left.and.right", text: "Моніторинг загроз (Сервер)", color: .siBlue)
                 premiumFeatureRow(icon: "eye.fill",                          text: "Деталізація загроз",         color: .siGold)
             }
 
@@ -461,14 +482,14 @@ struct SettingsView: View {
                     .padding(.vertical, 14)
                     .background(
                         LinearGradient(
-                            colors: [.siGold, .siOrange],
+                            colors: [.siBlue, .siGold],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .foregroundColor(.black)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: Color.siGold.opacity(0.35), radius: 10, x: 0, y: 4)
+                    .shadow(color: Color.siBlue.opacity(0.3), radius: 10, x: 0, y: 4)
                 }
                 .disabled(isPurchasing)
 
@@ -504,12 +525,12 @@ struct SettingsView: View {
     }
 
     private var regionsCard: some View {
-        SettingsCard(title: "Відслідковувані регіони", icon: "map.circle.fill", iconColor: .siOrange) {
+        SettingsCard(title: "Відслідковувані регіони", icon: "map.circle.fill", iconColor: .siGold) {
             StyledToggleRow(
                 title: "Усі регіони України",
                 subtitle: "Отримувати тривоги по всій країні",
                 icon: "globe.europe.africa.fill",
-                iconColor: .siOrange,
+                iconColor: .siGold,
                 isOn: Binding(
                     get: { allRegionsTracked },
                     set: { newVal in
@@ -536,7 +557,7 @@ struct SettingsView: View {
             }) {
                 HStack {
                     Image(systemName: isRegionsExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
-                        .foregroundColor(.siOrange)
+                        .foregroundColor(.siGold)
                         .font(.system(size: 16))
                     Text("Вибрати регіони вручну")
                         .font(.system(size: 14, weight: .medium))
@@ -549,7 +570,7 @@ struct SettingsView: View {
                             .foregroundColor(.black)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Color.siOrange)
+                            .background(Color.siGold)
                             .clipShape(Capsule())
                     }
                 }
@@ -573,7 +594,7 @@ struct SettingsView: View {
                                 }
                             ))
                             .labelsHidden()
-                            .tint(.siOrange)
+                            .tint(.siGold)
                         }
                         .padding(.vertical, 9)
                         .padding(.horizontal, 4)
@@ -590,7 +611,7 @@ struct SettingsView: View {
     }
 
     private var diagnosticsCard: some View {
-        SettingsCard(title: "Діагностика з'єднання", icon: "wifi.router.fill", iconColor: .siPurple) {
+        SettingsCard(title: "Діагностика з'єднання", icon: "wifi.router.fill", iconColor: .siBlue) {
             VStack(spacing: 12) {
                 ServerStatusRow(
                     name: "Основний сервер тривог",
@@ -639,13 +660,13 @@ struct SettingsView: View {
                     }) {
                         Label("Оновити статус", systemImage: "arrow.clockwise")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.siPurple)
+                            .foregroundColor(.siBlue)
                             .padding(.vertical, 8)
                             .padding(.horizontal, 14)
-                            .background(Color.siPurple.opacity(0.12))
+                            .background(Color.siBlue.opacity(0.12))
                             .clipShape(Capsule())
                             .overlay(
-                                Capsule().stroke(Color.siPurple.opacity(0.3), lineWidth: 1)
+                                Capsule().stroke(Color.siBlue.opacity(0.3), lineWidth: 1)
                             )
                     }
                 }
@@ -663,7 +684,7 @@ struct SettingsView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.siBlue.opacity(0.3), Color.siPurple.opacity(0.2)],
+                                colors: [Color.siBlue.opacity(0.3), Color.siGold.opacity(0.2)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -673,7 +694,7 @@ struct SettingsView: View {
                         .font(.system(size: 26))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.siBlue, .siPurple],
+                                colors: [.siBlue, .siGold],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -701,18 +722,33 @@ struct SettingsView: View {
         .padding(18)
         .background(
             ZStack {
-                Color.white.opacity(0.03)
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(.ultraThinMaterial)
+                
                 LinearGradient(
-                    colors: [Color.siBlue.opacity(0.08), Color.siPurple.opacity(0.05)],
+                    colors: [
+                        Color.siBlue.opacity(0.06),
+                        Color.siGold.opacity(0.03)
+                    ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
             }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.siBlue.opacity(0.18),
+                            Color.siGold.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
         .padding(.bottom, 8)
     }
@@ -765,12 +801,35 @@ struct SettingsCard<Content: View>: View {
             }
             .padding(16)
         }
-        .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.015))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(.ultraThinMaterial)
+                
+                LinearGradient(
+                    colors: [
+                        Color.siBlue.opacity(0.06),
+                        Color.siGold.opacity(0.03)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.siBlue.opacity(0.18),
+                            Color.siGold.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
         // Accent left bar
         .overlay(
