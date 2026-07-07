@@ -33,6 +33,8 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: "B7WVJ3B4B7"
+        CODE_SIGN_STYLE: Automatic
 
 packages:
   Firebase:

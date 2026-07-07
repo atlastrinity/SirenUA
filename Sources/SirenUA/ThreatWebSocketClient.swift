@@ -30,81 +30,89 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
     private init() {}
 
     func connect(to urlString: String) {
-        // Prevent redundant connections if already connected or connecting to the same URL
-        if (connectionState == .connected || connectionState == .connecting) && serverURLString == urlString {
-            wsLogger.info("Already connected or connecting to \(urlString), skipping connection request.")
-            return
-        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Prevent redundant connections if already connected or connecting to the same URL
+            if (self.connectionState == .connected || self.connectionState == .connecting) && self.serverURLString == urlString {
+                wsLogger.info("Already connected or connecting to \(urlString), skipping connection request.")
+                return
+            }
 
-        // Cancel existing task to prevent duplicates or resource leaks
-        webSocketTask?.cancel(with: .goingAway, reason: nil)
-        
-        let wsURLString = urlString.replacingOccurrences(of: "http", with: "ws")
-        let fullURLString = wsURLString.hasSuffix("/") ? "\(wsURLString)ws" : "\(wsURLString)/ws"
-        
-        guard let url = URL(string: fullURLString) else {
-            wsLogger.error("Invalid WebSocket URL")
-            return
-        }
-        self.serverURLString = urlString
-        self.isIntentionalDisconnect = false
-        
-        wsLogger.info("Connecting to WebSocket: \(url.absoluteString)")
-        DispatchQueue.main.async {
+            // Cancel existing task to prevent duplicates or resource leaks
+            self.webSocketTask?.cancel(with: .goingAway, reason: nil)
+            
+            let wsURLString = urlString.replacingOccurrences(of: "http", with: "ws")
+            let fullURLString = wsURLString.hasSuffix("/") ? "\(wsURLString)ws" : "\(wsURLString)/ws"
+            
+            guard let url = URL(string: fullURLString) else {
+                wsLogger.error("Invalid WebSocket URL")
+                return
+            }
+            self.serverURLString = urlString
+            self.isIntentionalDisconnect = false
+            
+            wsLogger.info("Connecting to WebSocket: \(url.absoluteString)")
             self.connectionState = .connecting
+            
+            let request = URLRequest(url: url)
+            let task = self.session.webSocketTask(with: request)
+            self.webSocketTask = task
+            task.resume()
+            
+            // Reset retry count on manual connection request
+            if self.retryCount > self.maxRetries {
+                self.retryCount = 0
+            }
+            
+            self.receiveMessage()
+            self.startPingTimer(for: task)
         }
-        
-        let request = URLRequest(url: url)
-        let task = session.webSocketTask(with: request)
-        self.webSocketTask = task
-        task.resume()
-        
-        // Reset retry count on manual connection request
-        if retryCount > maxRetries {
-            retryCount = 0
-        }
-        
-        receiveMessage()
-        startPingTimer(for: task)
     }
 
     func disconnect() {
-        isIntentionalDisconnect = true
-        webSocketTask?.cancel(with: .goingAway, reason: nil)
-        webSocketTask = nil
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isIntentionalDisconnect = true
+            self.webSocketTask?.cancel(with: .goingAway, reason: nil)
+            self.webSocketTask = nil
             self.connectionState = .disconnected
         }
     }
 
     func reconnect() {
-        guard let url = serverURLString else { return }
-        retryCount = 0
-        connect(to: url)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard let url = self.serverURLString else { return }
+            self.retryCount = 0
+            self.connect(to: url)
+        }
     }
 
     private func receiveMessage() {
         webSocketTask?.receive { [weak self] result in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success(let message):
-                switch message {
-                case .string(let text):
-                    self.handleMessage(text)
-                case .data(let data):
-                    if let text = String(data: data, encoding: .utf8) {
-                        self.handleMessage(text)
-                    }
-                @unknown default:
-                    break
-                }
-                // Continue listening
-                self.receiveMessage()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
                 
-            case .failure(let error):
-                wsLogger.error("WebSocket receiving error: \(error.localizedDescription)")
-                self.handleDisconnection()
+                switch result {
+                case .success(let message):
+                    switch message {
+                    case .string(let text):
+                        self.handleMessage(text)
+                    case .data(let data):
+                        if let text = String(data: data, encoding: .utf8) {
+                            self.handleMessage(text)
+                        }
+                    @unknown default:
+                        break
+                    }
+                    // Continue listening
+                    self.receiveMessage()
+                    
+                case .failure(let error):
+                    wsLogger.error("WebSocket receiving error: \(error.localizedDescription)")
+                    self.handleDisconnection()
+                }
             }
         }
     }
@@ -123,11 +131,9 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                     let threatData = try JSONSerialization.data(withJSONObject: threatsDict, options: [])
                     let decodedThreats = try decoder.decode([String: ThreatInfo].self, from: threatData)
                     
-                    DispatchQueue.main.async {
-                        self.connectionState = .connected
-                        self.retryCount = 0 // Reset retries on successful connection
-                        self.events.send(.initialState(decodedThreats))
-                    }
+                    self.connectionState = .connected
+                    self.retryCount = 0 // Reset retries on successful connection
+                    self.events.send(.initialState(decodedThreats))
                 }
             } else if type == "threat_update" {
                 if let region = json?["region"] as? String,
@@ -145,14 +151,12 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                     let threat = ThreatInfo(level: level, type: threatType, detail: detail, since: since,
                                             confidence: confidence, eta: eta, is_predictive: isPredictive, is_active: isActive)
                     
-                    DispatchQueue.main.async {
-                        // Fallback connection state updates if initial_state was somehow missed
-                        if self.connectionState != .connected {
-                            self.connectionState = .connected
-                            self.retryCount = 0
-                        }
-                        self.events.send(.threatUpdate(region: region, threat: threat))
+                    // Fallback connection state updates if initial_state was somehow missed
+                    if self.connectionState != .connected {
+                        self.connectionState = .connected
+                        self.retryCount = 0
                     }
+                    self.events.send(.threatUpdate(region: region, threat: threat))
                 }
             }
         } catch {
@@ -161,9 +165,7 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
     }
 
     private func handleDisconnection() {
-        DispatchQueue.main.async {
-            self.connectionState = .disconnected
-        }
+        self.connectionState = .disconnected
         
         guard !isIntentionalDisconnect else { return }
         
@@ -173,26 +175,32 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
         wsLogger.info("Reconnecting (attempt \(self.retryCount)) in \(delay) seconds...")
         
         DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self = self, !self.isIntentionalDisconnect else { return }
-            if let serverURL = self.serverURLString {
-                self.connect(to: serverURL)
+            DispatchQueue.main.async {
+                guard let self = self, !self.isIntentionalDisconnect else { return }
+                if let serverURL = self.serverURLString {
+                    self.connect(to: serverURL)
+                }
             }
         }
     }
     
     private func startPingTimer(for task: URLSessionWebSocketTask) {
         DispatchQueue.global().asyncAfter(deadline: .now() + 10.0) { [weak self] in
-            guard let self = self else { return }
-            // Verify that the task hasn't changed (reconnected) and we are still connected
-            guard self.webSocketTask === task, self.connectionState == .connected else { return }
-            
-            task.send(.string("ping")) { [weak self] error in
-                guard let self = self, self.webSocketTask === task else { return }
-                if let error = error {
-                    wsLogger.error("Ping failed: \(error.localizedDescription)")
-                    self.handleDisconnection()
-                } else {
-                    self.startPingTimer(for: task)
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                // Verify that the task hasn't changed (reconnected) and we are still connected
+                guard self.webSocketTask === task, self.connectionState == .connected else { return }
+                
+                task.send(.string("ping")) { [weak self] error in
+                    DispatchQueue.main.async {
+                        guard let self = self, self.webSocketTask === task else { return }
+                        if let error = error {
+                            wsLogger.error("Ping failed: \(error.localizedDescription)")
+                            self.handleDisconnection()
+                        } else {
+                            self.startPingTimer(for: task)
+                        }
+                    }
                 }
             }
         }
