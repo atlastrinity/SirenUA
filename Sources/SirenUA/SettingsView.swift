@@ -30,12 +30,13 @@ struct SettingsView: View {
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
 
     @EnvironmentObject var storeManager: StoreKitManager
+    @StateObject private var wsClient = ThreatWebSocketClient.shared
     @State private var isPurchasing     = false
     @State private var isRegionsExpanded = false
 
     enum ServerStatus: Equatable {
         case checking
-        case online(pingMs: Int)
+        case online(label: String)
         case offline(error: String)
     }
 
@@ -98,7 +99,7 @@ struct SettingsView: View {
             let (_, response) = try await URLSession.shared.data(for: request)
             let ms = Int(Date().timeIntervalSince(start) * 1000)
             if let http = response as? HTTPURLResponse, (200...399).contains(http.statusCode) {
-                return .online(pingMs: ms)
+                return .online(label: "\(ms) ms")
             }
             return .offline(error: "HTTP помилка")
         } catch {
@@ -579,6 +580,16 @@ struct SettingsView: View {
                     status: threatsServerStatus
                 )
 
+                if storeManager.isPremium {
+                    Divider().background(Color.white.opacity(0.06))
+
+                    ServerStatusRow(
+                        name: "ШІ-потік загроз (WebSocket)",
+                        url: "ws://sirenua-threatserver.onrender.com/ws",
+                        status: webSocketServerStatus
+                    )
+                }
+
                 HStack {
                     Spacer()
                     Button(action: {
@@ -601,6 +612,17 @@ struct SettingsView: View {
                 }
                 .padding(.top, 4)
             }
+        }
+    }
+
+    private var webSocketServerStatus: ServerStatus {
+        switch wsClient.connectionState {
+        case .disconnected:
+            return .offline(error: "Відключено")
+        case .connecting:
+            return .checking
+        case .connected:
+            return .online(label: "Активне")
         }
     }
 
@@ -844,13 +866,13 @@ struct ServerStatusRow: View {
             .background(Color.white.opacity(0.05))
             .clipShape(Capsule())
 
-        case .online(let pingMs):
+        case .online(let label):
             HStack(spacing: 5) {
                 Circle()
                     .fill(Color(red: 0.18, green: 0.80, blue: 0.55))
                     .frame(width: 7, height: 7)
                     .shadow(color: Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.7), radius: 4)
-                Text("\(pingMs) ms")
+                Text(label)
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundColor(Color(red: 0.18, green: 0.80, blue: 0.55))
             }
