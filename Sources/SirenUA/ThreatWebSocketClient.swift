@@ -71,6 +71,12 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
         }
     }
 
+    func reconnect() {
+        guard let url = serverURLString else { return }
+        retryCount = 0
+        connect(to: url)
+    }
+
     private func receiveMessage() {
         webSocketTask?.receive { [weak self] result in
             guard let self = self else { return }

@@ -651,6 +651,9 @@ struct SettingsView: View {
                         threatsServerStatus = .checking
                         geminiServerStatus  = .checking
                         webSocketServerStatus = .checking
+                        if storeManager.isPremium {
+                            wsClient.reconnect()
+                        }
                         Task { await checkServerStatus() }
                     }) {
                         Label("Оновити статус", systemImage: "arrow.clockwise")
