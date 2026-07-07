@@ -39,10 +39,9 @@ struct SettingsView: View {
         case online(label: String)
         case offline(error: String)
     }
-
     @State private var alertsServerStatus:  ServerStatus = .checking
     @State private var threatsServerStatus: ServerStatus = .checking
-
+    @State private var geminiServerStatus:  ServerStatus = .checking
     // MARK: Region list
     private let allRegionsList = [
         "Вінницька область",    "Волинська область",       "Дніпропетровська область",
@@ -81,12 +80,47 @@ struct SettingsView: View {
     private func checkServerStatus() async {
         alertsServerStatus  = .checking
         threatsServerStatus = .checking
+        geminiServerStatus  = .checking
 
         async let alertsPing  = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
         async let threatsPing = ping(url: "https://sirenua-threatserver.onrender.com/api/threats", method: "GET")
+        async let geminiPing  = checkGeminiStatus()
 
         alertsServerStatus  = await alertsPing
         threatsServerStatus = await threatsPing
+        geminiServerStatus  = await geminiPing
+    }
+
+    private func checkGeminiStatus() async -> ServerStatus {
+        guard let url = URL(string: "https://sirenua-threatserver.onrender.com/api/gemini/status") else {
+            return .offline(error: "Невірна URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 5.0
+        do {
+            let start = Date()
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
+            
+            if let http = response as? HTTPURLResponse, (200...399).contains(http.statusCode) {
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let status = json["status"] as? String {
+                    if status == "ok" {
+                        return .online(label: "Активний (\(ms) ms)")
+                    } else if status == "mock" {
+                        return .online(label: "Mock режим")
+                    } else {
+                        let errMsg = (json["error"] as? String) ?? "Помилка ШІ"
+                        return .offline(error: errMsg)
+                    }
+                }
+                return .online(label: "Активний (\(ms) ms)")
+            }
+            return .offline(error: "HTTP помилка")
+        } catch {
+            return .offline(error: error.localizedDescription)
+        }
     }
 
     private func ping(url urlString: String, method: String) async -> ServerStatus {
@@ -580,6 +614,14 @@ struct SettingsView: View {
                     status: threatsServerStatus
                 )
 
+                Divider().background(Color.white.opacity(0.06))
+
+                ServerStatusRow(
+                    name: "Аналізатор ШІ (Gemini)",
+                    url: "gemini-2.5-flash",
+                    status: geminiServerStatus
+                )
+
                 if storeManager.isPremium {
                     Divider().background(Color.white.opacity(0.06))
 
@@ -596,6 +638,7 @@ struct SettingsView: View {
                         haptic(.medium)
                         alertsServerStatus  = .checking
                         threatsServerStatus = .checking
+                        geminiServerStatus  = .checking
                         Task { await checkServerStatus() }
                     }) {
                         Label("Оновити статус", systemImage: "arrow.clockwise")
@@ -882,15 +925,16 @@ struct ServerStatusRow: View {
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.25), lineWidth: 1))
 
-        case .offline:
+        case .offline(let error):
             HStack(spacing: 5) {
                 Circle()
                     .fill(Color.red)
                     .frame(width: 7, height: 7)
                     .shadow(color: Color.red.opacity(0.6), radius: 4)
-                Text("Офлайн")
+                Text(error.count > 25 ? String(error.prefix(22)) + "..." : error)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.red)
+                    .lineLimit(1)
             }
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
