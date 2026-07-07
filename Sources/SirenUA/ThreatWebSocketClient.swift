@@ -98,8 +98,10 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                 case .success(let message):
                     switch message {
                     case .string(let text):
+                        wsLogger.info("WebSocket: received message string: \(String(text.prefix(150)))...")
                         self.handleMessage(text)
                     case .data(let data):
+                        wsLogger.info("WebSocket: received message data (bytes: \(data.count))")
                         if let text = String(data: data, encoding: .utf8) {
                             self.handleMessage(text)
                         }
@@ -123,7 +125,12 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
         
         do {
             let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-            guard let type = json?["type"] as? String else { return }
+            guard let type = json?["type"] as? String else {
+                wsLogger.warning("WebSocket: missing message 'type' field")
+                return
+            }
+            
+            wsLogger.info("WebSocket: processing event type: \(type)")
             
             if type == "initial_state" {
                 if let threatsDict = json?["threats"] as? [String: Any] {
@@ -133,7 +140,10 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                     
                     self.connectionState = .connected
                     self.retryCount = 0 // Reset retries on successful connection
+                    wsLogger.info("WebSocket: successfully decoded initial state for \(decodedThreats.count) regions")
                     self.events.send(.initialState(decodedThreats))
+                } else {
+                    wsLogger.warning("WebSocket: 'initial_state' missing 'threats' field")
                 }
             } else if type == "threat_update" {
                 if let region = json?["region"] as? String,
@@ -156,8 +166,13 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                         self.connectionState = .connected
                         self.retryCount = 0
                     }
+                    wsLogger.info("WebSocket: successfully parsed threat update for \(region), level: \(level), predictive: \(isPredictive ?? false)")
                     self.events.send(.threatUpdate(region: region, threat: threat))
+                } else {
+                    wsLogger.warning("WebSocket: 'threat_update' missing 'region' or 'state' field")
                 }
+            } else {
+                wsLogger.warning("WebSocket: unhandled event type: \(type)")
             }
         } catch {
             wsLogger.error("Error decoding WebSocket message: \(error.localizedDescription)")
