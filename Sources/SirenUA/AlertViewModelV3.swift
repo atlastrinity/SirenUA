@@ -175,10 +175,10 @@ final class AlertViewModelV3: ObservableObject {
                 }
                 
                 let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                let title = buildThreatTitle(type: threat.type, confidence: confidence)
-                var body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(region)."
+                let title = buildThreatTitle(type: threat.type, confidence: confidence, region: region)
+                var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
                 if let eta = threat.eta, !eta.isEmpty {
-                    body += " Час: \(eta)"
+                    body += " (Час: \(eta))"
                 }
                 NotificationManager.shared.sendThreatNotification(
                     for: region, title: title, body: body,
@@ -215,10 +215,10 @@ final class AlertViewModelV3: ObservableObject {
                     }
                     
                     let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                    let title = buildThreatTitle(type: threat.type, confidence: confidence)
-                    var body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(regionName)."
+                    let title = buildThreatTitle(type: threat.type, confidence: confidence, region: regionName)
+                    var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
                     if let eta = threat.eta, !eta.isEmpty {
-                        body += " Час: \(eta)"
+                        body += " (Час: \(eta))"
                     }
                     NotificationManager.shared.sendThreatNotification(
                         for: regionName, title: title, body: body,
@@ -247,15 +247,34 @@ final class AlertViewModelV3: ObservableObject {
         }
     }
     
-    /// Builds a threat notification title based on threat type and AI confidence
-    private func buildThreatTitle(type: String?, confidence: Int) -> String {
+    /// Builds a threat notification title based on threat type, AI confidence, and target region
+    private func buildThreatTitle(type: String?, confidence: Int, region: String) -> String {
         let threatName = type == "mig31k" ? "Авіаційна загроза" : "Виявлено цілі"
+        let indicator: String
         if confidence >= 85 {
-            return "🔴 Висока ймовірність: \(threatName)"
+            indicator = "🔴 Висока ймовірність"
         } else if confidence >= 60 {
-            return "🟠 Ймовірна загроза: \(threatName)"
+            indicator = "🟠 Ймовірна загроза"
         } else {
-            return "🟡 Можлива загроза: \(threatName)"
+            indicator = "🟡 Можлива загроза"
+        }
+        return "\(indicator): \(threatName) (\(region))"
+    }
+    
+    func getThreatTypeDescriptionShort(_ type: String) -> String {
+        switch type {
+        case "mig31k":
+            return "МіГ-31К (Кинджал)"
+        case "shahed":
+            return "Загроза БпЛА"
+        case "cruise_missile":
+            return "Крилаті ракети"
+        case "kab":
+            return "Загроза КАБ"
+        case "ballistic":
+            return "Балістика"
+        default:
+            return "Загроза з повітря"
         }
     }
     

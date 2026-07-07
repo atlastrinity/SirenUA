@@ -523,8 +523,8 @@ struct ContentView: View {
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            if viewModel.isPremium, let detail = alert.threatDetail {
-                                Text(detail)
+                            if viewModel.isPremium, let type = alert.threatType {
+                                Text(viewModel.getThreatTypeDescriptionShort(type))
                                     .font(.system(size: 8, weight: .semibold))
                                     .foregroundColor(.yellow)
                                     .lineLimit(1)
