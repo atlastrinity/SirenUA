@@ -459,8 +459,12 @@ struct ContentView: View {
     private var mapContent: some MapContent {
         // Polygons
         ForEach(activeThreatRegions) { region in
-            let strokeColor: Color = .yellow.opacity(0.6)
-            let fillColor: Color = .yellow.opacity(0.35)
+            // Градієнт прозорості на основі довіри ШІ
+            let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
+            let strokeOpacity: Double = confidence >= 85 ? 0.8 : (confidence >= 60 ? 0.6 : 0.35)
+            let fillOpacity: Double = confidence >= 85 ? 0.5 : (confidence >= 60 ? 0.35 : 0.15)
+            let strokeColor: Color = .yellow.opacity(strokeOpacity)
+            let fillColor: Color = .yellow.opacity(fillOpacity)
             
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
@@ -513,7 +517,7 @@ struct ContentView: View {
                                 .shadow(radius: 3)
                         }
                         
-                        // Dynamic text label
+                        // Dynamic text label with confidence and ETA
                         VStack(spacing: 1) {
                             Text(alert.name)
                                 .font(.system(size: 9, weight: .bold))
@@ -525,6 +529,22 @@ struct ContentView: View {
                                     .foregroundColor(.yellow)
                                     .lineLimit(1)
                                     .multilineTextAlignment(.center)
+                            }
+                            
+                            // Show confidence badge for threat zones
+                            if viewModel.isPremium, !alert.isActive, alert.threatLevel != nil {
+                                HStack(spacing: 3) {
+                                    if let conf = alert.threatConfidence {
+                                        Text("⚙️ \(conf)%")
+                                            .font(.system(size: 7, weight: .bold))
+                                            .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                                    }
+                                    if let eta = alert.threatETA, !eta.isEmpty {
+                                        Text(eta)
+                                            .font(.system(size: 7, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.7))
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal, 6)

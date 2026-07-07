@@ -12,6 +12,9 @@ struct PendingNotification {
     let title: String
     let body: String
     let soundName: String
+    let interruptionLevel: UNNotificationInterruptionLevel
+    let relevanceScore: Double
+    let isCritical: Bool
 }
 
 // MARK: - NotificationManager
@@ -26,9 +29,15 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     private var notificationQueue: [PendingNotification] = []
     private var isProcessingQueue = false
 
-    /// Sound throttle: prevent notification sounds from overlapping within 20 seconds globally
+    /// Sound throttle: prevent notification sounds from overlapping
+    /// Reduced from 20s to 10s for critical alerts (ballistic can require rapid notifications)
     private var lastPlayedTime: Date?
-    private static let soundThrottle: TimeInterval = 20.0
+    private static let soundThrottleCritical: TimeInterval = 10.0
+    private static let soundThrottleNormal: TimeInterval = 20.0
+    
+    /// Runtime detection: does the app have Critical Alerts entitlement approved by Apple?
+    /// If false, we fallback to .timeSensitive which still bypasses Focus mode.
+    private(set) var hasCriticalAlerts: Bool = false
 
     // MARK: - Firebase Topic Mapping
 
@@ -71,11 +80,40 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     func requestAuthorization() {
         guard notificationsEnabled else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound, .criticalAlert]) { granted, error in
+        
+        // First, try requesting WITH criticalAlert
+        // This will succeed only if the entitlement is provisioned by Apple
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound, .criticalAlert]) { [weak self] granted, error in
             if let error {
-                notifLogger.error("Permission request error: \(error.localizedDescription)")
+                // criticalAlert not available — fallback to standard + timeSensitive
+                notifLogger.warning("Critical alert request failed (expected without entitlement): \(error.localizedDescription)")
+                notifLogger.info("Falling back to .timeSensitive for DND bypass")
+                self?.hasCriticalAlerts = false
+                
+                // Re-request without criticalAlert
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, err in
+                    if let err {
+                        notifLogger.error("Fallback permission request error: \(err.localizedDescription)")
+                    } else {
+                        notifLogger.info("Notification permission (standard): \(granted ? "granted" : "denied")")
+                    }
+                }
             } else {
-                notifLogger.info("Notification permission: \(granted ? "granted" : "denied")")
+                if granted {
+                    notifLogger.info("✅ Critical Alerts permission GRANTED — full DND bypass enabled")
+                    self?.hasCriticalAlerts = true
+                } else {
+                    notifLogger.info("Notification permission denied by user")
+                    self?.hasCriticalAlerts = false
+                }
+            }
+            
+            // Check actual authorization status to confirm critical alerts
+            UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+                let criticalEnabled = settings.criticalAlertSetting == .enabled
+                self?.hasCriticalAlerts = criticalEnabled
+                notifLogger.info("Critical alerts status: \(criticalEnabled ? "ENABLED" : "NOT AVAILABLE")")
+                notifLogger.info("Time sensitive status: \(settings.timeSensitiveSetting == .enabled ? "ENABLED" : "NOT AVAILABLE")")
             }
         }
     }
@@ -92,9 +130,13 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 completionHandler([.banner, .sound, .badge, .list])
                 return
             }
+            let interruptionLevel = notification.request.content.interruptionLevel
+            let isCriticalNotif = interruptionLevel == .critical || interruptionLevel == .timeSensitive
+            let throttle = isCriticalNotif ? Self.soundThrottleCritical : Self.soundThrottleNormal
+            
             let now = Date()
-            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < Self.soundThrottle {
-                notifLogger.debug("Foreground notification sound suppressed (within 20 seconds)")
+            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
+                notifLogger.debug("Foreground notification sound suppressed (within \(throttle)s)")
                 completionHandler([.banner, .badge, .list])
             } else {
                 if notification.request.content.sound != nil {
@@ -146,17 +188,45 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
         let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
-        enqueue(title: title, body: body, soundName: "siren.wav", regionName: regionName)
+        
+        // Use .critical if entitled, otherwise .timeSensitive (bypasses Focus but not full DND)
+        let level: UNNotificationInterruptionLevel = hasCriticalAlerts ? .critical : .timeSensitive
+        
+        enqueue(title: title, body: body, soundName: "siren.wav", regionName: regionName,
+                interruptionLevel: level, relevanceScore: 1.0, isCritical: hasCriticalAlerts)
+        
+        // Also fire through CriticalAlertManager for redundant lock-screen delivery
+        if hasCriticalAlerts, #available(iOS 16.0, *) {
+            CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
+        }
     }
 
-    func sendThreatNotification(for regionName: String, title: String, body: String) {
-        enqueue(title: title, body: body, soundName: "warning.wav", regionName: regionName)
+    func sendThreatNotification(for regionName: String, title: String, body: String,
+                                confidence: Int = 75, isCritical: Bool = false) {
+        let level: UNNotificationInterruptionLevel
+        let relevance: Double
+        
+        if isCritical || confidence >= 85 {
+            level = .timeSensitive  // Pierces Focus, but not DND without entitlement
+            relevance = 0.8
+        } else if confidence >= 60 {
+            level = .timeSensitive
+            relevance = 0.6
+        } else {
+            level = .active
+            relevance = 0.4
+        }
+        
+        let soundName = isCritical ? "siren.wav" : "warning.wav"
+        enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
+                interruptionLevel: level, relevanceScore: relevance, isCritical: isCritical)
     }
 
     func sendClearNotification(for regionName: String) {
         let title = "🟢 Відбій тривоги!"
         let body  = "Відбій повітряної тривоги в: \(regionName)."
-        enqueue(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName)
+        enqueue(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName,
+                interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
     }
 
     // MARK: - Private helpers
@@ -172,17 +242,20 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         return tracked.components(separatedBy: ";").contains(regionName)
     }
 
-    private func enqueue(title: String, body: String, soundName: String, regionName: String) {
+    private func enqueue(title: String, body: String, soundName: String, regionName: String,
+                         interruptionLevel: UNNotificationInterruptionLevel = .active,
+                         relevanceScore: Double = 0.5, isCritical: Bool = false) {
         guard notificationsEnabled else { return }
         guard shouldNotify(for: regionName) else { return }
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let now = Date()
+            let throttle = isCritical ? Self.soundThrottleCritical : Self.soundThrottleNormal
             let playSoundForThis: Bool
-            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < Self.soundThrottle {
+            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
                 playSoundForThis = false
-                notifLogger.debug("Notification sound for \(regionName) throttled globally (within 20 seconds)")
+                notifLogger.debug("Notification sound for \(regionName) throttled (within \(throttle)s)")
             } else {
                 playSoundForThis = true
                 self.lastPlayedTime = now
@@ -195,7 +268,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             self.notificationQueue.append(PendingNotification(
                 title: title,
                 body: body,
-                soundName: playSoundForThis ? soundName : ""
+                soundName: playSoundForThis ? soundName : "",
+                interruptionLevel: interruptionLevel,
+                relevanceScore: relevanceScore,
+                isCritical: isCritical
             ))
             self.processQueue()
         }
@@ -209,8 +285,18 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let content       = UNMutableNotificationContent()
         content.title     = item.title
         content.body      = item.body
+        
+        // Interruption level for lock screen / Focus delivery
+        content.interruptionLevel = item.interruptionLevel
+        content.relevanceScore = item.relevanceScore
+        
+        // Sound configuration: use defaultCritical for critical alerts
         if !item.soundName.isEmpty {
-            content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
+            if item.isCritical {
+                content.sound = UNNotificationSound.defaultCritical
+            } else {
+                content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
+            }
         } else {
             content.sound = nil
         }

@@ -17,6 +17,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var threatLevel: String?   // "none", "low", "medium", "high", "critical"
     var threatType: String?    // "mig31k", "shahed", "cruise_missile", etc
     var threatDetail: String?  // Опис загрози українською
+    var threatConfidence: Int? // 0-100% AI confidence score
+    var threatETA: String?     // "~20-40 хв" expected arrival time
+    var isThreatPredictive: Bool = false // true if AI-predicted route
 
     var icon: String {
         switch level {

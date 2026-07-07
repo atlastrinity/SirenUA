@@ -306,6 +306,52 @@ struct AlertListOverlayView: View {
                             .multilineTextAlignment(.leading)
                             .padding(.top, 2)
                     }
+                    
+                    // AI confidence & ETA badge for premium users
+                    if isPremium, isThreat {
+                        HStack(spacing: 8) {
+                            if let conf = alert.threatConfidence {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "cpu")
+                                        .font(.system(size: 8))
+                                    Text("\(conf)%")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.1))
+                                .clipShape(Capsule())
+                            }
+                            if let eta = alert.threatETA, !eta.isEmpty {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 8))
+                                    Text(eta)
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .foregroundColor(.orange.opacity(0.8))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.08))
+                                .clipShape(Capsule())
+                            }
+                            if alert.isThreatPredictive {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.system(size: 8))
+                                    Text("ШІ")
+                                        .font(.system(size: 9, weight: .bold))
+                                }
+                                .foregroundColor(.purple.opacity(0.8))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.purple.opacity(0.08))
+                                .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
 
                 Spacer()

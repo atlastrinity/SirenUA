@@ -160,13 +160,30 @@ final class AlertViewModelV3: ObservableObject {
         alerts[index].threatLevel = newThreatLevel
         alerts[index].threatType = threat.type
         alerts[index].threatDetail = threat.detail
+        alerts[index].threatConfidence = threat.confidence
+        alerts[index].threatETA = threat.eta
+        alerts[index].isThreatPredictive = threat.is_predictive ?? false
         
         if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
             if !isFirstThreatFetch {
+                // Фільтрація: не сповіщати про предиктивні загрози з низькою довірою
+                let confidence = threat.confidence ?? 75
+                let isPredictive = threat.is_predictive ?? false
+                if isPredictive && confidence < 50 {
+                    vmLogger.info("Skipping notification for predictive low-confidence threat in \(region) (\(confidence)%)")
+                    return
+                }
+                
                 let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                let title = "⚠️ Попередження: \(threat.type == "mig31k" ? "Авіаційна загроза" : "Виявлено цілі")"
-                let body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(region)."
-                NotificationManager.shared.sendThreatNotification(for: region, title: title, body: body)
+                let title = buildThreatTitle(type: threat.type, confidence: confidence)
+                var body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(region)."
+                if let eta = threat.eta, !eta.isEmpty {
+                    body += " Час: \(eta)"
+                }
+                NotificationManager.shared.sendThreatNotification(
+                    for: region, title: title, body: body,
+                    confidence: confidence, isCritical: confidence >= 85
+                )
             }
         }
     }
@@ -182,14 +199,31 @@ final class AlertViewModelV3: ObservableObject {
             alerts[index].threatLevel = newThreatLevel
             alerts[index].threatType = threat.type
             alerts[index].threatDetail = threat.detail
+            alerts[index].threatConfidence = threat.confidence
+            alerts[index].threatETA = threat.eta
+            alerts[index].isThreatPredictive = threat.is_predictive ?? false
             
             // Trigger local warning notification if there's a new threat and no active alert
             if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
                 if !isFirstThreatFetch {
+                    // Фільтрація низької довіри для предиктивних загроз
+                    let confidence = threat.confidence ?? 75
+                    let isPredictive = threat.is_predictive ?? false
+                    if isPredictive && confidence < 50 {
+                        vmLogger.info("Skipping notification for predictive low-confidence threat in \(regionName) (\(confidence)%)")
+                        continue
+                    }
+                    
                     let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                    let title = "⚠️ Попередження: \(threat.type == "mig31k" ? "Авіаційна загроза" : "Виявлено цілі")"
-                    let body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(regionName)."
-                    NotificationManager.shared.sendThreatNotification(for: regionName, title: title, body: body)
+                    let title = buildThreatTitle(type: threat.type, confidence: confidence)
+                    var body = "\(threat.detail ?? "Загроза \(typeDesc)") в \(regionName)."
+                    if let eta = threat.eta, !eta.isEmpty {
+                        body += " Час: \(eta)"
+                    }
+                    NotificationManager.shared.sendThreatNotification(
+                        for: regionName, title: title, body: body,
+                        confidence: confidence, isCritical: confidence >= 85
+                    )
                 }
             }
         }
@@ -206,8 +240,22 @@ final class AlertViewModelV3: ObservableObject {
             return "крилатих ракет"
         case "kab":
             return "ударів керованими авіабомбами (КАБ)"
+        case "ballistic":
+            return "балістичних ракет"
         default:
             return "повітряної атаки"
+        }
+    }
+    
+    /// Builds a threat notification title based on threat type and AI confidence
+    private func buildThreatTitle(type: String?, confidence: Int) -> String {
+        let threatName = type == "mig31k" ? "Авіаційна загроза" : "Виявлено цілі"
+        if confidence >= 85 {
+            return "🔴 Висока ймовірність: \(threatName)"
+        } else if confidence >= 60 {
+            return "🟠 Ймовірна загроза: \(threatName)"
+        } else {
+            return "🟡 Можлива загроза: \(threatName)"
         }
     }
     

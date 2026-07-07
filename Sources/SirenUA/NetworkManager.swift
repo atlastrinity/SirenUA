@@ -143,6 +143,9 @@ struct ThreatInfo: Codable {
     let type: String?
     let detail: String?
     let since: String?
+    let confidence: Int?    // 0-100% AI confidence score
+    let eta: String?        // "~20-40 хв" expected arrival time
+    let is_predictive: Bool? // true if AI-predicted (not confirmed)
 }
 
 // MARK: - Network Errors

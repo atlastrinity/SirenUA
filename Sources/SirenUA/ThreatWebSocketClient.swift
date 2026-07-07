@@ -117,8 +117,12 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
                     let threatType = stateDict["type"] as? String
                     let detail = stateDict["detail"] as? String
                     let since = stateDict["since"] as? String
+                    let confidence = stateDict["confidence"] as? Int
+                    let eta = stateDict["eta"] as? String
+                    let isPredictive = stateDict["is_predictive"] as? Bool
                     
-                    let threat = ThreatInfo(level: level, type: threatType, detail: detail, since: since)
+                    let threat = ThreatInfo(level: level, type: threatType, detail: detail, since: since,
+                                            confidence: confidence, eta: eta, is_predictive: isPredictive)
                     
                     DispatchQueue.main.async {
                         self.events.send(.threatUpdate(region: region, threat: threat))

@@ -188,6 +188,102 @@ struct AlertRegionDetailView: View {
                         .cornerRadius(20)
                         .shadow(radius: 15)
                     }
+                    
+                    // AI Confidence & ETA Section (Premium threat intelligence)
+                    if isThreatActive, let confidence = region.threatConfidence {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "cpu.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("ШІ-аналіз загрози")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            HStack(spacing: 20) {
+                                // Circular confidence ring
+                                ZStack {
+                                    Circle()
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 6)
+                                        .frame(width: 70, height: 70)
+                                    
+                                    Circle()
+                                        .trim(from: 0, to: CGFloat(confidence) / 100.0)
+                                        .stroke(
+                                            confidenceColor(confidence),
+                                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                                        )
+                                        .frame(width: 70, height: 70)
+                                        .rotationEffect(.degrees(-90))
+                                    
+                                    VStack(spacing: 1) {
+                                        Text("\(confidence)%")
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                                            .foregroundStyle(confidenceColor(confidence))
+                                        Text("довіра")
+                                            .font(.system(size: 8, weight: .medium))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    // Confidence label
+                                    Text(confidenceLabel(confidence))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(confidenceColor(confidence))
+                                    
+                                    // ETA badge
+                                    if let eta = region.threatETA, !eta.isEmpty {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "clock.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(.orange)
+                                            Text("Очікуваний час: \(eta)")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundStyle(.white.opacity(0.8))
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Color.orange.opacity(0.15))
+                                        .cornerRadius(8)
+                                    }
+                                    
+                                    // Predictive flag
+                                    if region.isThreatPredictive {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "wand.and.stars")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(.purple)
+                                            Text("Предиктивний аналіз")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundStyle(.purple)
+                                        }
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.purple.opacity(0.1))
+                                        .cornerRadius(6)
+                                    }
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .shadow(radius: 15)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [themeColor.opacity(0.3), themeColor.opacity(0.1)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                    }
 
                     // Warning message (if active alert or active threat)
                     if (region.isActive || isThreatActive) && !isConfirmed {
@@ -257,6 +353,18 @@ struct AlertRegionDetailView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .medium
         return formatter.string(from: Date())
+    }
+    
+    private func confidenceColor(_ confidence: Int) -> Color {
+        if confidence >= 85 { return .red }
+        if confidence >= 60 { return .orange }
+        return .yellow
+    }
+    
+    private func confidenceLabel(_ confidence: Int) -> String {
+        if confidence >= 85 { return "Висока ймовірність" }
+        if confidence >= 60 { return "Ймовірна загроза" }
+        return "Можлива загроза"
     }
 }
 
