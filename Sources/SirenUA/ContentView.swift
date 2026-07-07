@@ -498,19 +498,46 @@ struct ContentView: View {
         // Regions
         ForEach(viewModel.alerts) { alert in
             if alert.isActive || (viewModel.isPremium && alert.threatLevel != nil) {
-                Annotation(alert.name, coordinate: alert.coordinate) {
-                    Button(action: {
-                        selectedRegionForDetail = alert
-                    }) {
-                        Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : "bell.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(6)
-                            .background(alert.isActive ? Color.red : Color.yellow)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                            .shadow(radius: 4)
+                Annotation(coordinate: alert.coordinate) {
+                    VStack(spacing: 4) {
+                        Button(action: {
+                            selectedRegionForDetail = alert
+                        }) {
+                            Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : "bell.fill")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(5)
+                                .background(alert.isActive ? Color.red : Color.yellow)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                                .shadow(radius: 3)
+                        }
+                        
+                        // Dynamic text label
+                        VStack(spacing: 1) {
+                            Text(alert.name)
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            if viewModel.isPremium, let detail = alert.threatDetail {
+                                Text(detail)
+                                    .font(.system(size: 8, weight: .semibold))
+                                    .foregroundColor(.yellow)
+                                    .lineLimit(1)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
+                        )
                     }
+                } label: {
+                    Text(alert.name)
                 }
             }
         }
