@@ -8,6 +8,7 @@ DerivedData/
 .netrc
 build/
 /.env
+/.env.hash
 *.session
 *.session-journal
 *.ipa
