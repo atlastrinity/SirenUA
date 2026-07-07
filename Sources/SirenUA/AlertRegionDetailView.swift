@@ -185,14 +185,14 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Threat Detail (from Telegram bot)
-                    if let detail = region.threatDetail {
-                        VStack(alignment: .leading, spacing: 12) {
+                    // Combined "Відомо" Card (cleaned of AI/Telegram terminology)
+                    if let detail = region.threatDetail, !detail.isEmpty {
+                        VStack(alignment: .leading, spacing: 14) {
                             HStack {
-                                Image(systemName: "bell.badge.fill")
+                                Image(systemName: "info.circle.fill")
                                     .foregroundStyle(themeColor)
                                     .font(.system(size: 14))
-                                Text("Що відомо")
+                                Text("Відомо")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.secondary)
                             }
@@ -201,6 +201,59 @@ struct AlertRegionDetailView: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(.primary)
                                 .lineSpacing(4)
+
+                            // Badges for details if present
+                            if region.threatConfidence != nil || region.threatETA != nil || region.isThreatPredictive {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    if let eta = region.threatETA, !eta.isEmpty {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "clock.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(.orange)
+                                            Text("Очікуваний час: \(eta)")
+                                                .font(.system(size: 11, weight: .semibold))
+                                                .foregroundStyle(.orange)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Color.orange.opacity(0.12))
+                                        .cornerRadius(8)
+                                    }
+                                    
+                                    HStack(spacing: 8) {
+                                        if let confidence = region.threatConfidence {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "shield.checkered")
+                                                    .font(.system(size: 11))
+                                                    .foregroundStyle(confidenceColor(confidence))
+                                                Text("Достовірність: \(confidence)%")
+                                                    .font(.system(size: 11, weight: .semibold))
+                                                    .foregroundStyle(confidenceColor(confidence))
+                                            }
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(confidenceColor(confidence).opacity(0.12))
+                                            .cornerRadius(8)
+                                        }
+                                        
+                                        if region.isThreatPredictive {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "arrow.up.right.circle.fill")
+                                                    .font(.system(size: 11))
+                                                    .foregroundStyle(.purple)
+                                                Text("Очікуваний напрямок")
+                                                    .font(.system(size: 11, weight: .semibold))
+                                                    .foregroundStyle(.purple)
+                                            }
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.purple.opacity(0.12))
+                                            .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,102 +265,6 @@ struct AlertRegionDetailView: View {
                                 .stroke(
                                     LinearGradient(
                                         colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1
-                                )
-                        )
-                    }
-                    
-                    // AI Confidence & ETA Section (Premium threat intelligence)
-                    if let confidence = region.threatConfidence {
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Image(systemName: "cpu.fill")
-                                    .foregroundStyle(themeColor)
-                                    .font(.system(size: 14))
-                                Text("ШІ-аналіз загрози")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                            }
-                            
-                            HStack(spacing: 20) {
-                                // Circular confidence ring
-                                ZStack {
-                                    Circle()
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 6)
-                                        .frame(width: 70, height: 70)
-                                    
-                                    Circle()
-                                        .trim(from: 0, to: CGFloat(confidence) / 100.0)
-                                        .stroke(
-                                            confidenceColor(confidence),
-                                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                                        )
-                                        .frame(width: 70, height: 70)
-                                        .rotationEffect(.degrees(-90))
-                                    
-                                    VStack(spacing: 1) {
-                                        Text("\(confidence)%")
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                                            .foregroundStyle(confidenceColor(confidence))
-                                        Text("довіра")
-                                            .font(.system(size: 8, weight: .medium))
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    // Confidence label
-                                    Text(confidenceLabel(confidence))
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundStyle(confidenceColor(confidence))
-                                    
-                                    // ETA badge
-                                    if let eta = region.threatETA, !eta.isEmpty {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "clock.fill")
-                                                .font(.system(size: 11))
-                                                .foregroundStyle(.orange)
-                                            Text("Очікуваний час: \(eta)")
-                                                .font(.system(size: 12, weight: .medium))
-                                                .foregroundStyle(.white.opacity(0.8))
-                                        }
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Color.orange.opacity(0.15))
-                                        .cornerRadius(8)
-                                    }
-                                    
-                                    // Predictive flag
-                                    if region.isThreatPredictive {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "wand.and.stars")
-                                                .font(.system(size: 11))
-                                                .foregroundStyle(.purple)
-                                            Text("Предиктивний аналіз")
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundStyle(.purple)
-                                        }
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.purple.opacity(0.1))
-                                        .cornerRadius(6)
-                                    }
-                                }
-                            }
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(20)
-                        .shadow(radius: 15)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [themeColor.opacity(0.3), themeColor.opacity(0.1)],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ),

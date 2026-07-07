@@ -236,7 +236,7 @@ struct RegionHistoryView: View {
                 // Confidence badge
                 if let conf = event.confidence {
                     HStack(spacing: 3) {
-                        Image(systemName: "cpu")
+                        Image(systemName: "shield.checkered")
                             .font(.system(size: 8))
                         Text("\(conf)%")
                             .font(.system(size: 10, weight: .bold))
