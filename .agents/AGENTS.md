@@ -1,27 +1,28 @@
 # Project Rules & Architecture for SirenUA
 
-## 🚨 Critical Repository Mapping (SirenUA & SirenUA-ThreatServer)
+## 🚨 Critical Repository Mapping & Sync Rules (SirenUA & SirenUA-ThreatServer)
 
-This workspace consists of two separate repositories that interact with each other:
+This workspace consists of two separate repositories. The AI agent **MUST** proactively manage and ensure proper synchronization of both repositories:
 
-1. **iOS Application Repository**:
+1. **iOS Application Repository (Master Codebase)**:
    - Repository: `https://github.com/atlastrinity/SirenUA`
    - Local directory: `/Users/dev/Documents/GitHub/claw-code/serena/SirenUA`
-   - Contains: Swift codebase for iOS client, local StoreKit configurations, and reference/local files.
+   - Contains: Swift codebase for iOS client, and the master copy of the threat server code under the `/threat_server` directory (which serves as the master database with full git history).
+   - **Rule**: EVERY change (iOS and server-side) **MUST** be committed and pushed to this master repository first or simultaneously.
 
-2. **Render Threat Server Repository**:
+2. **Render Threat Server Repository (Deployment Only)**:
    - Repository: `https://github.com/atlastrinity/SirenUA-ThreatServer`
    - Cloned directory: `/Users/dev/Documents/GitHub/claw-code/serena/SirenUA-ThreatServer`
-   - Contains: Python FastAPI backend for real-time OSM shelters, Telegram monitoring bot, and Firebase integration.
-   - **Crucial Rule**: The live deployment on Render is connected ONLY to `SirenUA-ThreatServer`.
+   - Contains: ONLY Python FastAPI backend code and server deployment configuration files.
+   - **Crucial Rule**: The live deployment on Render is connected ONLY to this repository. Pushing here triggers automatic deployment.
 
 ### Server Deployment Process
 
 Whenever changes are made to the threat server code (e.g. `mock_mode.py`, `telegram_monitor.py`, `server.py`, `shelter_manager.py`):
 
-1. The changes **MUST** be kept synchronized in the `/threat_server` directory of the main `SirenUA` repository (which serves as the master codebase with full git history).
-2. The changes **MUST** also be copied/synchronized to the cloned `SirenUA-ThreatServer` repository (which must contain ONLY server-related files for deployment).
-3. The changes **MUST** be committed and pushed to **BOTH** repositories.
+1. **Sync Instantly**: The agent **MUST** copy the changes between `/SirenUA/threat_server` and `/SirenUA-ThreatServer` to keep them 100% identical.
+2. **Double Commit & Push**: The agent **MUST** commit and push the changes to **BOTH** repositories.
+3. **Verify Git Status**: The agent **MUST** run `git status` in both directories at the end of the task to verify no uncommitted server files are left behind.
 4. Only pushing to `SirenUA-ThreatServer.git` (branch `main`) triggers Render's automated build and redeployment. Pushing changes to the `/threat_server` subfolder in the `SirenUA` repository will **NOT** update the live server.
 
 ## 🤖 AI Automation & CI/CD Capabilities
