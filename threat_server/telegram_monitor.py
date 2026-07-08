@@ -160,6 +160,7 @@ class TelegramThreatMonitor:
         self.analyzer = GeminiThreatAnalyzer()
         self.message_queue = asyncio.Queue()
         self.batch_task = None
+        self.message_history = []
         
         # Session file path detection
         self.session_paths = [
@@ -371,12 +372,17 @@ class TelegramThreatMonitor:
                 try:
                     msg = self.message_queue.get_nowait()
                     messages.append(msg)
+                    self.message_history.append(msg)
                 except asyncio.QueueEmpty:
                     break
                     
+            if len(self.message_history) > 15:
+                self.message_history = self.message_history[-15:]
+                
             if messages:
                 print(f"🧠 Відправка батчу ({len(messages)} повідомлень) до Gemini API...")
-                results = await self.analyzer.analyze_batch(messages)
+                context_messages = [m for m in self.message_history if m not in messages][-10:]
+                results = await self.analyzer.analyze_batch(messages, context_messages=context_messages)
                 if results:
                     await self._apply_gemini_analysis(results)
 
@@ -555,37 +561,37 @@ class TelegramThreatMonitor:
                     # 1. Distance
                     distance = telemetry.get("distance_to_target_km")
                     if distance:
-                        telemetry_info.append(f"📍 Відстань до цілі: ~{distance:.0f} км.")
+                        telemetry_info.append(f"Відстань до цілі: ~{distance:.0f} км")
                     
                     # 2. Target Count (Кількість цілей)
                     target_count = telemetry.get("target_count")
                     if target_count:
-                        telemetry_info.append(f"👥 Кількість цілей: {target_count}.")
+                        telemetry_info.append(f"Кількість цілей: {target_count}")
                     
                     # 3. Launch Origin (Район запуску)
                     launch_origin = telemetry.get("launch_origin")
                     if launch_origin and launch_origin.lower() != "unknown":
-                        telemetry_info.append(f"🛫 Напрямок запуску: {launch_origin}.")
+                        telemetry_info.append(f"Напрямок запуску: {launch_origin}")
                         
                     # 4. Weapon Subtype (Конкретна модель)
                     weapon_subtype = telemetry.get("weapon_subtype")
                     if weapon_subtype and weapon_subtype.lower() != "unknown":
-                        telemetry_info.append(f"🎯 Тип: {weapon_subtype}.")
+                        telemetry_info.append(f"Тип: {weapon_subtype}")
                         
                     # 5. Speed (Швидкість)
                     speed = telemetry.get("speed_kmh")
                     if speed:
-                        telemetry_info.append(f"💨 Швидкість руху: ~{speed} км/год.")
+                        telemetry_info.append(f"Швидкість руху: ~{speed} км/год")
                         
                     # 6. Altitude (Висота)
                     alt = telemetry.get("altitude_category")
                     if alt and alt.lower() != "unknown":
                         alt_mapping = {"low": "мала", "medium": "середня", "high": "велика"}
                         alt_ukr = alt_mapping.get(alt.lower(), alt)
-                        telemetry_info.append(f"↕️ Висота польоту: {alt_ukr}.")
+                        telemetry_info.append(f"Висота польоту: {alt_ukr}")
                 
                 if telemetry_info:
-                    detail += "\n" + " ".join(telemetry_info)
+                    detail += "\n" + "\n".join(telemetry_info)
                 
                 if is_pred:
                     detail += f"\n⚠️ Ціль може прямувати через область."
@@ -666,6 +672,45 @@ class TelegramThreatMonitor:
         "border_shelling": None,  # No directional prediction
     }
 
+    CITY_TO_REGION = {
+        "Київ": "м. Київ",
+        "Старокостянтинів": "Хмельницька область",
+        "Стрий": "Львівська область",
+        "Львів": "Львівська область",
+        "Харків": "Харківська область",
+        "Одеса": "Одеська область",
+        "Дніпро": "Дніпропетровська область",
+        "Запоріжжя": "Запорізька область",
+        "Кривий Ріг": "Дніпропетровська область",
+        "Миколаїв": "Миколаївська область",
+        "Вінниця": "Вінницька область",
+        "Хмельницький": "Хмельницька область",
+        "Чернігів": "Чернігівська область",
+        "Полтава": "Полтавська область",
+        "Черкаси": "Черкаська область",
+        "Житомир": "Житомирська область",
+        "Суми": "Сумська область",
+        "Рівне": "Рівненська область",
+        "Івано-Франківськ": "Івано-Франківська область",
+        "Тернопіль": "Тернопільська область",
+        "Луцьк": "Волинська область",
+        "Ужгород": "Закарпатська область",
+        "Мукачево": "Закарпатська область",
+        "Чернівці": "Чернівецька область",
+        "Кропивницький": "Кіровоградська область",
+        "Кременчук": "Полтавська область",
+        "Миргород": "Полтавська область",
+        "Умань": "Черкаська область",
+        "Біла Церква": "Київська область",
+        "Васильків": "Київська область",
+        "Обухів": "Київська область",
+        "Бориспіль": "Київська область",
+        "Бровари": "Київська область",
+        "Фастів": "Київська область",
+        "Коломия": "Івано-Франківська область",
+        "Калуш": "Івано-Франківська область",
+    }
+
     async def _propagate_predictive_threats(self):
         """
         Predictive Propagation Engine:
@@ -718,6 +763,18 @@ class TelegramThreatMonitor:
                     "mig31k": 2500, "kab": 300,
                 }
                 speed = speed_defaults.get(threat_type, 300)
+                
+            # Pathfinding to final target cities
+            path_boost_regions = set()
+            if telemetry and telemetry.get("final_target_cities"):
+                final_targets = telemetry["final_target_cities"]
+                for city in final_targets:
+                    if city in self.CITY_TO_REGION:
+                        target_region = self.CITY_TO_REGION[city]
+                        path = self._find_path(source_region, target_region)
+                        if path:
+                            for pr in path[1:]:
+                                path_boost_regions.add(pr)
             
             # Get adjacent regions from topology
             adjacent = UKRAINE_TOPOLOGY.get(source_region, [])
@@ -773,13 +830,18 @@ class TelegramThreatMonitor:
                 
                 # Check historical patterns (known SHAHED routes)
                 route_boost = 0.0
-                for route_name, route_regions in SHAHED_ROUTES.items():
-                    if source_region in route_regions and adj_region in route_regions:
-                        src_idx = route_regions.index(source_region)
-                        adj_idx = route_regions.index(adj_region)
-                        if adj_idx > src_idx:  # Forward in the route
-                            route_boost = 0.25
-                            break
+                
+                # Apply massive boost if region is on the path to a known final target
+                if adj_region in path_boost_regions:
+                    route_boost = 0.8
+                else:
+                    for route_name, route_regions in SHAHED_ROUTES.items():
+                        if source_region in route_regions and adj_region in route_regions:
+                            src_idx = route_regions.index(source_region)
+                            adj_idx = route_regions.index(adj_region)
+                            if adj_idx > src_idx:  # Forward in the route
+                                route_boost = 0.25
+                                break
                 
                 # Check DB for historical patterns
                 db_boost = self._get_historical_route_score(source_region, adj_region)
@@ -825,6 +887,7 @@ class TelegramThreatMonitor:
                         "db_boost": db_boost,
                         "confidence": int(total_score * 80),  # Max 80% for predictions
                         "source_level": state.level,
+                        "is_test": state.is_test,
                     }
         
         # Apply predictions
@@ -848,13 +911,13 @@ class TelegramThreatMonitor:
             threat_type_ukr = get_ukrainian_threat_type(pred['threat_type'])
             detail = f"Ціль з {source_reg_genitive} ({threat_type_ukr}) прямує в напрямку області."
             if pred["eta_str"]:
-                detail += f"\n⏱ Очікуваний час: {pred['eta_str']}"
+                detail += f"\nОчікуваний час: {pred['eta_str']}"
             if pred["distance_km"]:
-                detail += f"\n📍 Відстань: ~{pred['distance_km']:.0f} км"
+                detail += f"\nВідстань: ~{pred['distance_km']:.0f} км"
             if pred["route_boost"] > 0:
-                detail += "\n📊 Історичний маршрут підтверджено"
+                detail += "\nІсторичний маршрут підтверджено"
             if pred["db_boost"] > 0:
-                detail += "\n🔄 Патерн підтверджений аналітикою"
+                detail += "\nПатерн підтверджений аналітикою"
             
             # Auto-clear delay for predictions (shorter than for direct threats)
             auto_clear_delay = pred.get("eta_seconds") or 1800
@@ -866,6 +929,7 @@ class TelegramThreatMonitor:
                 confidence=pred["confidence"],
                 eta=pred["eta_str"],
                 is_predictive=True,
+                is_test=pred.get("is_test", False),
                 telemetry=None  # No direct telemetry for predictions
             )
             self._schedule_auto_clear(region, auto_clear_delay)
@@ -941,7 +1005,7 @@ class TelegramThreatMonitor:
             await self._process_message_regex(text, channel)
 
     # --- Message Parser Logic (Shared by both MTProto & Web Scraper) ---
-    async def _process_message_regex(self, text, channel):
+    async def _process_message_regex(self, text, channel, is_test: bool = False):
         # Clean double spaces and split into lines, then logical sentences
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         segments = []
@@ -982,11 +1046,11 @@ class TelegramThreatMonitor:
                     # If it says 'clear' but names no regions, it might be a general clear.
                     # We only clear all if the entire message contains no other region mentions
                     if not self._extract_regions(text):
-                        self.threat_manager.clear_all()
+                        self.threat_manager.clear_all(only_test=is_test)
                         cleared_all = True
                     else:
                         if "област" in segment or "всіх" in segment or not seg_regions:
-                            self.threat_manager.clear_all()
+                            self.threat_manager.clear_all(only_test=is_test)
                             cleared_all = True
                 
                 # Reset context on clear
@@ -1094,7 +1158,8 @@ class TelegramThreatMonitor:
                         detail += f" (Очікуваний час: {eta_str})"
 
                     self.threat_manager.set_threat(region, level, threat_type, detail,
-                                                  confidence=regex_confidence, eta=eta_str, is_predictive=is_pred)
+                                                  confidence=regex_confidence, eta=eta_str, is_predictive=is_pred,
+                                                  is_test=is_test)
                     self._schedule_auto_clear(region, delay)
                     set_regions[region] = level
 
@@ -1231,16 +1296,29 @@ class TelegramThreatMonitor:
         from datetime import datetime, timezone
         for region, state in self.threat_manager.threats.items():
             if state.level != "none" and state.since:
+                # Determine delay based on threat type
+                t_type = state.threat_type
+                delay = 3600
+                if t_type == "mig31k":
+                    delay = 1800
+                elif t_type == "ballistic":
+                    delay = 600
+                elif t_type == "kab":
+                    delay = 1200
+                elif t_type == "shahed":
+                    delay = 10800
+                elif t_type == "cruise_missile":
+                    delay = 2700
                 try:
                     since_str = state.since.replace("Z", "+00:00")
                     since_dt = datetime.fromisoformat(since_str)
                     elapsed = (datetime.now(timezone.utc) - since_dt).total_seconds()
-                    remaining = 3600 - elapsed
+                    remaining = delay - elapsed
                     if remaining <= 0:
                         self.threat_manager.clear_threat(region)
-                        print(f"⏳ Загроза для {region} застаріла під час офлайну. Очищено.")
+                        print(f"⏳ Загроза для {region} ({t_type}) застаріла під час офлайну. Очищено.")
                     else:
                         self._schedule_auto_clear(region, remaining)
-                        print(f"⏳ Заплановано автозняття загрози для {region} через {int(remaining)} сек.")
+                        print(f"⏳ Заплановано автозняття загрози для {region} ({t_type}) через {int(remaining)} сек.")
                 except Exception as e:
-                    self._schedule_auto_clear(region, 3600)
+                    self._schedule_auto_clear(region, delay)
