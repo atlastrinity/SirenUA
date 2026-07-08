@@ -20,14 +20,16 @@ struct RegionHistoryEvent: Identifiable, Codable {
     
     /// Formatted date for display
     var displayDate: String {
-        // Server sends ISO format like "2026-07-07 14:23:00"
+        // Server sends ISO format like "2026-07-07 14:23:00" in UTC
         let isoFormatter = DateFormatter()
         isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
         isoFormatter.locale = Locale(identifier: "uk_UA")
         
         if let date = isoFormatter.date(from: timestamp) {
             let displayFormatter = DateFormatter()
             displayFormatter.locale = Locale(identifier: "uk_UA")
+            displayFormatter.timeZone = TimeZone.current
             displayFormatter.dateFormat = "d MMM, HH:mm"
             return displayFormatter.string(from: date)
         }
@@ -37,8 +39,10 @@ struct RegionHistoryEvent: Identifiable, Codable {
     var displayTime: String {
         let isoFormatter = DateFormatter()
         isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
         if let date = isoFormatter.date(from: timestamp) {
             let timeFormatter = DateFormatter()
+            timeFormatter.timeZone = TimeZone.current
             timeFormatter.dateFormat = "HH:mm"
             return timeFormatter.string(from: date)
         }
@@ -48,10 +52,12 @@ struct RegionHistoryEvent: Identifiable, Codable {
     var displayDay: String {
         let isoFormatter = DateFormatter()
         isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
         isoFormatter.locale = Locale(identifier: "uk_UA")
         if let date = isoFormatter.date(from: timestamp) {
             let dayFormatter = DateFormatter()
             dayFormatter.locale = Locale(identifier: "uk_UA")
+            dayFormatter.timeZone = TimeZone.current
             dayFormatter.dateFormat = "d MMMM yyyy"
             return dayFormatter.string(from: date)
         }
