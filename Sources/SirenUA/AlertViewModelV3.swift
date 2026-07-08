@@ -45,11 +45,10 @@ final class AlertViewModelV3: ObservableObject {
     init() {
         vmLogger.info("AlertViewModelV3 initialized")
         initializeRegions()
-        refreshAlerts()
-        setupRefreshLoop()
         setupWebSocket()
+        setupRefreshLoop()
         
-        // Instantly refresh threats when premium status changes in UserDefaults
+        // Refresh UI when premium status changes (threat details visibility)
         premiumObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
@@ -58,11 +57,6 @@ final class AlertViewModelV3: ObservableObject {
             guard let self else { return }
             DispatchQueue.main.async {
                 self.objectWillChange.send()
-                if self.isPremium {
-                    ThreatWebSocketClient.shared.connect(to: self.threatServerURL)
-                } else {
-                    ThreatWebSocketClient.shared.disconnect()
-                }
             }
         }
     }
@@ -124,12 +118,13 @@ final class AlertViewModelV3: ObservableObject {
                 try? await Task.sleep(for: .seconds(self.refreshInterval))
                 guard self.autoRefreshEnabled else { continue }
                 
-                // Skip client-side polling if premium and WebSocket is active
+                // HTTP fallback: poll ubilling directly only when WebSocket is disconnected
                 let wsConnected = ThreatWebSocketClient.shared.connectionState == .connected
-                if self.isPremium && wsConnected {
+                if wsConnected {
                     continue
                 }
                 
+                vmLogger.info("WebSocket disconnected — falling back to HTTP polling")
                 await self.fetchLiveAlerts()
             }
         }
@@ -141,20 +136,23 @@ final class AlertViewModelV3: ObservableObject {
         ThreatWebSocketClient.shared.events
             .receive(on: DispatchQueue.main)
             .sink { [weak self] event in
-                guard let self = self, self.isPremium else { return }
+                guard let self = self else { return }
                 switch event {
                 case .initialState(let threats):
                     self.applyThreats(threats)
+                    self.updateStats()
+                    self.updateLastAlertedRegion()
+                    self.isFirstFetch = false
                 case .threatUpdate(let region, let threat):
                     self.applySingleThreat(region: region, threat: threat)
+                    self.updateStats()
+                    self.updateLastAlertedRegion()
                 }
             }
             .store(in: &cancellables)
             
-        // If premium, connect automatically
-        if isPremium {
-            ThreatWebSocketClient.shared.connect(to: threatServerURL)
-        }
+        // Connect for all users — server proxies official alerts + threat data
+        ThreatWebSocketClient.shared.connect(to: threatServerURL)
     }
     
     private func applySingleThreat(region: String, threat: ThreatInfo) {
@@ -296,10 +294,8 @@ final class AlertViewModelV3: ObservableObject {
     }
     
     func refreshThreats() {
-        if isPremium {
-            ThreatWebSocketClient.shared.disconnect()
-            ThreatWebSocketClient.shared.connect(to: threatServerURL)
-        }
+        ThreatWebSocketClient.shared.disconnect()
+        ThreatWebSocketClient.shared.connect(to: threatServerURL)
     }
 
     private func fetchLiveAlerts() async {
@@ -378,7 +374,9 @@ final class AlertViewModelV3: ObservableObject {
     }
 
     func refreshAlerts() {
-        Task { await fetchLiveAlerts() }
+        // Primary: reconnect WebSocket to get fresh initial_state
+        ThreatWebSocketClient.shared.disconnect()
+        ThreatWebSocketClient.shared.connect(to: threatServerURL)
     }
 
     func updateAlertStatus(id: Int, isActive: Bool) {

@@ -25,7 +25,6 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
     
     private var isIntentionalDisconnect = false
     private var retryCount = 0
-    private let maxRetries = 5
 
     private init() {}
 
@@ -61,9 +60,7 @@ final class ThreatWebSocketClient: ObservableObject, @unchecked Sendable {
             task.resume()
             
             // Reset retry count on manual connection request
-            if self.retryCount > self.maxRetries {
-                self.retryCount = 0
-            }
+            self.retryCount = 0
             
             self.receiveMessage()
             self.startPingTimer(for: task)
