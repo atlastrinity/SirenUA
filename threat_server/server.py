@@ -204,7 +204,7 @@ def log_threat_to_db(region: str, level: str, threat_type: str, detail: str = No
         print(f"⚠️ Помилка запису в БД аналітики: {e}")
         return None
 
-def log_threat_to_firestore(region: str, level: str, threat_type: str, detail: str = None, confidence: int = None, telemetry: dict = None):
+def log_threat_to_firestore(region: str, level: str, threat_type: str, detail: str = None, confidence: int = None, telemetry: dict = None, is_test: bool = False):
     """Log threat event to Firebase Firestore."""
     db = get_db()
     if not db:
@@ -222,13 +222,14 @@ def log_threat_to_firestore(region: str, level: str, threat_type: str, detail: s
             "threat_level": level,
             "threat_type": threat_type,
             "detail": detail,
-            "confidence": confidence
+            "confidence": confidence,
+            "is_test": is_test
         }
         if telemetry:
             doc_data["telemetry"] = telemetry
             
         db.collection('sirenua_history').add(doc_data)
-        print(f"🔥 Logged history event to Firestore for {region}: {level} ({threat_type})")
+        print(f"🔥 Logged history event to Firestore for {region}: {level} ({threat_type}, is_test={is_test})")
     except Exception as e:
         print(f"⚠️ Помилка запису історії в Firestore: {e}")
 
@@ -398,7 +399,7 @@ def on_threat_changed(region, state, telemetry=None):
         log_level = "high" if state.is_active else "none"
         detail = "Повітряна тривога" if state.is_active else "Відбій повітряної тривоги"
         asyncio.create_task(asyncio.to_thread(log_threat_to_db, region, log_level, "official_alarm", detail))
-        asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, log_level, "official_alarm", detail))
+        asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, log_level, "official_alarm", detail, is_test=state.is_test))
         
     # 2. AI/Telegram threat level change logging
     if prev_level != state.level:
@@ -406,11 +407,11 @@ def on_threat_changed(region, state, telemetry=None):
         if (current_type and current_type != "official_alarm") or (prev_type and prev_type != "official_alarm" and state.level == "none"):
             if state.level != "none":
                 asyncio.create_task(asyncio.to_thread(log_threat_to_db, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry))
-                asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry))
+                asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry, is_test=state.is_test))
             elif prev_level != "none":
                 # Threat has cleared
                 asyncio.create_task(asyncio.to_thread(log_threat_to_db, region, "none", prev_type, "Відбій загрози"))
-                asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, "none", prev_type, "Відбій загрози"))
+                asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, "none", prev_type, "Відбій загрози", is_test=state.is_test))
             
     last_logged_states[region] = (state.level, state.is_active, state.threat_type)
 
@@ -1167,37 +1168,54 @@ async def get_prediction_accuracy(days: int = 30):
 
 
 @app.get("/api/history/{region}")
-async def get_region_history(region: str, limit: int = 50):
-    """Повертає хронологію загроз для конкретної області з Firebase Firestore."""
+async def get_region_history(region: str, limit: int = 200, date: str = None):
+    """Повертає хронологію загроз для конкретної області з Firebase Firestore.
+    
+    Args:
+        region: Назва області
+        limit: Максимальна кількість подій (default 200)
+        date: Дата у форматі YYYY-MM-DD. Якщо не вказано, повертає за сьогодні.
+    """
     from urllib.parse import unquote
+    from datetime import datetime as dt, timedelta
     region = unquote(region)
     
     db = get_db()
     if not db:
         raise HTTPException(status_code=503, detail="Firebase Firestore недоступний")
+    
+    # Determine date range
+    if date:
+        try:
+            target_date = dt.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Невірний формат дати. Використовуйте YYYY-MM-DD")
+    else:
+        target_date = dt.utcnow()
+    
+    date_start = target_date.strftime("%Y-%m-%d 00:00:00")
+    date_end = (target_date + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
         
     try:
-        # Fetch matching documents from Firestore
+        # Fetch matching documents from Firestore filtered by date range
         docs = await asyncio.to_thread(
             lambda: db.collection('sirenua_history')
                       .where('region', '==', region)
+                      .where('timestamp', '>=', date_start)
+                      .where('timestamp', '<', date_end)
+                      .order_by('timestamp', direction='DESCENDING')
+                      .limit(min(limit, 200))
                       .get()
         )
         
         events = []
         for doc in docs:
             d = doc.to_dict()
-            # Ensure ID field is present and returned
             events.append(d)
-            
-        # Sort by timestamp descending
-        events.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        
-        # Limit results
-        events = events[:min(limit, 200)]
         
         return {
             "region": region,
+            "date": target_date.strftime("%Y-%m-%d"),
             "count": len(events),
             "events": events
         }

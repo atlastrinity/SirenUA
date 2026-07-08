@@ -120,17 +120,22 @@ final class NetworkManager: Sendable {
     // MARK: - Region History (Premium)
 
     /// Fetches threat history for a specific region from the server
-    func fetchRegionHistory(serverURL: String, region: String, limit: Int = 50) async throws -> [RegionHistoryEvent] {
+    /// - Parameters:
+    ///   - date: Optional date string in "yyyy-MM-dd" format. If nil, server defaults to today.
+    func fetchRegionHistory(serverURL: String, region: String, date: String? = nil, limit: Int = 200) async throws -> [RegionHistoryEvent] {
         let base = serverURL.hasSuffix("/") ? serverURL : "\(serverURL)/"
         let encoded = region.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? region
-        let urlString = "\(base)api/history/\(encoded)?limit=\(limit)"
+        var urlString = "\(base)api/history/\(encoded)?limit=\(limit)"
+        if let date = date {
+            urlString += "&date=\(date)"
+        }
         guard let url = URL(string: urlString) else {
             throw NetworkError.invalidURL(urlString)
         }
 
         var request = makeRequest(url: url, agent: Self.premiumAgent)
         request.timeoutInterval = 10.0
-        networkLogger.info("Fetching history for \(region)")
+        networkLogger.info("Fetching history for \(region) date=\(date ?? "today")")
 
         let data = try await fetch(request: request)
 

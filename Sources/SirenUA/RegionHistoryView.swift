@@ -11,10 +11,30 @@ struct RegionHistoryView: View {
     @State private var events: [RegionHistoryEvent] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var selectedDate: Date = Date()
+    @State private var showDatePicker = false
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var storeManager: StoreKitManager
     
     private let networkManager = NetworkManager()
     private let serverURL = "https://sirenua-threatserver.onrender.com"
+    
+    private var isPremium: Bool {
+        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+    }
+    
+    private var dateFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }
+    
+    private var displayDateFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "uk_UA")
+        f.dateFormat = "d MMMM yyyy"
+        return f
+    }
     
     var body: some View {
         ZStack {
@@ -31,25 +51,33 @@ struct RegionHistoryView: View {
             )
             .ignoresSafeArea()
             
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    headerSection
-                        .padding(.bottom, 24)
-                    
-                    if isLoading {
-                        loadingView
-                    } else if let error = errorMessage {
-                        errorView(error)
-                    } else if events.isEmpty {
-                        emptyView
-                    } else {
-                        timelineContent
+            if !isPremium {
+                premiumLockedView
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Header
+                        headerSection
+                            .padding(.bottom, 16)
+                        
+                        // Date picker bar
+                        datePickerBar
+                            .padding(.bottom, 20)
+                        
+                        if isLoading {
+                            loadingView
+                        } else if let error = errorMessage {
+                            errorView(error)
+                        } else if events.isEmpty {
+                            emptyView
+                        } else {
+                            timelineContent
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 40)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 40)
             }
         }
         .navigationTitle("Хронологія")
@@ -65,7 +93,175 @@ struct RegionHistoryView: View {
             }
         }
         .task {
-            await loadHistory()
+            if isPremium {
+                await loadHistory()
+            }
+        }
+    }
+    
+    // MARK: - Premium Locked View
+    
+    private var premiumLockedView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.yellow, .orange],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            
+            Text("Хронологія подій\nдоступна з Premium")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+            
+            Text("Переглядайте повну історію загроз, аналітику руху та хронологію подій для кожної області.")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .padding(.horizontal, 32)
+            
+            Button(action: {
+                Task {
+                    if let product = storeManager.storeProducts.first(where: { $0.id.contains("monthly") }) ?? storeManager.storeProducts.first {
+                        try? await storeManager.purchase(product)
+                    }
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 16))
+                    Text("Підключити Premium")
+                        .font(.system(size: 16, weight: .bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        colors: [.yellow, .orange],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundStyle(.black)
+                .cornerRadius(16)
+            }
+            .padding(.horizontal, 40)
+            
+            Spacer()
+        }
+    }
+    
+    // MARK: - Date Picker Bar
+    
+    private var datePickerBar: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                // Previous day
+                Button(action: {
+                    selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate) ?? selectedDate
+                    Task { await loadHistory() }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(themeColor)
+                        .frame(width: 36, height: 36)
+                        .background(themeColor.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                
+                // Date display / picker toggle
+                Button(action: {
+                    withAnimation(.spring(response: 0.3)) {
+                        showDatePicker.toggle()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 12))
+                            .foregroundStyle(themeColor)
+                        
+                        Text(isToday(selectedDate) ? "Сьогодні" : displayDateFormatter.string(from: selectedDate))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white)
+                        
+                        Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(themeColor.opacity(0.2), lineWidth: 1)
+                    )
+                }
+                
+                // Next day (disabled if today)
+                Button(action: {
+                    selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate) ?? selectedDate
+                    Task { await loadHistory() }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(isToday(selectedDate) ? .white.opacity(0.2) : themeColor)
+                        .frame(width: 36, height: 36)
+                        .background(isToday(selectedDate) ? Color.white.opacity(0.05) : themeColor.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .disabled(isToday(selectedDate))
+                
+                Spacer()
+                
+                // Today button
+                if !isToday(selectedDate) {
+                    Button(action: {
+                        selectedDate = Date()
+                        Task { await loadHistory() }
+                    }) {
+                        Text("Сьогодні")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(themeColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(themeColor.opacity(0.1))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+            
+            // Inline date picker
+            if showDatePicker {
+                DatePicker(
+                    "Оберіть дату",
+                    selection: $selectedDate,
+                    in: ...Date(),
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .tint(themeColor)
+                .environment(\.locale, Locale(identifier: "uk_UA"))
+                .padding(12)
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(themeColor.opacity(0.15), lineWidth: 1)
+                )
+                .onChange(of: selectedDate) { _ in
+                    showDatePicker = false
+                    Task { await loadHistory() }
+                }
+            }
         }
     }
     
@@ -124,69 +320,40 @@ struct RegionHistoryView: View {
     // MARK: - Timeline content
     
     private var timelineContent: some View {
-        let grouped = Dictionary(grouping: events) { $0.displayDay }
-        let sortedDays = grouped.keys.sorted { a, b in
-            // Sort by the first event's timestamp in each group (descending)
-            let aTime = grouped[a]?.first?.timestamp ?? ""
-            let bTime = grouped[b]?.first?.timestamp ?? ""
-            return aTime > bTime
-        }
-        
-        return VStack(alignment: .leading, spacing: 24) {
-            ForEach(sortedDays, id: \.self) { day in
-                // Day header
-                HStack(spacing: 8) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.4))
-                    Text(day)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.5))
-                    
-                    Rectangle()
-                        .fill(.white.opacity(0.08))
-                        .frame(height: 1)
-                }
-                .padding(.bottom, 4)
-                
-                // Timeline events for this day
-                let dayEvents = grouped[day] ?? []
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(dayEvents.enumerated()), id: \.element.id) { index, event in
-                        HStack(alignment: .top, spacing: 14) {
-                            // Timeline spine
-                            VStack(spacing: 0) {
-                                // Dot
-                                ZStack {
-                                    Circle()
-                                        .fill(levelColor(event.threat_level).opacity(0.2))
-                                        .frame(width: 28, height: 28)
-                                    Circle()
-                                        .fill(levelColor(event.threat_level))
-                                        .frame(width: 12, height: 12)
-                                }
-                                
-                                // Connecting line (not for last item)
-                                if index < dayEvents.count - 1 {
-                                    Rectangle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [levelColor(event.threat_level).opacity(0.3), levelColor(dayEvents[index + 1].threat_level).opacity(0.3)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        .frame(width: 2)
-                                        .frame(maxHeight: .infinity)
-                                }
-                            }
-                            .frame(width: 28)
-                            
-                            // Event card
-                            eventCard(event)
-                                .padding(.bottom, index < dayEvents.count - 1 ? 12 : 0)
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                HStack(alignment: .top, spacing: 14) {
+                    // Timeline spine
+                    VStack(spacing: 0) {
+                        // Dot
+                        ZStack {
+                            Circle()
+                                .fill(levelColor(event.threat_level).opacity(0.2))
+                                .frame(width: 28, height: 28)
+                            Circle()
+                                .fill(levelColor(event.threat_level))
+                                .frame(width: 12, height: 12)
+                        }
+                        
+                        // Connecting line (not for last item)
+                        if index < events.count - 1 {
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [levelColor(event.threat_level).opacity(0.3), levelColor(events[index + 1].threat_level).opacity(0.3)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .frame(width: 2)
+                                .frame(maxHeight: .infinity)
                         }
                     }
+                    .frame(width: 28)
+                    
+                    // Event card
+                    eventCard(event)
+                        .padding(.bottom, index < events.count - 1 ? 12 : 0)
                 }
             }
         }
@@ -198,13 +365,13 @@ struct RegionHistoryView: View {
         HStack(alignment: .center, spacing: 14) {
             VStack(alignment: .leading, spacing: 10) {
                 // Top row: type icon + name + time
-                HStack(spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
                     Text(event.typeIcon)
-                        .font(.system(size: 16))
+                        .font(.system(size: 18))
                     
                     Text(event.typeName)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(levelColor(event.threat_level))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
                     
                     Spacer()
                     
@@ -213,55 +380,36 @@ struct RegionHistoryView: View {
                         .foregroundStyle(.white.opacity(0.4))
                 }
                 
-                // Detail text
-                if let detail = event.detail, !detail.isEmpty {
-                    Text(detail)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
+                // Level badge
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(levelColor(event.threat_level))
+                        .frame(width: 7, height: 7)
+                    
+                    Text(levelLabel(event.threat_level))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(levelColor(event.threat_level))
+                    
+                    if let conf = event.confidence {
+                        Spacer()
+                        Text("⚙️ \(conf)%")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
                 }
                 
-                // Bottom badges
-                HStack(spacing: 8) {
-                    // Level badge
-                    Text(levelLabel(event.threat_level).uppercased())
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(levelColor(event.threat_level))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(levelColor(event.threat_level).opacity(0.12))
-                        .clipShape(Capsule())
+                // Detail text (if present)
+                if let detail = event.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .lineSpacing(3)
+                        .lineLimit(3)
                 }
-            }
-            
-            // Circular probability ring on the right (if confidence is available)
-            if let confidence = event.confidence {
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.08), lineWidth: 3)
-                        .frame(width: 44, height: 44)
-                    
-                    Circle()
-                        .trim(from: 0, to: CGFloat(confidence) / 100.0)
-                        .stroke(
-                            levelColor(event.threat_level),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                        )
-                        .frame(width: 44, height: 44)
-                        .rotationEffect(.degrees(-90))
-                    
-                    Text("\(confidence)%")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(levelColor(event.threat_level))
-                }
-                .frame(width: 44)
-                .padding(.leading, 4)
             }
         }
         .padding(14)
         .background(.ultraThinMaterial)
-        .background(levelColor(event.threat_level).opacity(0.03))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -274,38 +422,36 @@ struct RegionHistoryView: View {
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
-                .tint(themeColor)
+                .progressViewStyle(CircularProgressViewStyle(tint: themeColor))
                 .scaleEffect(1.2)
-            Text("Завантаження хронології...")
+            
+            Text("Завантаження подій...")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 60)
     }
     
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 32))
+                .font(.system(size: 36))
                 .foregroundStyle(.orange)
-            Text("Помилка завантаження")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.8))
+            
             Text(message)
-                .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             
-            Button("Спробувати ще") {
+            Button("Спробувати знову") {
                 Task { await loadHistory() }
             }
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(themeColor)
-            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 60)
+        .padding(.top, 40)
     }
     
     private var emptyView: some View {
@@ -313,9 +459,9 @@ struct RegionHistoryView: View {
             ZStack {
                 Circle()
                     .fill(themeColor.opacity(0.08))
-                    .frame(width: 80, height: 80)
+                    .frame(width: 70, height: 70)
                 Image(systemName: "clock.badge.checkmark")
-                    .font(.system(size: 34))
+                    .font(.system(size: 28, weight: .medium))
                     .foregroundStyle(themeColor.opacity(0.5))
             }
             
@@ -323,7 +469,7 @@ struct RegionHistoryView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
             
-            Text("Хронологія загроз для цієї області\nпоки що порожня")
+            Text("За \(isToday(selectedDate) ? "сьогодні" : displayDateFormatter.string(from: selectedDate))\nподій для цієї області не було")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.3))
                 .multilineTextAlignment(.center)
@@ -334,6 +480,10 @@ struct RegionHistoryView: View {
     }
     
     // MARK: - Helpers
+    
+    private func isToday(_ date: Date) -> Bool {
+        Calendar.current.isDateInToday(date)
+    }
     
     private func levelColor(_ level: String) -> Color {
         switch level {
@@ -363,11 +513,14 @@ struct RegionHistoryView: View {
         isLoading = true
         errorMessage = nil
         
+        let dateString = dateFormatter.string(from: selectedDate)
+        
         do {
             let fetched = try await networkManager.fetchRegionHistory(
                 serverURL: serverURL,
                 region: regionName,
-                limit: 100
+                date: dateString,
+                limit: 200
             )
             await MainActor.run {
                 events = fetched
