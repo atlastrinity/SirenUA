@@ -10,6 +10,10 @@ targets:
       - path: Sources/SirenUA
     entitlements:
       path: Sources/SirenUA/SirenUA.entitlements
+    attributes:
+      SystemCapabilities:
+        com.apple.Push:
+          enabled: 1
     dependencies:
       - package: Firebase
         product: FirebaseMessaging
