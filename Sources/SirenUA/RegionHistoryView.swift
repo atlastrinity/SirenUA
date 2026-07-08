@@ -132,7 +132,7 @@ struct RegionHistoryView: View {
             Button(action: {
                 Task {
                     if let product = storeManager.storeProducts.first(where: { $0.id.contains("monthly") }) ?? storeManager.storeProducts.first {
-                        try? await storeManager.purchase(product)
+                        _ = try? await storeManager.purchase(product)
                     }
                 }
             }) {
