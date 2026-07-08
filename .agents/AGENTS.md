@@ -14,12 +14,15 @@ This workspace consists of two separate repositories that interact with each oth
    - Cloned directory: `/Users/dev/Documents/GitHub/claw-code/serena/SirenUA-ThreatServer`
    - Contains: Python FastAPI backend for real-time OSM shelters, Telegram monitoring bot, and Firebase integration.
    - **Crucial Rule**: The live deployment on Render is connected ONLY to `SirenUA-ThreatServer`.
-   
-### ⚠️ Server Deployment Process:
+
+### Server Deployment Process
+
 Whenever changes are made to the threat server code (e.g. `mock_mode.py`, `telegram_monitor.py`, `server.py`, `shelter_manager.py`):
-1. The changes **MUST** be copied/synchronized to the cloned `SirenUA-ThreatServer` repository.
-2. The changes **MUST** be committed and pushed to `SirenUA-ThreatServer.git` (branch `main`).
-3. Only pushing to `SirenUA-ThreatServer.git` triggers Render's automated build and redeployment. Pushing changes to the `/threat_server` subfolder in the `SirenUA` repository will **NOT** update the live server.
+
+1. The changes **MUST** be kept synchronized in the `/threat_server` directory of the main `SirenUA` repository (which serves as the master codebase with full git history).
+2. The changes **MUST** also be copied/synchronized to the cloned `SirenUA-ThreatServer` repository (which must contain ONLY server-related files for deployment).
+3. The changes **MUST** be committed and pushed to **BOTH** repositories.
+4. Only pushing to `SirenUA-ThreatServer.git` (branch `main`) triggers Render's automated build and redeployment. Pushing changes to the `/threat_server` subfolder in the `SirenUA` repository will **NOT** update the live server.
 
 ## 🤖 AI Automation & CI/CD Capabilities
 
