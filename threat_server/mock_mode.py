@@ -363,6 +363,7 @@ class MockThreatManager:
     def __init__(self):
         self.threats: dict[str, ThreatState] = {}
         self.last_sound_time: float = 0.0
+        self.real_threats_backup: dict = {}
         for region in ALL_REGIONS:
             self.threats[region] = ThreatState()
 
@@ -404,11 +405,70 @@ class MockThreatManager:
                 else:
                     print("⚠️ Документ загроз у Firebase не знайдено.")
                     self.load_from_file()
+                
+                # Load real threats backup
+                self.load_real_threats_from_db()
+                if not self.real_threats_backup:
+                    for region, state in self.threats.items():
+                        if not state.is_test:
+                            self.real_threats_backup[region] = state.to_dict()
             except Exception as e:
                 print(f"⚠️ Помилка завантаження стану загроз з Firebase: {e}")
                 self.load_from_file()
         else:
             self.load_from_file()
+
+    def save_real_threats_to_db(self):
+        db = get_db()
+        if db:
+            try:
+                doc_ref = db.collection('sirenua_state').document('real_threats')
+                doc_ref.set(self.real_threats_backup)
+            except Exception as e:
+                print(f"⚠️ Помилка збереження резервного копіювання реальних загроз у Firebase: {e}")
+        self.save_real_threats_to_file()
+
+    def save_real_threats_to_file(self):
+        import json
+        import os
+        try:
+            filepath = "real_threats_state.json"
+            if os.path.exists("threat_server"):
+                filepath = "threat_server/real_threats_state.json"
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(self.real_threats_backup, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"⚠️ Помилка збереження резервної копії реальних загроз у файл: {e}")
+
+    def load_real_threats_from_db(self):
+        db = get_db()
+        loaded = False
+        if db:
+            try:
+                doc_ref = db.collection('sirenua_state').document('real_threats')
+                doc = doc_ref.get()
+                if doc.exists:
+                    self.real_threats_backup = doc.to_dict()
+                    print("💾 Завантажено резервну копію реальних загроз з Firebase")
+                    loaded = True
+            except Exception as e:
+                print(f"⚠️ Помилка завантаження резервної копії реальних загроз з Firebase: {e}")
+        if not loaded:
+            self.load_real_threats_from_file()
+
+    def load_real_threats_from_file(self):
+        import json
+        import os
+        filepath = "real_threats_state.json"
+        if os.path.exists("threat_server"):
+            filepath = "threat_server/real_threats_state.json"
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    self.real_threats_backup = json.load(f)
+                print("💾 Завантажено резервну копію реальних загроз з файлу")
+            except Exception as e:
+                print(f"⚠️ Помилка завантаження резервної копії реальних загроз з файлу: {e}")
 
     def save_to_file(self):
         import json
@@ -561,6 +621,24 @@ class MockThreatManager:
                        old_state.confidence != confidence or
                        old_state.is_test != is_test)
 
+        if not is_test:
+            self.real_threats_backup[region] = {
+                "level": level,
+                "type": threat_type,
+                "detail": detail,
+                "since": old_state.since if old_state.level == level else None,
+                "confidence": confidence,
+                "eta": eta,
+                "is_predictive": is_predictive,
+                "is_active": old_state.is_active,
+                "is_test": False
+            }
+            self.save_real_threats_to_db()
+        else:
+            if not old_state.is_test and old_state.level != "none":
+                self.real_threats_backup[region] = old_state.to_dict()
+                self.save_real_threats_to_db()
+
         self.threats[region].set_threat(level, threat_type, detail, confidence, eta, is_predictive, is_test)
         
         if has_changed:
@@ -584,6 +662,18 @@ class MockThreatManager:
             return False
         old_state = self.threats[region]
         has_changed = (old_state.level != "none")
+
+        if not old_state.is_test:
+            if region in self.real_threats_backup:
+                self.real_threats_backup[region]["level"] = "none"
+                self.real_threats_backup[region]["type"] = None
+                self.real_threats_backup[region]["detail"] = None
+                self.real_threats_backup[region]["since"] = None
+                self.real_threats_backup[region]["confidence"] = None
+                self.real_threats_backup[region]["eta"] = None
+                self.real_threats_backup[region]["is_predictive"] = False
+                self.save_real_threats_to_db()
+
         self.threats[region].clear()
         if has_changed:
             import time
@@ -612,6 +702,44 @@ class MockThreatManager:
                 any_changed = True
                 if hasattr(self, 'on_change'):
                     self.on_change(region, state, telemetry=None)
+        
+        # Restore real threats from backup if clearing test
+        if only_test:
+            for region, data in self.real_threats_backup.items():
+                if region in self.threats:
+                    state = self.threats[region]
+                    restored_has_changed = (
+                        state.level != data.get("level", "none") or
+                        state.threat_type != data.get("type") or
+                        state.detail != data.get("detail") or
+                        state.is_active != data.get("is_active", False) or
+                        state.is_test != False
+                    )
+                    
+                    if restored_has_changed:
+                        state.level = data.get("level", "none")
+                        state.threat_type = data.get("type")
+                        state.detail = data.get("detail")
+                        state.since = data.get("since")
+                        state.confidence = data.get("confidence")
+                        state.eta = data.get("eta")
+                        state.is_predictive = data.get("is_predictive", False)
+                        state.is_active = data.get("is_active", False)
+                        state.is_test = False
+                        
+                        any_changed = True
+                        
+                        # Send notification to update clients
+                        if state.level != "none":
+                            send_fcm_notification(region, state.level, state.threat_type, state.detail, confidence=state.confidence, eta=state.eta, is_official_alarm=state.is_active)
+                        elif state.is_active:
+                            send_fcm_notification(region, "high", is_official_alarm=True, detail="Повітряна тривога")
+                        else:
+                            send_fcm_notification(region, "none")
+                            
+                        if hasattr(self, 'on_change'):
+                            self.on_change(region, state, telemetry=None)
+
         if any_changed:
             self.save_to_db()
             self.save_to_file()
@@ -632,6 +760,27 @@ class MockThreatManager:
         if region not in self.threats:
             return False
         
+        # Update real threats backup state first
+        if region in self.real_threats_backup:
+            self.real_threats_backup[region]["is_active"] = is_active
+        else:
+            self.real_threats_backup[region] = {
+                "level": "none",
+                "type": None,
+                "detail": None,
+                "since": None,
+                "confidence": None,
+                "eta": None,
+                "is_predictive": False,
+                "is_active": is_active,
+                "is_test": False
+            }
+        self.save_real_threats_to_db()
+
+        # If this region currently has a test threat, do not overwrite its active view state
+        if self.threats[region].is_test:
+            return False
+            
         old_active = self.threats[region].is_active
         if old_active != is_active:
             self.threats[region].is_active = is_active
