@@ -194,14 +194,11 @@ struct SettingsView: View {
                             mockScenariosCard
                             diagnosticsCard
                         } else {
+                            // User mode: hide diagnosticsCard and mockScenariosCard completely
                             notificationsCard
                             mapCard
                             premiumCard
                             regionsCard
-                            diagnosticsCard
-                            if storeManager.isPremium {
-                                mockScenariosCard
-                            }
                             aboutCard
                         }
                     }
