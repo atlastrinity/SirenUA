@@ -333,7 +333,7 @@ struct AlertRegionDetailView: View {
                             // Action buttons for warning
                             HStack(spacing: 12) {
                                 Button(action: {
-                                    isConfirmed = true
+                                    dismiss()
                                 }) {
                                     Text(region.isActive ? "Я в безпеці" : "Зрозуміло")
                                         .font(.system(size: 14, weight: .semibold))
