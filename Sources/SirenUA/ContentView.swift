@@ -100,6 +100,7 @@ struct ContentView: View {
     @State private var route: MKRoute? = nil
     @State private var isCalculatingRoute = false
     @State private var routeErrorMessage: String? = nil
+    @State private var shelterInfoMessage: String? = nil
     
     // Початкова камера - зблизька на Київ
     @State private var cameraPosition: MapCameraPosition = .region(
@@ -243,13 +244,13 @@ struct ContentView: View {
                 .padding(.top, 10)
                 
                 // Floating error toast banner for shelter search results
-                if let error = routeErrorMessage {
+                if let displayMessage = routeErrorMessage ?? shelterInfoMessage {
                     HStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.yellow)
                             .font(.title3)
                         
-                        Text(error)
+                        Text(displayMessage)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.leading)
@@ -260,6 +261,7 @@ struct ContentView: View {
                         Button(action: {
                             withAnimation {
                                 routeErrorMessage = nil
+                                shelterInfoMessage = nil
                             }
                         }) {
                             Image(systemName: "xmark")
@@ -626,10 +628,17 @@ struct ContentView: View {
         }
         isRoutingToShelter = true
 
+        withAnimation {
+            shelterInfoMessage = nil
+            routeErrorMessage = nil
+        }
+
         let userLoc = centerCoordinate
         let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
-        let radiusMeters = max(currentRadius, 0.5) * 1000
-        mapLogger.info("Shelter search started. User: (\(userLoc.latitude), \(userLoc.longitude)), radius: \(radiusMeters)m")
+        let preferredRadiusMeters = max(currentRadius, 0.5) * 1000
+        let maxSearchRadiusMeters = transportType == .automobile ? max(preferredRadiusMeters, 20000) : max(preferredRadiusMeters, 5000)
+        
+        mapLogger.info("Shelter search started. User: (\(userLoc.latitude), \(userLoc.longitude)), preferred radius: \(preferredRadiusMeters)m, max search radius: \(maxSearchRadiusMeters)m")
 
         Task {
             // ──────────────────────────────────────────────
@@ -642,7 +651,7 @@ struct ContentView: View {
                     serverURL: viewModel.threatServerURL,
                     lat: userLoc.latitude,
                     lon: userLoc.longitude,
-                    radiusMeters: radiusMeters
+                    radiusMeters: maxSearchRadiusMeters
                 )
                 mapLogger.info("API returned \(apiShelters.count) shelters")
             } catch {
@@ -650,8 +659,25 @@ struct ContentView: View {
             }
 
             if !apiShelters.isEmpty {
+                // Filter shelters by preferred radius
+                let preferredShelters = apiShelters.filter { $0.distance_m <= preferredRadiusMeters }
+                
+                let displayedShelters: [ShelterItem]
+                let closestShelter: ShelterItem
+                let warningMsg: String?
+                
+                if !preferredShelters.isEmpty {
+                    displayedShelters = preferredShelters
+                    closestShelter = preferredShelters[0]
+                    warningMsg = nil
+                } else {
+                    displayedShelters = [apiShelters[0]]
+                    closestShelter = apiShelters[0]
+                    warningMsg = "Найближче укриття знайдено поза межами обраного радіусу (\(apiShelters[0].distanceText))"
+                }
+
                 // Convert ShelterItems to MKMapItems for existing UI flow
-                let mapItems = apiShelters.map { shelter -> MKMapItem in
+                let mapItems = displayedShelters.map { shelter -> MKMapItem in
                     let placemark = MKPlacemark(coordinate: shelter.coordinate)
                     let item = MKMapItem(placemark: placemark)
                     item.name = shelter.name ?? shelter.typeDescription
@@ -660,36 +686,42 @@ struct ContentView: View {
                     }
                     return item
                 }
+                
+                let closestMapItem = MKMapItem(placemark: MKPlacemark(coordinate: closestShelter.coordinate))
+                closestMapItem.name = closestShelter.name ?? closestShelter.typeDescription
+                if let addr = closestShelter.address {
+                    closestMapItem.name = "\(closestMapItem.name ?? "Укриття") — \(addr)"
+                }
 
                 await MainActor.run {
                     isRoutingToShelter = false
                     allFoundShelters = mapItems
+                    shelterInfoMessage = warningMsg
 
-                    guard let closest = mapItems.first else { return }
-                    foundShelter = closest
-                    selectedShelter = closest
+                    foundShelter = closestMapItem
+                    selectedShelter = closestMapItem
                     route = nil
                     routeErrorMessage = nil
                     isCalculatingRoute = false
-                    calculateRoute(to: closest)
+                    calculateRoute(to: closestMapItem)
 
                     withAnimation(.easeInOut(duration: 1.0)) {
                         cameraPosition = .region(
                             MKCoordinateRegion(
-                                center: closest.placemark.coordinate,
+                                center: closestMapItem.placemark.coordinate,
                                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                             )
                         )
                     }
                 }
-                return;
+                return
             }
 
             // ──────────────────────────────────────────────
             // Priority 2: Fallback to Apple MKLocalSearch
             // ──────────────────────────────────────────────
             mapLogger.info("Falling back to MKLocalSearch...")
-            let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: radiusMeters, longitudinalMeters: radiusMeters)
+            let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: maxSearchRadiusMeters, longitudinalMeters: maxSearchRadiusMeters)
 
             let queries = [
                 "укриття", "бомбосховище", "shelter", "bomb shelter",
@@ -742,46 +774,62 @@ struct ContentView: View {
             }
             mapLogger.info("Unique items after dedup: \(uniqueItems.count)")
 
-            // Filter items strictly within the selected radius
+            // Calculate distance for each unique item
             let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
-            let strictRadiusItems = uniqueItems.filter { item in
+            let itemsWithDistance = uniqueItems.map { item -> (item: MKMapItem, distance: Double) in
                 let itemLocation = CLLocation(
                     latitude: item.placemark.coordinate.latitude,
                     longitude: item.placemark.coordinate.longitude
                 )
-                return itemLocation.distance(from: userLocation) <= radiusMeters
+                let distance = itemLocation.distance(from: userLocation)
+                return (item, distance)
             }
-            mapLogger.info("Items within strict radius (\(radiusMeters)m): \(strictRadiusItems.count)")
 
-            // Знаходження найближчого об'єкта до користувача
-            let closestItem = strictRadiusItems.min { a, b in
-                let distA = CLLocation(latitude: a.placemark.coordinate.latitude, longitude: a.placemark.coordinate.longitude)
-                    .distance(from: userLocation)
-                let distB = CLLocation(latitude: b.placemark.coordinate.latitude, longitude: b.placemark.coordinate.longitude)
-                    .distance(from: userLocation)
-                return distA < distB
+            // Filter items within preferred radius
+            let preferredItems = itemsWithDistance.filter { $0.distance <= preferredRadiusMeters }
+
+            let displayedItems: [MKMapItem]
+            let closestItem: MKMapItem?
+            let warningMsg: String?
+
+            if !preferredItems.isEmpty {
+                displayedItems = preferredItems.map { $0.item }
+                closestItem = preferredItems.min(by: { a, b in a.distance < b.distance })?.item
+                warningMsg = nil
+            } else if let absoluteClosest = itemsWithDistance.min(by: { a, b in a.distance < b.distance }) {
+                displayedItems = [absoluteClosest.item]
+                closestItem = absoluteClosest.item
+                let distText = absoluteClosest.distance < 1000
+                    ? "\(Int(absoluteClosest.distance)) м"
+                    : String(format: "%.1f км", absoluteClosest.distance / 1000)
+                warningMsg = "Найближче укриття знайдено поза межами обраного радіусу (\(distText))"
+            } else {
+                displayedItems = []
+                closestItem = nil
+                warningMsg = nil
             }
 
             await MainActor.run {
                 isRoutingToShelter = false
                 
                 guard let closestItem else {
-                    mapLogger.warning("No shelter found within strict radius of \(currentRadius) km")
+                    mapLogger.warning("No shelter found within max search radius of \(maxSearchRadiusMeters)m")
                     allFoundShelters = []
                     foundShelter = nil
                     selectedShelter = nil
                     route = nil
-                    routeErrorMessage = "Не знайдено жодного укриття у радіусі \(String(format: "%.1f", currentRadius)) км. Спробуйте збільшити радіус у налаштуваннях."
+                    routeErrorMessage = "Не знайдено жодного укриття. Спробуйте збільшити радіус у налаштуваннях."
                     isCalculatingRoute = false
                     return
                 }
 
-                mapLogger.info("Closest strict shelter found: \(closestItem.name ?? "unnamed")")
-                allFoundShelters = strictRadiusItems
+                mapLogger.info("Closest shelter found: \(closestItem.name ?? "unnamed")")
+                allFoundShelters = displayedItems
                 foundShelter = closestItem
                 selectedShelter = closestItem
                 route = nil
                 routeErrorMessage = nil
+                shelterInfoMessage = warningMsg
                 isCalculatingRoute = false
                 calculateRoute(to: closestItem)
 
