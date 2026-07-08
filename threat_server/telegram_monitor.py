@@ -189,6 +189,9 @@ class TelegramThreatMonitor:
         # Запускаємо фоновий процес батч-аналізу через Gemini
         self.batch_task = asyncio.create_task(self._batch_processor_loop())
         
+        # Запускаємо фоновий таск самонавчання правил (кожні 6 годин)
+        self._rules_learner_task = asyncio.create_task(self._rules_learner_loop())
+        
         # 1. Try to load from environment variable (StringSession) - best for Render production
         session_string = os.environ.get("TELEGRAM_SESSION_STRING")
         if session_string:
@@ -672,44 +675,15 @@ class TelegramThreatMonitor:
         "border_shelling": None,  # No directional prediction
     }
 
-    CITY_TO_REGION = {
-        "Київ": "м. Київ",
-        "Старокостянтинів": "Хмельницька область",
-        "Стрий": "Львівська область",
-        "Львів": "Львівська область",
-        "Харків": "Харківська область",
-        "Одеса": "Одеська область",
-        "Дніпро": "Дніпропетровська область",
-        "Запоріжжя": "Запорізька область",
-        "Кривий Ріг": "Дніпропетровська область",
-        "Миколаїв": "Миколаївська область",
-        "Вінниця": "Вінницька область",
-        "Хмельницький": "Хмельницька область",
-        "Чернігів": "Чернігівська область",
-        "Полтава": "Полтавська область",
-        "Черкаси": "Черкаська область",
-        "Житомир": "Житомирська область",
-        "Суми": "Сумська область",
-        "Рівне": "Рівненська область",
-        "Івано-Франківськ": "Івано-Франківська область",
-        "Тернопіль": "Тернопільська область",
-        "Луцьк": "Волинська область",
-        "Ужгород": "Закарпатська область",
-        "Мукачево": "Закарпатська область",
-        "Чернівці": "Чернівецька область",
-        "Кропивницький": "Кіровоградська область",
-        "Кременчук": "Полтавська область",
-        "Миргород": "Полтавська область",
-        "Умань": "Черкаська область",
-        "Біла Церква": "Київська область",
-        "Васильків": "Київська область",
-        "Обухів": "Київська область",
-        "Бориспіль": "Київська область",
-        "Бровари": "Київська область",
-        "Фастів": "Київська область",
-        "Коломия": "Івано-Франківська область",
-        "Калуш": "Івано-Франківська область",
-    }
+    def _city_to_region(self, city_name: str) -> str:
+        """Resolve a city/town name to its region using ALL_REGIONS keywords from mock_mode.
+        Falls back to simple substring matching. Returns None if no match."""
+        city_lower = city_name.lower().strip()
+        for region, data in ALL_REGIONS.items():
+            for kw in data.get("keywords", []):
+                if kw in city_lower or city_lower in kw:
+                    return region
+        return None
 
     async def _propagate_predictive_threats(self):
         """
@@ -769,8 +743,8 @@ class TelegramThreatMonitor:
             if telemetry and telemetry.get("final_target_cities"):
                 final_targets = telemetry["final_target_cities"]
                 for city in final_targets:
-                    if city in self.CITY_TO_REGION:
-                        target_region = self.CITY_TO_REGION[city]
+                    target_region = self._city_to_region(city)
+                    if target_region:
                         path = self._find_path(source_region, target_region)
                         if path:
                             for pr in path[1:]:
@@ -860,6 +834,59 @@ class TelegramThreatMonitor:
                 if total_score < 0.4:
                     continue
                 
+                # --- DIFFERENTIATED CONFIDENCE CALCULATION ---
+                # Non-linear base confidence from total_score
+                if total_score >= 0.85:
+                    base_conf = 75
+                elif total_score >= 0.70:
+                    base_conf = 65
+                elif total_score >= 0.55:
+                    base_conf = 55
+                elif total_score >= 0.45:
+                    base_conf = 45
+                else:
+                    base_conf = 35
+                
+                # Distance modifier (closer = higher confidence)
+                dist_mod = 0
+                if distance_km is not None:
+                    if distance_km < 80:
+                        dist_mod = 8
+                    elif distance_km < 150:
+                        dist_mod = 4
+                    elif distance_km < 250:
+                        dist_mod = 0
+                    elif distance_km < 400:
+                        dist_mod = -4
+                    else:
+                        dist_mod = -8
+                
+                # Route history modifier (known route = higher confidence)
+                route_mod = int(route_boost * 12)  # 0-9
+                
+                # DB pattern modifier
+                db_mod = int(db_boost * 8)  # 0-1
+                
+                # Time-of-day modifier
+                time_mod = self._get_time_of_day_modifier(threat_type)
+                
+                # Learned rules correction
+                rules_correction = 0
+                try:
+                    corrections = self.analyzer.load_confidence_corrections()
+                    if adj_region in corrections:
+                        rules_correction = corrections[adj_region].get(threat_type, 0)
+                except Exception:
+                    pass
+                
+                # Final confidence with all modifiers
+                raw_confidence = base_conf + dist_mod + route_mod + db_mod + time_mod + rules_correction
+                confidence = max(25, min(80, raw_confidence))
+                
+                # Ensure uniqueness: add small pseudo-random offset based on region name hash
+                region_hash_offset = (hash(adj_region) % 5) - 2  # -2 to +2
+                confidence = max(25, min(80, confidence + region_hash_offset))
+                
                 # Generate ETA string
                 eta_str = ""
                 if eta_seconds:
@@ -885,7 +912,7 @@ class TelegramThreatMonitor:
                         "distance_km": distance_km,
                         "route_boost": route_boost,
                         "db_boost": db_boost,
-                        "confidence": int(total_score * 80),  # Max 80% for predictions
+                        "confidence": confidence,
                         "source_level": state.level,
                         "is_test": state.is_test,
                     }
@@ -1322,3 +1349,61 @@ class TelegramThreatMonitor:
                         print(f"⏳ Заплановано автозняття загрози для {region} ({t_type}) через {int(remaining)} сек.")
                 except Exception as e:
                     self._schedule_auto_clear(region, delay)
+
+    def _get_time_of_day_modifier(self, threat_type: str) -> int:
+        """Returns a confidence modifier based on current time of day and threat type.
+        Night attacks with shaheds are statistically more common → boost confidence."""
+        from datetime import datetime, timezone
+        try:
+            import zoneinfo
+            kyiv_tz = zoneinfo.ZoneInfo("Europe/Kiev")
+        except ImportError:
+            return 0
+        
+        hour = datetime.now(kyiv_tz).hour
+        
+        # Shaheds predominantly attack at night (22:00-06:00)
+        if threat_type == "shahed":
+            if 22 <= hour or hour < 6:
+                return 5  # Night shahed attack — boost
+            elif 6 <= hour < 9:
+                return 2  # Early morning — still possible
+            else:
+                return -3  # Daytime shahed — less likely
+        
+        # Ballistic and cruise missiles — any time, slight daytime bias
+        if threat_type in ("ballistic", "iskander", "cruise_missile"):
+            if 5 <= hour < 8:
+                return 3  # Dawn attacks are historically common
+            return 0
+        
+        # KABs — primarily daytime (requires visual targeting)
+        if threat_type == "kab":
+            if 7 <= hour < 17:
+                return 3  # Daytime — prime KAB window
+            else:
+                return -4  # Night — unlikely for KABs
+        
+        return 0
+
+    async def _rules_learner_loop(self):
+        """Background task that analyzes paired events every 6 hours to derive new rules."""
+        # Wait 5 minutes before first run to let data accumulate
+        await asyncio.sleep(300)
+        
+        while self.is_running:
+            try:
+                count = self._run_rules_learner()
+                if count > 0:
+                    print(f"🧠 [Rules Learner] Автонавчання завершено: {count} правил створено/оновлено")
+            except Exception as e:
+                print(f"⚠️ [Rules Learner] Помилка: {e}")
+            
+            # Sleep 6 hours
+            await asyncio.sleep(6 * 3600)
+
+    def _run_rules_learner(self) -> int:
+        """Analyze paired events and derive rules by delegating to the analyzer's central engine."""
+        if self.analyzer and hasattr(self.analyzer, 'run_rules_learner'):
+            return self.analyzer.run_rules_learner()
+        return 0

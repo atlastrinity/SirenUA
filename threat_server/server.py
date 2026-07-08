@@ -155,12 +155,63 @@ def init_analytics_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_clearings_resolution ON threat_clearings(resolution_type)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_clearings_prediction ON threat_clearings(prediction_accuracy_hint)')
     
+    # --- Self-Learning Rules Table ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gemini_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            rule_type TEXT NOT NULL,
+            source_region TEXT,
+            target_region TEXT,
+            threat_type TEXT,
+            rule_text TEXT NOT NULL,
+            rule_json TEXT,
+            evidence_count INTEGER DEFAULT 1,
+            accuracy_score REAL DEFAULT 0.5,
+            is_active BOOLEAN DEFAULT 1,
+            last_validated DATETIME
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_rules_type ON gemini_rules(rule_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_rules_active ON gemini_rules(is_active)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_rules_regions ON gemini_rules(source_region, target_region)')
+    
+    # --- Paired Events (Lifecycle) Table ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS paired_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            region TEXT NOT NULL,
+            threat_event_id INTEGER NOT NULL,
+            telemetry_id INTEGER,
+            clearing_event_id INTEGER,
+            lifecycle_status TEXT DEFAULT 'active',
+            threat_level TEXT,
+            threat_type TEXT,
+            confidence_at_set INTEGER,
+            confidence_at_clear INTEGER,
+            was_predictive BOOLEAN DEFAULT 0,
+            prediction_accuracy TEXT,
+            duration_seconds INTEGER,
+            gemini_group_id TEXT,
+            rules_applied TEXT,
+            FOREIGN KEY (threat_event_id) REFERENCES threat_history(id),
+            FOREIGN KEY (clearing_event_id) REFERENCES threat_clearings(id)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_paired_region ON paired_events(region)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_paired_status ON paired_events(lifecycle_status)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_paired_threat ON paired_events(threat_event_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_paired_group ON paired_events(gemini_group_id)')
+    
     conn.commit()
     conn.close()
-    print("💾 Аналітична БД ініціалізована (threat_history + telemetry_data + threat_clearings)")
+    print("💾 Аналітична БД ініціалізована (threat_history + telemetry_data + threat_clearings + gemini_rules + paired_events)")
 
 def log_threat_to_db(region: str, level: str, threat_type: str, detail: str = None, confidence: int = None, telemetry: dict = None, is_test: bool = False):
-    """Log threat event and its telemetry to SQLite. Returns the threat_event_id."""
+    """Log threat event and its telemetry to SQLite. Returns the threat_event_id.
+    Also creates a paired_event record for lifecycle tracking."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -170,8 +221,13 @@ def log_threat_to_db(region: str, level: str, threat_type: str, detail: str = No
         )
         event_id = cursor.lastrowid
         
+        telemetry_id = None
+        group_id = None
+        is_predictive = False
+        
         # Insert telemetry if provided
         if telemetry and isinstance(telemetry, dict) and event_id:
+            group_id = telemetry.get("group_id")
             tags_json = json.dumps(telemetry.get("message_context_tags", []), ensure_ascii=False)
             cursor.execute('''
                 INSERT INTO telemetry_data (
@@ -185,7 +241,7 @@ def log_threat_to_db(region: str, level: str, threat_type: str, detail: str = No
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 event_id,
-                telemetry.get("group_id"),
+                group_id,
                 telemetry.get("attack_vector", "unknown"),
                 telemetry.get("target_count"),
                 telemetry.get("speed_kmh"),
@@ -206,6 +262,20 @@ def log_threat_to_db(region: str, level: str, threat_type: str, detail: str = No
                 telemetry.get("civilian_risk_level", "moderate"),
                 telemetry.get("event_phase", "unknown"),
                 telemetry.get("correlation_group")
+            ))
+            telemetry_id = cursor.lastrowid
+        
+        # Create paired_event for lifecycle tracking (only for non-none threats)
+        if level != "none" and event_id:
+            cursor.execute('''
+                INSERT INTO paired_events (
+                    region, threat_event_id, telemetry_id, lifecycle_status,
+                    threat_level, threat_type, confidence_at_set, was_predictive,
+                    gemini_group_id
+                ) VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?)
+            ''', (
+                region, event_id, telemetry_id, level, threat_type,
+                confidence, 1 if is_predictive else 0, group_id
             ))
         
         conn.commit()
@@ -248,7 +318,8 @@ def log_clearing_to_db(region: str, clearing_telemetry: dict = None,
                        source_channel: str = None, message_text: str = None,
                        clearing_confidence: int = None, was_predictive: bool = False,
                        is_test: bool = False):
-    """Log threat clearing event with full lifecycle data linked to original threat."""
+    """Log threat clearing event with full lifecycle data linked to original threat.
+    Also closes the corresponding paired_event and updates prediction accuracy."""
     if not clearing_telemetry:
         clearing_telemetry = {}
     
@@ -348,6 +419,26 @@ def log_clearing_to_db(region: str, clearing_telemetry: dict = None,
         ))
         
         clearing_id = cursor.lastrowid
+        
+        # --- Close the corresponding paired_event ---
+        prediction_accuracy = clearing_telemetry.get("prediction_accuracy_hint", "not_applicable")
+        if original_event_id:
+            cursor.execute('''
+                UPDATE paired_events SET
+                    clearing_event_id = ?,
+                    lifecycle_status = 'cleared',
+                    confidence_at_clear = ?,
+                    prediction_accuracy = ?,
+                    duration_seconds = ?
+                WHERE threat_event_id = ? AND lifecycle_status = 'active'
+            ''', (
+                clearing_id, clearing_confidence, prediction_accuracy,
+                threat_duration_sec, original_event_id
+            ))
+            closed_count = cursor.rowcount
+            if closed_count > 0:
+                print(f"🔗 [Paired] Закрито {closed_count} paired_event(s) для {region} (accuracy: {prediction_accuracy})")
+        
         conn.commit()
         conn.close()
         
@@ -403,6 +494,25 @@ is_live_mode = "--live" in sys.argv or os.environ.get("LIVE_MODE", "false").lowe
 # Track last logged threat states to avoid duplicate logging and properly detect changes
 last_logged_states = {}  # region -> (level, is_active, threat_type)
 
+main_loop = None
+
+def safe_run_task(coro):
+    """Safely schedules a coroutine from any thread (e.g. background threadpool)
+    in the main asyncio event loop."""
+    global main_loop
+    if main_loop and main_loop.is_running():
+        asyncio.run_coroutine_threadsafe(coro, main_loop)
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(coro)
+        except RuntimeError:
+            # Fallback if no loop is running in current context (unlikely but safe)
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            new_loop.run_until_complete(coro)
+            new_loop.close()
+
 def on_threat_changed(region, state, telemetry=None):
     global last_logged_states
     prev_level, prev_active, prev_type = last_logged_states.get(region, ("none", False, None))
@@ -411,24 +521,24 @@ def on_threat_changed(region, state, telemetry=None):
     if prev_active != state.is_active:
         log_level = "high" if state.is_active else "none"
         detail = "Повітряна тривога" if state.is_active else "Відбій повітряної тривоги"
-        asyncio.create_task(asyncio.to_thread(log_threat_to_db, region, log_level, "official_alarm", detail))
-        asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, log_level, "official_alarm", detail, is_test=state.is_test))
+        safe_run_task(asyncio.to_thread(log_threat_to_db, region, log_level, "official_alarm", detail))
+        safe_run_task(asyncio.to_thread(log_threat_to_firestore, region, log_level, "official_alarm", detail, is_test=state.is_test))
         
     # 2. AI/Telegram threat level change logging
     if prev_level != state.level:
         current_type = state.threat_type
         if (current_type and current_type != "official_alarm") or (prev_type and prev_type != "official_alarm" and state.level == "none"):
             if state.level != "none":
-                asyncio.create_task(asyncio.to_thread(log_threat_to_db, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry))
-                asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry, is_test=state.is_test))
+                safe_run_task(asyncio.to_thread(log_threat_to_db, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry))
+                safe_run_task(asyncio.to_thread(log_threat_to_firestore, region, state.level, current_type, state.detail, state.confidence, telemetry=telemetry, is_test=state.is_test))
             elif prev_level != "none":
                 # Threat has cleared
-                asyncio.create_task(asyncio.to_thread(log_threat_to_db, region, "none", prev_type, "Відбій загрози"))
-                asyncio.create_task(asyncio.to_thread(log_threat_to_firestore, region, "none", prev_type, "Відбій загрози", is_test=state.is_test))
+                safe_run_task(asyncio.to_thread(log_threat_to_db, region, "none", prev_type, "Відбій загрози"))
+                safe_run_task(asyncio.to_thread(log_threat_to_firestore, region, "none", prev_type, "Відбій загрози", is_test=state.is_test))
             
     last_logged_states[region] = (state.level, state.is_active, state.threat_type)
 
-    asyncio.create_task(ws_manager.broadcast({
+    safe_run_task(ws_manager.broadcast({
         "type": "threat_update",
         "region": region,
         "state": state.to_dict()
@@ -520,7 +630,8 @@ async def poll_aerial_alerts():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle manager — запуск/зупинка Telegram моніторингу."""
-    global telegram_monitor, aerial_alerts_task
+    global telegram_monitor, aerial_alerts_task, main_loop
+    main_loop = asyncio.get_running_loop()
     
     # Ініціалізація Firebase Cloud Messaging
     init_firebase()
@@ -544,12 +655,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ Помилка асинхронного завантаження стану загроз: {e}")
 
-    # Завантаження бази укриттів з OpenStreetMap
-    try:
-        await shelter_manager.load()
-        await shelter_manager.start_refresh_loop()
-    except Exception as e:
-        print(f"⚠️ Помилка завантаження укриттів: {e}")
+    # Завантаження бази укриттів з OpenStreetMap у фоні (не блокує стартап API)
+    async def load_shelters_background():
+        try:
+            await shelter_manager.load()
+            await shelter_manager.start_refresh_loop()
+        except Exception as e:
+            print(f"⚠️ Помилка завантаження укриттів: {e}")
+            
+    asyncio.create_task(load_shelters_background())
     
     # Запуск фонового опитування офіційного API
     aerial_alerts_task = asyncio.create_task(poll_aerial_alerts())
@@ -1176,6 +1290,129 @@ async def get_prediction_accuracy(days: int = 30):
             "predictive_air_defense_effectiveness": pred_ad_eff,
             "avg_duration_by_accuracy": duration_by_accuracy
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analytics/rules")
+async def get_rules(active_only: bool = True, rule_type: str = None, limit: int = 50):
+    """Список правил самонавчання Gemini."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        query = "SELECT * FROM gemini_rules WHERE 1=1"
+        params = []
+        
+        if active_only:
+            query += " AND is_active = 1"
+        if rule_type:
+            query += " AND rule_type = ?"
+            params.append(rule_type)
+        
+        query += " ORDER BY evidence_count DESC, accuracy_score DESC LIMIT ?"
+        params.append(min(limit, 200))
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        rules = []
+        for row in rows:
+            rule = dict(row)
+            if rule.get("rule_json"):
+                try:
+                    rule["rule_json"] = json.loads(rule["rule_json"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            rules.append(rule)
+        
+        return {
+            "total": len(rules),
+            "active_only": active_only,
+            "rules": rules
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analytics/paired-events")
+async def get_paired_events(region: str = None, status: str = None, days: int = 7, limit: int = 50):
+    """Спарені події (lifecycle): загроза → телеметрія → clearing."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT pe.*, 
+                   th.timestamp as threat_timestamp,
+                   th.detail as threat_detail,
+                   tc.timestamp as clearing_timestamp,
+                   tc.resolution_type,
+                   tc.air_defense_effectiveness,
+                   tc.clearing_context_tags
+            FROM paired_events pe
+            LEFT JOIN threat_history th ON pe.threat_event_id = th.id
+            LEFT JOIN threat_clearings tc ON pe.clearing_event_id = tc.id
+            WHERE pe.created_at >= datetime('now', ?)
+        """
+        params = [f'-{days} days']
+        
+        if region:
+            from urllib.parse import unquote
+            query += " AND pe.region = ?"
+            params.append(unquote(region))
+        if status:
+            query += " AND pe.lifecycle_status = ?"
+            params.append(status)
+        
+        query += " ORDER BY pe.created_at DESC LIMIT ?"
+        params.append(min(limit, 200))
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        events = []
+        for row in rows:
+            event = dict(row)
+            if event.get("clearing_context_tags"):
+                try:
+                    event["clearing_context_tags"] = json.loads(event["clearing_context_tags"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            if event.get("rules_applied"):
+                try:
+                    event["rules_applied"] = json.loads(event["rules_applied"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            events.append(event)
+        
+        return {
+            "total": len(events),
+            "days": days,
+            "events": events
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/analytics/rules/rebuild")
+async def rebuild_rules():
+    """Примусовий перерахунок правил самонавчання на основі paired_events."""
+    try:
+        # Try through active telegram_monitor if running
+        if telegram_monitor and hasattr(telegram_monitor, 'analyzer') and telegram_monitor.analyzer:
+            count = await asyncio.to_thread(telegram_monitor.analyzer.run_rules_learner)
+            return {"status": "ok", "rules_updated": count}
+        
+        # Fallback: create analyzer on the fly
+        from gemini_analyzer import GeminiThreatAnalyzer
+        analyzer = GeminiThreatAnalyzer()
+        count = await asyncio.to_thread(analyzer.run_rules_learner)
+        return {"status": "ok", "rules_updated": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
