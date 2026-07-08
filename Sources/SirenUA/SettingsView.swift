@@ -207,10 +207,10 @@ struct SettingsView: View {
         .onAppear {
             Task { await checkServerStatus() }
         }
-        .onChange(of: trackedRegionsString) { _ in
+        .onChange(of: trackedRegionsString) { oldValue, newValue in
             NotificationManager.shared.syncTopicSubscriptions()
         }
-        .onChange(of: allRegionsTracked) { _ in
+        .onChange(of: allRegionsTracked) { oldValue, newValue in
             NotificationManager.shared.syncTopicSubscriptions()
         }
     }
@@ -373,7 +373,7 @@ struct SettingsView: View {
                     Text("Супутник").tag(2)
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: mapType) { _ in haptic() }
+                .onChange(of: mapType) { oldValue, newValue in haptic() }
             }
 
             StyledDivider()
@@ -1000,7 +1000,7 @@ struct StyledToggleRow: View {
             }
         }
         .tint(iconColor)
-        .onChange(of: isOn) { _ in
+        .onChange(of: isOn) { oldValue, newValue in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
@@ -1027,7 +1027,7 @@ struct ToggleRow: View {
                 .font(.subheadline)
                 .foregroundColor(.white)
         }
-        .onChange(of: isOn) { _ in
+        .onChange(of: isOn) { oldValue, newValue in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
