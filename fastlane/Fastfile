@@ -23,7 +23,9 @@ platform :ios do
     # Build the application
     build_app(
       scheme: "SirenUA",
-      export_method: "app-store"
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates",
+      export_xcargs: "-allowProvisioningUpdates"
     )
 
     # Upload to TestFlight and distribute to specific groups
