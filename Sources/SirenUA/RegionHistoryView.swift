@@ -21,7 +21,7 @@ struct RegionHistoryView: View {
     private let serverURL = "https://sirenua-threatserver.onrender.com"
     
     private var isPremium: Bool {
-        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+        storeManager.isPremium
     }
     
     private var dateFormatter: DateFormatter {

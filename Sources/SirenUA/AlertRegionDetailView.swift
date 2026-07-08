@@ -10,7 +10,7 @@ struct AlertRegionDetailView: View {
     @State private var isPulsing = false
     
     private var isPremium: Bool {
-        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+        storeManager.isPremium
     }
     private var isThreatActive: Bool {
         !region.isActive && region.threatLevel != nil

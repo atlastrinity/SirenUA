@@ -31,9 +31,7 @@ final class AlertViewModelV3: ObservableObject {
 
     private var refreshInterval: Int { 30 }
     
-    var isPremium: Bool {
-        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
-    }
+    @Published var isPremium: Bool = UserDefaults.standard.bool(forKey: "premiumEnabled")
     
     var threatServerURL: String {
         "https://sirenua-threatserver.onrender.com"
@@ -54,8 +52,11 @@ final class AlertViewModelV3: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            DispatchQueue.main.async {
-                self.objectWillChange.send()
+            Task { @MainActor in
+                let current = UserDefaults.standard.bool(forKey: "premiumEnabled")
+                if self.isPremium != current {
+                    self.isPremium = current
+                }
             }
         }
     }
