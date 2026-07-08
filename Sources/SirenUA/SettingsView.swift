@@ -84,6 +84,9 @@ struct SettingsView: View {
 
     // MARK: Server ping
     private func checkServerStatus() async {
+        // Delay slightly to let the sheet transition animation complete smoothly
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        
         alertsServerStatus  = .checking
         threatsServerStatus = .checking
         geminiServerStatus  = .checking
