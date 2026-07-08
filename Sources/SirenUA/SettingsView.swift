@@ -38,6 +38,7 @@ struct SettingsView: View {
     @StateObject private var wsClient = ThreatWebSocketClient.shared
     @State private var isPurchasing     = false
     @State private var isRegionsExpanded = false
+    @State private var isInitialized     = false
 
     enum ServerStatus: Equatable {
         case checking
@@ -217,12 +218,18 @@ struct SettingsView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            Task { await checkServerStatus() }
+            Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                await checkServerStatus()
+                isInitialized = true
+            }
         }
         .onChange(of: trackedRegionsString) { oldValue, newValue in
+            guard isInitialized else { return }
             NotificationManager.shared.syncTopicSubscriptions()
         }
         .onChange(of: allRegionsTracked) { oldValue, newValue in
+            guard isInitialized else { return }
             NotificationManager.shared.syncTopicSubscriptions()
         }
     }
