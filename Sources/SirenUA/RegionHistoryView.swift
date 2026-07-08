@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import StoreKit
 
 private let historyLogger = Logger(subsystem: "com.sirenua", category: "RegionHistory")
 
@@ -257,7 +258,7 @@ struct RegionHistoryView: View {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(themeColor.opacity(0.15), lineWidth: 1)
                 )
-                .onChange(of: selectedDate) { _ in
+                .onChange(of: selectedDate) { oldValue, newValue in
                     showDatePicker = false
                     Task { await loadHistory() }
                 }
@@ -321,7 +322,8 @@ struct RegionHistoryView: View {
     
     private var timelineContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+            ForEach(0..<events.count, id: \.self) { index in
+                let event = events[index]
                 HStack(alignment: .top, spacing: 14) {
                     // Timeline spine
                     VStack(spacing: 0) {
