@@ -29,6 +29,7 @@ struct SettingsView: View {
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
     @AppStorage("adminAuthenticated")        private var adminAuthenticated        = false
     @AppStorage("adminViewMode")             private var adminViewMode             = false
+    @AppStorage("muteThreatsSound")         private var muteThreatsSound          = false
 
     @State private var inputEmail = ""
     @State private var inputPassword = ""
@@ -369,6 +370,16 @@ struct SettingsView: View {
                 icon: "bell.fill",
                 iconColor: .siBlue,
                 isOn: $notificationsEnabled
+            )
+            
+            StyledDivider()
+            
+            StyledToggleRow(
+                title: "Без звуку для загроз",
+                subtitle: "Вимкнути звук для попереджень",
+                icon: "speaker.slash.circle.fill",
+                iconColor: .siOrange,
+                isOn: $muteThreatsSound
             )
         }
     }

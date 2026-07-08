@@ -253,7 +253,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 relevance = 0.4
             }
 
-            let soundName = isCritical ? "siren.wav" : "warning.wav"
+            let soundName = muteThreatsSound ? "" : (isCritical ? "siren.wav" : "warning.wav")
 
             var fullTitle = title
             if !title.contains(regionName) {
@@ -275,6 +275,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     private var notificationsEnabled: Bool {
         UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
+    }
+
+    private var muteThreatsSound: Bool {
+        UserDefaults.standard.bool(forKey: "muteThreatsSound")
     }
 
     private func shouldNotify(for regionName: String) -> Bool {
