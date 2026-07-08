@@ -30,6 +30,7 @@ struct ContentView: View {
     @AppStorage("mapType") private var mapType = 0
     @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
     @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
+    @AppStorage("onboardingCompleted") private var onboardingCompleted = false
     @State private var transportType: MKDirectionsTransportType = .walking
     
     var centerCoordinate: CLLocationCoordinate2D {
@@ -404,6 +405,22 @@ struct ContentView: View {
         .onChange(of: drivingSearchRadius) { _, _ in
             if selectedShelter != nil || route != nil {
                 findNearestShelter()
+            }
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { !onboardingCompleted },
+            set: { onboardingCompleted = !$0 }
+        )) {
+            RegionOnboardingView()
+        }
+        .onChange(of: onboardingCompleted) { oldValue, newValue in
+            if newValue {
+                centerMapOnAlerts()
+            }
+        }
+        .onChange(of: geoManager.isLoaded) { oldValue, newValue in
+            if newValue {
+                centerMapOnAlerts()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail"))) { notification in
@@ -841,7 +858,7 @@ struct ContentView: View {
     private func centerMapOnAlerts(animated: Bool = true) {
         let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
         let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
-        let trackedList = trackedString.components(separatedBy: ";")
+        let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
         
         let isRegionFiltered: (String) -> Bool = { name in
             allTracked || trackedList.contains(name)
@@ -862,6 +879,18 @@ struct ContentView: View {
         
         if allCoordinates.isEmpty {
             allCoordinates = relevantAlerts.map { $0.coordinate }
+        }
+        
+        // Якщо немає активних тривог/загроз в обраних регіонах, фокусуємося на самих обраних регіонах
+        if allCoordinates.isEmpty {
+            if !allTracked && !trackedList.isEmpty {
+                let monitoredRegions = geoManager.regions.filter { trackedList.contains($0.nameUK) }
+                for region in monitoredRegions {
+                    for polygon in region.polygons {
+                        allCoordinates.append(contentsOf: polygon)
+                    }
+                }
+            }
         }
         
         if !allCoordinates.isEmpty {
