@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import OSLog
+import CryptoKit
 
 // MARK: - Logger
 private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Settings")
@@ -27,8 +28,12 @@ struct SettingsView: View {
     @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
     @AppStorage("allRegionsTracked")         private var allRegionsTracked         = true
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
-    @AppStorage("userEmail")                 private var userEmail                 = ""
+    @AppStorage("adminAuthenticated")        private var adminAuthenticated        = false
     @AppStorage("adminViewMode")             private var adminViewMode             = false
+
+    @State private var inputEmail = ""
+    @State private var inputPassword = ""
+    @State private var loginErrorMessage: String? = nil
 
     @EnvironmentObject var storeManager: StoreKitManager
     @StateObject private var wsClient = ThreatWebSocketClient.shared
@@ -189,7 +194,7 @@ struct SettingsView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        if userEmail == "oleg1203@me.com" && adminViewMode {
+                        if adminAuthenticated && adminViewMode {
                             // Admin mode: only show threat simulation and connection diagnostics
                             mockScenariosCard
                             diagnosticsCard
@@ -311,7 +316,7 @@ struct SettingsView: View {
 
                 Spacer()
 
-                if userEmail == "oleg1203@me.com" {
+                if adminAuthenticated {
                     Button(action: {
                         haptic(.medium)
                         adminViewMode.toggle()
@@ -873,21 +878,92 @@ struct SettingsView: View {
             
             StyledDivider()
             
-            HStack(spacing: 12) {
-                Image(systemName: "envelope.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.4))
-                Text("Обліковий запис:")
-                    .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.4))
-                Spacer()
-                TextField("Введіть email", text: $userEmail)
-                    .font(.system(size: 13, design: .monospaced))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.trailing)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .keyboardType(.emailAddress)
+            if adminAuthenticated {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "person.crop.circle.badge.checkmark")
+                            .font(.system(size: 14))
+                            .foregroundColor(.siGreen)
+                        Text("Адміністратор")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Button(action: {
+                            haptic(.medium)
+                            adminAuthenticated = false
+                            adminViewMode = false
+                        }) {
+                            Text("Вийти")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                    }
+                    Text("Ви успішно авторизовані в системі як адміністратор додатка.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "envelope.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.4))
+                        Text("Адмін Email:")
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.4))
+                        Spacer()
+                        TextField("Введіть email", text: $inputEmail)
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.trailing)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .keyboardType(.emailAddress)
+                    }
+                    
+                    if !inputEmail.isEmpty {
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.4))
+                            Text("Пароль:")
+                                .font(.system(size: 13))
+                                .foregroundColor(.white.opacity(0.4))
+                            Spacer()
+                            SecureField("Введіть пароль", text: $inputPassword)
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.trailing)
+                        }
+                        
+                        if let error = loginErrorMessage {
+                            Text(error)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.red)
+                                .padding(.top, 2)
+                        }
+                        
+                        Button(action: {
+                            checkCredentials()
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text("Увійти як Адмін")
+                                    .font(.system(size: 13, weight: .bold))
+                                Spacer()
+                            }
+                            .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .background(Color.siBlue)
+                            .cornerRadius(8)
+                        }
+                        .padding(.top, 4)
+                    }
+                }
             }
         }
         .padding(18)
@@ -922,6 +998,37 @@ struct SettingsView: View {
                 )
         )
         .padding(.bottom, 8)
+    }
+
+    private func checkCredentials() {
+        loginErrorMessage = nil
+        
+        let targetEmailHash = "d35f15d7a6fe27605bf5abd3f27edfddee174d298e71128dce76b9a231192183"
+        let targetPasswordHash = "97d6b984e15431b0a67cb3d34fe0f7e6fe9fc392a7bece8b1644dc6b2b776e09"
+        
+        let cleanedEmail = inputEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleanedPassword = inputPassword
+        
+        guard let emailData = cleanedEmail.data(using: .utf8),
+              let passwordData = cleanedPassword.data(using: .utf8) else {
+            loginErrorMessage = "Помилка кодування"
+            return
+        }
+        
+        let emailHash = SHA256.hash(data: emailData).map { String(format: "%02x", $0) }.joined()
+        let passwordHash = SHA256.hash(data: passwordData).map { String(format: "%02x", $0) }.joined()
+        
+        if emailHash == targetEmailHash && passwordHash == targetPasswordHash {
+            haptic(.medium)
+            adminAuthenticated = true
+            adminViewMode = true
+            inputEmail = ""
+            inputPassword = ""
+            loginErrorMessage = nil
+        } else {
+            haptic(.medium)
+            loginErrorMessage = "Невірний email або пароль"
+        }
     }
 }
 
