@@ -1,7 +1,6 @@
 import Foundation
 
 /// Подія з хронології загроз для області
-@available(iOS 16.0, *)
 struct RegionHistoryEvent: Identifiable, Codable {
     let serverId: Int
     let timestamp: String
@@ -91,7 +90,6 @@ struct RegionHistoryEvent: Identifiable, Codable {
 }
 
 /// Server response for region history
-@available(iOS 16.0, *)
 struct RegionHistoryResponse: Codable {
     let region: String
     let count: Int

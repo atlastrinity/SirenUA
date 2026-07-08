@@ -4,7 +4,6 @@ import UIKit
 
 // MARK: - ShelterDetailView
 
-@available(iOS 17.0, *)
 struct ShelterDetailView: View {
     let shelter: MKMapItem
     let route: MKRoute?
@@ -164,7 +163,6 @@ struct ShelterDetailView: View {
     }
 }
 
-@available(iOS 17.0, *)
 struct AlertListOverlayView: View {
     let title: String
     let color: Color
@@ -411,7 +409,6 @@ extension View {
 
 // MARK: - NavigationOverlay
 
-@available(iOS 17.0, *)
 struct NavigationOverlay: View {
     let route: MKRoute?
     let onEndNavigation: () -> Void

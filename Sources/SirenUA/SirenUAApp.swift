@@ -1,7 +1,6 @@
 import SwiftUI
 
 @main
-@available(iOS 16.0, *)
 struct SirenUAApp: App {
 #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
@@ -21,17 +20,11 @@ struct SirenUAApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if #available(iOS 17.0, *) {
-                    ContentView()
-                } else {
-                    iOS16FallbackView()
+            ContentView()
+                .environmentObject(storeManager)
+                .onAppear {
+                    NotificationManager.shared.requestAuthorization()
                 }
-            }
-            .environmentObject(storeManager)
-            .onAppear {
-                NotificationManager.shared.requestAuthorization()
-            }
         }
     }
 }

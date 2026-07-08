@@ -120,7 +120,6 @@ final class NetworkManager: Sendable {
     // MARK: - Region History (Premium)
 
     /// Fetches threat history for a specific region from the server
-    @available(iOS 16.0, *)
     func fetchRegionHistory(serverURL: String, region: String, limit: Int = 50) async throws -> [RegionHistoryEvent] {
         let base = serverURL.hasSuffix("/") ? serverURL : "\(serverURL)/"
         let encoded = region.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? region

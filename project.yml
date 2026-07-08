@@ -5,7 +5,7 @@ targets:
   SirenUA:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources: 
       - path: Sources/SirenUA
     entitlements:
@@ -25,7 +25,7 @@ targets:
   SirenUATests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources: 
       - path: Tests/SirenUATests
     dependencies:

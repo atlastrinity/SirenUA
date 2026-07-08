@@ -4,7 +4,6 @@ import OSLog
 
 private let critLogger = Logger(subsystem: "com.sirenua", category: "CriticalAlert")
 
-@available(iOS 16.0, *)
 final class CriticalAlertManager: NSObject {
     static let shared = CriticalAlertManager()
 

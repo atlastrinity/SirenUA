@@ -4,7 +4,6 @@ import OSLog
 private let historyLogger = Logger(subsystem: "com.sirenua", category: "RegionHistory")
 
 /// Premium timeline view showing chronological threat events for a specific region
-@available(iOS 16.0, *)
 struct RegionHistoryView: View {
     let regionName: String
     let themeColor: Color

@@ -2,7 +2,6 @@ import SwiftUI
 import MapKit
 import OSLog
 
-@available(iOS 16.0, *)
 struct AlertRegionDetailView: View {
     let region: AlertRegion
     @Environment(\.dismiss) private var dismiss
@@ -495,7 +494,6 @@ struct AlertRegionDetailView: View {
 }
 
 
-@available(iOS 16.0, *)
 struct AlertRegionDetailView_Previews: PreviewProvider {
     static var previews: some View {
         AlertRegionDetailView(

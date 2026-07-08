@@ -6,7 +6,6 @@ import OSLog
 
 private let vmLogger = Logger(subsystem: "com.sirenua", category: "AlertViewModel")
 
-@available(iOS 16.0, *)
 @MainActor
 final class AlertViewModelV3: ObservableObject {
     @Published var alerts: [AlertRegion] = []

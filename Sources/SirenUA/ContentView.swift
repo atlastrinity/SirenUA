@@ -5,7 +5,6 @@ import OSLog
 
 private let mapLogger = Logger(subsystem: "com.sirenua", category: "Map")
 
-@available(iOS 17.0, *)
 enum ActiveSheet: Identifiable, Equatable {
     case settings
     case share
@@ -23,7 +22,6 @@ enum ActiveSheet: Identifiable, Equatable {
     }
 }
 
-@available(iOS 17.0, *)
 struct ContentView: View {
     @StateObject private var viewModel = AlertViewModelV3()
     @StateObject private var geoManager = GeoJSONManager()
@@ -934,7 +932,6 @@ struct ContentView: View {
     }
 }
 
-@available(iOS 17.0, *)
 struct AlertPinViewV4: View {
     let alert: AlertRegion
     var isPulsating: Bool
@@ -962,7 +959,6 @@ struct AlertPinViewV4: View {
 }
 
 // MARK: - Верхній банер
-@available(iOS 17.0, *)
 struct TopAlertBannerV4: View {
     let statusColor: Color
     let statusText: String
@@ -1016,7 +1012,6 @@ struct TopAlertBannerV4: View {
 }
 
 // MARK: - Нижня скляна панель (Dashboard)
-@available(iOS 17.0, *)
 struct BottomDashboardV4: View {
     let activeAlerts: Int
     let primaryRegionName: String?
@@ -1160,7 +1155,6 @@ struct BottomDashboardV4: View {
 }
 
 // Допоміжний компонент для дрібних кнопок
-@available(iOS 17.0, *)
 struct SmallIconButtonV4: View {
     let iconName: String
     let action: () -> Void
@@ -1190,7 +1184,6 @@ struct SmallIconButtonV4: View {
     }
 }
 
-@available(iOS 17.0, *)
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()

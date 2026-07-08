@@ -2,7 +2,6 @@ import Foundation
 import MapKit
 import SwiftUI
 
-@available(iOS 16.0, *)
 struct AlertRegion: Identifiable, Codable, Equatable {
     static func == (lhs: AlertRegion, rhs: AlertRegion) -> Bool {
         return lhs.id == rhs.id

@@ -7,7 +7,6 @@ extension Notification.Name {
 }
 
 // MARK: - ErrorView
-@available(iOS 16.0, *)
 struct ErrorView: View {
     let message: String
     @State private var isRetrying = false
