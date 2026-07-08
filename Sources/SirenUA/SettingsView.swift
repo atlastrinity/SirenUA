@@ -27,6 +27,8 @@ struct SettingsView: View {
     @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
     @AppStorage("allRegionsTracked")         private var allRegionsTracked         = true
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
+    @AppStorage("userEmail")                 private var userEmail                 = "oleg1203@me.com"
+    @AppStorage("adminViewMode")             private var adminViewMode             = false
 
     @EnvironmentObject var storeManager: StoreKitManager
     @StateObject private var wsClient = ThreatWebSocketClient.shared
@@ -187,15 +189,21 @@ struct SettingsView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        notificationsCard
-                        mapCard
-                        premiumCard
-                        regionsCard
-                        diagnosticsCard
-                        if storeManager.isPremium {
+                        if userEmail == "oleg1203@me.com" && adminViewMode {
+                            // Admin mode: only show threat simulation and connection diagnostics
                             mockScenariosCard
+                            diagnosticsCard
+                        } else {
+                            notificationsCard
+                            mapCard
+                            premiumCard
+                            regionsCard
+                            diagnosticsCard
+                            if storeManager.isPremium {
+                                mockScenariosCard
+                            }
+                            aboutCard
                         }
-                        aboutCard
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
@@ -305,6 +313,26 @@ struct SettingsView: View {
                 }
 
                 Spacer()
+
+                if userEmail == "oleg1203@me.com" {
+                    Button(action: {
+                        haptic(.medium)
+                        adminViewMode.toggle()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: adminViewMode ? "person.fill" : "crown.fill")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(adminViewMode ? "Юзер" : "Адмін")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(adminViewMode ? Color.siOrange : Color.siPurple)
+                        .clipShape(Capsule())
+                        .shadow(color: (adminViewMode ? Color.siOrange : Color.siPurple).opacity(0.3), radius: 6, x: 0, y: 2)
+                    }
+                }
 
                 Button(action: {
                     haptic(.medium)
@@ -845,6 +873,25 @@ struct SettingsView: View {
                 .foregroundColor(.white.opacity(0.55))
                 .lineSpacing(5)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            
+            StyledDivider()
+            
+            HStack(spacing: 12) {
+                Image(systemName: "envelope.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.4))
+                Text("Обліковий запис:")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.4))
+                Spacer()
+                TextField("Введіть email", text: $userEmail)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.trailing)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .keyboardType(.emailAddress)
+            }
         }
         .padding(18)
         .background(
