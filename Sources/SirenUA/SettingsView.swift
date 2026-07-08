@@ -27,7 +27,7 @@ struct SettingsView: View {
     @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
     @AppStorage("allRegionsTracked")         private var allRegionsTracked         = true
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
-    @AppStorage("userEmail")                 private var userEmail                 = "oleg1203@me.com"
+    @AppStorage("userEmail")                 private var userEmail                 = ""
     @AppStorage("adminViewMode")             private var adminViewMode             = false
 
     @EnvironmentObject var storeManager: StoreKitManager
