@@ -69,7 +69,8 @@ struct ContentView: View {
     }
     
     private var activeThreatRegions: [RegionPolygon] {
-        geoManager.regions.filter { region in
+        guard viewModel.isPremium else { return [] }
+        return geoManager.regions.filter { region in
             guard let alert = alertsDict[region.nameUK] else { return false }
             return !alert.isActive && alert.threatLevel != nil
         }
@@ -118,7 +119,7 @@ struct ContentView: View {
         }
         
         let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
-        let activeTrackedThreats = viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
+        let activeTrackedThreats = viewModel.isPremium ? viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) } : []
         
         let hasAlerts = !activeTrackedAlerts.isEmpty
         let hasThreats = !activeTrackedThreats.isEmpty
@@ -136,9 +137,7 @@ struct ContentView: View {
             .colorScheme(.dark)
             .ignoresSafeArea()
             .sheet(item: $selectedRegionForDetail) { region in
-                if #available(iOS 17.0, *) {
-                    AlertRegionDetailView(region: region)
-                }
+                AlertRegionDetailView(region: region)
             }
             
             // Динамічна верхня та нижня підсвітка екрану (червона - тривога, жовта - загроза)
@@ -849,7 +848,7 @@ struct ContentView: View {
         }
         
         let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
-        let activeTrackedThreats = viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
+        let activeTrackedThreats = viewModel.isPremium ? viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) } : []
         let relevantAlerts = activeTrackedAlerts + activeTrackedThreats
         let activeNames = Set(relevantAlerts.map { $0.name })
         let activeRegions = geoManager.regions.filter { activeNames.contains($0.nameUK) }

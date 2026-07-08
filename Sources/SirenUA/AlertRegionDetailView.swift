@@ -5,9 +5,13 @@ import OSLog
 struct AlertRegionDetailView: View {
     let region: AlertRegion
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var storeManager: StoreKitManager
     @State private var isConfirmed = false
     @State private var isPulsing = false
     
+    private var isPremium: Bool {
+        UserDefaults.standard.object(forKey: "premiumEnabled") as? Bool ?? false
+    }
     private var isThreatActive: Bool {
         !region.isActive && region.threatLevel != nil
     }
@@ -184,83 +188,17 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Card 1: Що відомо (Clean, readable text description)
+                    // Card 1: Що відомо (Premium-only) or Purchase CTA
                     if let detail = region.threatDetail, !detail.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "bell.badge.fill")
-                                    .foregroundStyle(themeColor)
-                                    .font(.system(size: 14))
-                                Text("Що відомо")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            // Render text description and telemetry params separately
-                            let lines = detail.components(separatedBy: "\n")
-                            let descriptionLines = lines.filter { line in
-                                !isTelemetryLine(line)
-                            }
-                            let telemetryLines = lines.filter { line in
-                                isTelemetryLine(line)
-                            }
-
-                            if !descriptionLines.isEmpty {
-                                Text(descriptionLines.joined(separator: "\n"))
-                                    .font(.system(size: 15, weight: .medium, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.9))
-                                    .lineSpacing(6)
-                            }
-
-                            if !telemetryLines.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    ForEach(telemetryLines, id: \.self) { line in
-                                        if let (label, value) = parseTelemetryLine(line) {
-                                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                                Text(label + ":")
-                                                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-                                                    .foregroundStyle(.white.opacity(0.6))
-                                                Text(value)
-                                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
-                                                    .foregroundStyle(themeColor)
-                                            }
-                                        } else {
-                                            Text(line)
-                                                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                                                .foregroundStyle(themeColor)
-                                        }
-                                    }
-                                }
-                                .padding(12)
-                                .background(Color.black.opacity(0.25))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(themeColor.opacity(0.3), lineWidth: 1)
-                                )
-                                .padding(.top, 4)
-                            }
+                        if isPremium {
+                            threatDetailCard(detail: detail)
+                        } else {
+                            premiumPurchaseCTA()
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(20)
-                        .shadow(radius: 15)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1
-                                )
-                        )
                     }
                     
-                    // Card 2: Імовірність загрози (Circular confidence ring & laconic label)
-                    if let confidence = region.threatConfidence {
+                    // Card 2: Імовірність загрози (Premium only)
+                    if isPremium, let confidence = region.threatConfidence {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Image(systemName: "shield.checkered")
@@ -298,7 +236,6 @@ struct AlertRegionDetailView: View {
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 6) {
-                                    // Laconic label based on confidence
                                     Text(confidenceLabel(confidence))
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundStyle(confidenceColor(confidence))
@@ -329,51 +266,7 @@ struct AlertRegionDetailView: View {
                         )
                     }
 
-                    // Warning message (if active alert or active threat)
-                    if (region.isActive || isThreatActive) && !isConfirmed {
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(themeColor)
-
-                                Text(region.isActive ? "⚠️ Тривога!" : "⚠️ Попередження")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(themeColor)
-                            }
-
-                            Text(region.isActive ? 
-                                 "У цій області оголошено повітряну тривогу. Негайно прямуйте в укриття!" : 
-                                 "Виявлено загрозу початку повітряної тривоги (пуск ракет/рух БПЛА). Будьте готові прослідувати в безпечне місце.")
-                                .font(.system(size: 15))
-                                .foregroundStyle(.secondary)
-                                .lineSpacing(4)
-
-                            // Action buttons for warning
-                            HStack(spacing: 12) {
-                                Button(action: {
-                                    isConfirmed = true
-                                }) {
-                                    Text(region.isActive ? "Я в безпеці" : "Зрозуміло")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(themeColor)
-                                        .foregroundStyle(.black)
-                                        .cornerRadius(12)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(themeColor.opacity(0.1))
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(themeColor.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-
-                    // History button (Premium)
+                    // History button (moved above warning)
                     NavigationLink(destination: RegionHistoryView(regionName: region.name, themeColor: themeColor)) {
                         HStack(spacing: 12) {
                             ZStack {
@@ -416,6 +309,50 @@ struct AlertRegionDetailView: View {
                         )
                     }
                     .buttonStyle(.plain)
+
+                    // Warning message (moved below chronology)
+                    if (region.isActive || isThreatActive) && !isConfirmed {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(themeColor)
+
+                                Text(region.isActive ? "⚠️ Тривога!" : "⚠️ Попередження")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundStyle(themeColor)
+                            }
+
+                            Text(region.isActive ? 
+                                 "У цій області оголошено повітряну тривогу. Негайно прямуйте в укриття!" : 
+                                 "Виявлено загрозу початку повітряної тривоги (пуск ракет/рух БПЛА). Будьте готові прослідувати в безпечне місце.")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.secondary)
+                                .lineSpacing(4)
+
+                            // Action buttons for warning
+                            HStack(spacing: 12) {
+                                Button(action: {
+                                    isConfirmed = true
+                                }) {
+                                    Text(region.isActive ? "Я в безпеці" : "Зрозуміло")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(themeColor)
+                                        .foregroundStyle(.black)
+                                        .cornerRadius(12)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(themeColor.opacity(0.1))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(themeColor.opacity(0.3), lineWidth: 1)
+                        )
+                    }
                 }
                 .padding()
             }
@@ -434,6 +371,152 @@ struct AlertRegionDetailView: View {
             .preferredColorScheme(.dark)
         }
         } // ZStack
+    }
+
+    // MARK: - Extracted Sub-Views
+    
+    @ViewBuilder
+    private func threatDetailCard(detail: String) -> some View {
+        let lines = detail.components(separatedBy: "\n")
+        let descriptionLines = lines.filter { !isTelemetryLine($0) }
+        let telemetryLines = lines.filter { isTelemetryLine($0) }
+        
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "bell.badge.fill")
+                    .foregroundStyle(themeColor)
+                    .font(.system(size: 14))
+                Text("Що відомо")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            
+            if !descriptionLines.isEmpty {
+                Text(descriptionLines.joined(separator: "\n"))
+                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineSpacing(6)
+            }
+            
+            if !telemetryLines.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(telemetryLines, id: \.self) { line in
+                        telemetryRow(line: line)
+                    }
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.25))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(themeColor.opacity(0.3), lineWidth: 1)
+                )
+                .padding(.top, 4)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .cornerRadius(20)
+        .shadow(radius: 15)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+    }
+    
+    @ViewBuilder
+    private func telemetryRow(line: String) -> some View {
+        if let (label, value) = parseTelemetryLine(line) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(label + ":")
+                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.6))
+                Text(value)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundStyle(themeColor)
+            }
+        } else {
+            Text(line)
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .foregroundStyle(themeColor)
+        }
+    }
+    
+    @ViewBuilder
+    private func premiumPurchaseCTA() -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.yellow, .orange],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            
+            Text("Деталі загрози доступні\nлише з Premium підпискою")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+            
+            Text("Отримайте доступ до аналітики загроз, телеметрії руху, прогнозів та хронології подій.")
+                .font(.system(size: 12))
+                .foregroundStyle(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+            
+            Button(action: {
+                Task {
+                    if let product = storeManager.storeProducts.first(where: { $0.id.contains("monthly") }) ?? storeManager.storeProducts.first {
+                        try? await storeManager.purchase(product)
+                    }
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 14))
+                    Text("Підключити Premium")
+                        .font(.system(size: 15, weight: .bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    LinearGradient(
+                        colors: [.yellow, .orange],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundStyle(.black)
+                .cornerRadius(14)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(.ultraThinMaterial)
+        .cornerRadius(20)
+        .shadow(radius: 15)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [.yellow.opacity(0.4), .orange.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
     }
 
     private var formattedDate: String {
