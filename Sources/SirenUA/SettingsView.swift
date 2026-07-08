@@ -24,7 +24,6 @@ struct SettingsView: View {
     @AppStorage("mapType")                   private var mapType                   = 0
     @AppStorage("walkingSearchRadius")       private var walkingSearchRadius       = 1.5
     @AppStorage("drivingSearchRadius")       private var drivingSearchRadius       = 5.0
-    @AppStorage("premiumDetailedNotifications") private var premiumDetailedNotifications = true
     @AppStorage("allRegionsTracked")         private var allRegionsTracked         = true
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
     @AppStorage("adminAuthenticated")        private var adminAuthenticated        = false
@@ -480,14 +479,6 @@ struct SettingsView: View {
                     }
                     Spacer()
                 }
-                StyledDivider()
-                StyledToggleRow(
-                    title: "Деталізація сповіщень",
-                    subtitle: "Тип загрози та деталі",
-                    icon: "eye.fill",
-                    iconColor: .siGold,
-                    isOn: $premiumDetailedNotifications
-                )
                 StyledDivider()
                 Button(action: {
                     storeManager.debugResetPremium()
