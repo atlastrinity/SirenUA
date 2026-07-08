@@ -375,10 +375,23 @@ class MockThreatManager:
         self.last_sound_time: float = 0.0
         self.real_threats_backup: dict = {}
         self._clear_lock = threading.Lock()
+        
+        self._save_timer = None
+        self._save_real_timer = None
+        self._save_lock = threading.Lock()
+        
         for region in ALL_REGIONS:
             self.threats[region] = ThreatState()
 
     def save_to_db(self):
+        import threading
+        with self._save_lock:
+            if getattr(self, '_save_timer', None) is not None:
+                self._save_timer.cancel()
+            self._save_timer = threading.Timer(2.5, self._execute_save_to_db)
+            self._save_timer.start()
+
+    def _execute_save_to_db(self):
         db = get_db()
         if db:
             try:
@@ -430,6 +443,14 @@ class MockThreatManager:
             self.load_from_file()
 
     def save_real_threats_to_db(self):
+        import threading
+        with self._save_lock:
+            if getattr(self, '_save_real_timer', None) is not None:
+                self._save_real_timer.cancel()
+            self._save_real_timer = threading.Timer(2.5, self._execute_save_real_threats_to_db)
+            self._save_real_timer.start()
+
+    def _execute_save_real_threats_to_db(self):
         db = get_db()
         if db:
             try:
@@ -525,6 +546,13 @@ class MockThreatManager:
 
     def set_scenario(self, scenario: str):
         """Встановлює попередньо визначений сценарій для тестування з інтелектуальним оновленням та чергою."""
+        
+        # Бекап реальних загроз до тестування
+        for region, state in self.threats.items():
+            if not state.is_test:
+                self.real_threats_backup[region] = state.to_dict()
+        self._execute_save_real_threats_to_db()
+        
         new_threats = {}
         
         # Format of value: (level, threat_type, detail, confidence, eta, is_predictive)
@@ -621,7 +649,8 @@ class MockThreatManager:
                    eta: Optional[str] = None,
                    is_predictive: bool = False,
                    is_test: bool = False,
-                   telemetry: dict = None) -> bool:
+                   telemetry: dict = None,
+                   rules_applied: list = None) -> bool:
         if region not in self.threats:
             return False
 
@@ -644,11 +673,9 @@ class MockThreatManager:
                 "is_active": old_state.is_active,
                 "is_test": False
             }
-            self.save_real_threats_to_db()
         else:
             if not old_state.is_test and old_state.level != "none":
                 self.real_threats_backup[region] = old_state.to_dict()
-                self.save_real_threats_to_db()
 
         self.threats[region].set_threat(level, threat_type, detail, confidence, eta, is_predictive, is_test)
         
@@ -664,7 +691,7 @@ class MockThreatManager:
             send_fcm_notification(region, level, threat_type, detail, play_sound=play_sound, confidence=confidence, eta=eta, is_official_alarm=self.threats[region].is_active, is_test=self.threats[region].is_test)
             self.save_to_db()
             if hasattr(self, 'on_change'):
-                self.on_change(region, self.threats[region], telemetry=telemetry)
+                self.on_change(region, self.threats[region], telemetry=telemetry, rules_applied=rules_applied)
             
         return True
 
@@ -683,7 +710,6 @@ class MockThreatManager:
                 self.real_threats_backup[region]["confidence"] = None
                 self.real_threats_backup[region]["eta"] = None
                 self.real_threats_backup[region]["is_predictive"] = False
-                self.save_real_threats_to_db()
 
         self.threats[region].clear()
         if has_changed:
@@ -803,7 +829,6 @@ class MockThreatManager:
                 "is_active": is_active,
                 "is_test": False
             }
-        self.save_real_threats_to_db()
 
         # If this region currently has a test threat, do not overwrite its active view state
         if self.threats[region].is_test:
