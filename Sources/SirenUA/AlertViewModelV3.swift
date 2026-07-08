@@ -25,10 +25,6 @@ final class AlertViewModelV3: ObservableObject {
     private var isFetching: Bool = false
     private var cancellables = Set<AnyCancellable>()
 
-    private var autoRefreshEnabled: Bool {
-        UserDefaults.standard.object(forKey: "autoRefreshEnabled") as? Bool ?? true
-    }
-
     private var refreshInterval: Int { 30 }
     
     @Published var isPremium: Bool = UserDefaults.standard.bool(forKey: "premiumEnabled")
@@ -116,7 +112,6 @@ final class AlertViewModelV3: ObservableObject {
             while !Task.isCancelled {
                 guard let self else { return }
                 try? await Task.sleep(for: .seconds(self.refreshInterval))
-                guard self.autoRefreshEnabled else { continue }
                 
                 // HTTP fallback: poll ubilling directly only when WebSocket is disconnected
                 let wsConnected = ThreatWebSocketClient.shared.connectionState == .connected

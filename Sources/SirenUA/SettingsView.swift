@@ -21,7 +21,6 @@ private extension Color {
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("notificationsEnabled")      private var notificationsEnabled      = true
-    @AppStorage("autoRefreshEnabled")        private var autoRefreshEnabled        = true
     @AppStorage("mapType")                   private var mapType                   = 0
     @AppStorage("walkingSearchRadius")       private var walkingSearchRadius       = 1.5
     @AppStorage("drivingSearchRadius")       private var drivingSearchRadius       = 5.0
@@ -370,16 +369,6 @@ struct SettingsView: View {
                 icon: "bell.fill",
                 iconColor: .siBlue,
                 isOn: $notificationsEnabled
-            )
-            
-            StyledDivider()
-            
-            StyledToggleRow(
-                title: "Автооновлення даних",
-                subtitle: "Фоновий моніторинг статусу",
-                icon: "arrow.clockwise.circle.fill",
-                iconColor: .siBlue,
-                isOn: $autoRefreshEnabled
             )
         }
     }
