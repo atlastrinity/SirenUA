@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import OSLog
 import CryptoKit
+import SafariServices
 
 // MARK: - Logger
 private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Settings")
@@ -33,6 +34,7 @@ struct SettingsView: View {
     @State private var inputEmail = ""
     @State private var inputPassword = ""
     @State private var loginErrorMessage: String? = nil
+    @State private var showingAdminPanel = false
 
     @EnvironmentObject var storeManager: StoreKitManager
     @State private var isPurchasing     = false
@@ -205,6 +207,10 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingAdminPanel) {
+            SafariView(url: URL(string: "https://sirenua-threatserver.onrender.com/admin")!)
+                .ignoresSafeArea()
+        }
         .onAppear {
             Task {
                 try? await Task.sleep(nanoseconds: 350_000_000)
@@ -805,6 +811,27 @@ struct SettingsView: View {
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.35), lineWidth: 1))
                         }
                     }
+                    
+                    Button(action: {
+                        haptic(.medium)
+                        showingAdminPanel = true
+                    }) {
+                        HStack {
+                            Image(systemName: "safari.fill")
+                            Text("Веб-панель керування (/admin)")
+                        }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Color.siPurple.opacity(0.25))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.siPurple.opacity(0.4), lineWidth: 1)
+                        )
+                    }
+                    .padding(.top, 4)
                 }
             }
         }
@@ -1244,3 +1271,18 @@ struct ServerStatusRow: View {
         }
     }
 }
+
+// MARK: - SafariView
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let controller = SFSafariViewController(url: url)
+        controller.preferredBarTintColor = .black
+        controller.preferredControlTintColor = .systemBlue
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+}
+
