@@ -1048,8 +1048,18 @@ struct AdminDashboardView: View {
     // MARK: - Date/Format Helpers
     
     private func formatShortTime(_ ts: String) -> String {
-        // Input format: YYYY-MM-DD HH:MM:SS
+        // Input format: YYYY-MM-DD HH:MM:SS (UTC)
         guard ts.count >= 19 else { return ts }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        if let date = formatter.date(from: String(ts.prefix(19))) {
+            let localFormatter = DateFormatter()
+            localFormatter.timeStyle = .medium
+            localFormatter.dateStyle = .none
+            localFormatter.timeZone = TimeZone.current
+            return localFormatter.string(from: date)
+        }
         return String(ts.suffix(8))
     }
     
