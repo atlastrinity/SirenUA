@@ -556,6 +556,13 @@ struct AdminDashboardView: View {
                                     if let cts = ev.clearing_timestamp {
                                         Text(" · Відбій: \(formatShortTime(cts))")
                                     }
+                                    if let res = ev.resolution_type, !res.isEmpty, res != "unknown" {
+                                        let label = res == "impact" ? "💥 Влучання" : 
+                                                    res == "intercepted" ? "🛡️ Збито" : res
+                                        Text(" · \(label)")
+                                            .foregroundColor(res == "impact" ? .red.opacity(0.8) : .green.opacity(0.8))
+                                            .fontWeight(.bold)
+                                    }
                                 }
                                 .font(.system(size: 10))
                                 .foregroundColor(.white.opacity(0.35))
