@@ -50,12 +50,12 @@ def main():
     combined_speech = np.concatenate([p1, gap_0_1, p2])
     sf.write("/tmp/c_combined_raw.wav", combined_speech, sr_target)
     
-    # Step 4: Pitch shifting down to 0.81x using ffmpeg rubberband
-    print("⏳ Pitch shifting voice down to 0.81x (deep resonant voice)...")
+    # Step 4: Pitch shifting down to 0.92x using ffmpeg rubberband
+    print("⏳ Pitch shifting voice down to 0.92x (deep resonant voice)...")
     subprocess.run([
         "ffmpeg", "-y",
         "-i", "/tmp/c_combined_raw.wav",
-        "-af", "rubberband=pitch=0.81",
+        "-af", "rubberband=pitch=0.92",
         "-ac", "1",
         "-ar", str(sr_target),
         "/tmp/c_combined_deep.wav"
