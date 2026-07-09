@@ -27,6 +27,7 @@ struct RegionHistoryView: View {
     private var dateFormatter: DateFormatter {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "Europe/Kiev")
         return f
     }
     
