@@ -188,9 +188,8 @@ struct SettingsView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         if adminAuthenticated && adminViewMode {
-                            // Admin mode: only show threat simulation and connection diagnostics
-                            mockScenariosCard
-                            diagnosticsCard
+                            // Admin mode: show native admin dashboard entrance
+                            adminDashboardCard
                         } else {
                             // User mode: hide diagnosticsCard and mockScenariosCard completely
                             notificationsCard
@@ -208,8 +207,7 @@ struct SettingsView: View {
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingAdminPanel) {
-            SafariView(url: URL(string: "https://sirenua-threatserver.onrender.com/admin")!)
-                .ignoresSafeArea()
+            AdminDashboardView()
         }
         .onAppear {
             Task {
@@ -727,6 +725,34 @@ struct SettingsView: View {
                     }
                 }
                 .padding(.top, 4)
+            }
+        }
+    }
+
+    private var adminDashboardCard: some View {
+        SettingsCard(title: "Панель адміністратора", icon: "crown.fill", iconColor: .siPurple) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Повний нативний моніторинг SirenUA: логи помилок, запити до Firebase, ліміти Gemini, правила самонавчання та симулятор загроз.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineSpacing(4)
+                
+                Button(action: {
+                    haptic(.medium)
+                    showingAdminPanel = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "gauge.with.needle.fill")
+                        Text("Відкрити консоль управління")
+                    }
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.siPurple)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: Color.siPurple.opacity(0.3), radius: 8, x: 0, y: 3)
+                }
             }
         }
     }
