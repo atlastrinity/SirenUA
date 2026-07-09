@@ -14,8 +14,8 @@ class TestThreatManager(MockThreatManager):
         super().__init__()
         self.sent_notifications = []
 
-    def set_threat(self, region: str, level: str, threat_type=None, detail=None):
-        res = super().set_threat(region, level, threat_type, detail)
+    def set_threat(self, region: str, level: str, threat_type=None, detail=None, *args, **kwargs):
+        res = super().set_threat(region, level, threat_type, detail, *args, **kwargs)
         self.sent_notifications.append({
             "region": region,
             "level": level,
@@ -24,8 +24,8 @@ class TestThreatManager(MockThreatManager):
         })
         return res
 
-    def clear_threat(self, region: str) -> bool:
-        res = super().clear_threat(region)
+    def clear_threat(self, region: str, *args, **kwargs) -> bool:
+        res = super().clear_threat(region, *args, **kwargs)
         self.sent_notifications.append({
             "region": region,
             "level": "none",
@@ -34,8 +34,8 @@ class TestThreatManager(MockThreatManager):
         })
         return res
 
-    def clear_all(self):
-        super().clear_all()
+    def clear_all(self, *args, **kwargs):
+        super().clear_all(*args, **kwargs)
         for region in ALL_REGIONS:
             self.sent_notifications.append({
                 "region": region,
