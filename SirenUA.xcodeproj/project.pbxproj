@@ -27,6 +27,7 @@
 		8EDE3FE7D3DFFFBED776F901 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F207912A937C87B6D7143563 /* ContentView.swift */; };
 		B7E2757D12AC1AEF90E74E4D /* RegionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6580F3BF6B06A4001E8733F /* RegionHistoryView.swift */; };
 		BBC73865F2DC5171206D69D5 /* ShelterItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B30561A0055BC1C976AEF /* ShelterItem.swift */; };
+		BE7F41A65C0A94AC69149859 /* clearance.wav in Resources */ = {isa = PBXBuildFile; fileRef = 9A13E90781CE797D24F859D6 /* clearance.wav */; };
 		C0F781FEC3AD217C5038F12C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 75B406C5353E9D61FB78753B /* FirebaseMessaging */; };
 		C8BF9EA783A5A939F376FD8C /* RegionHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 609165A0CF93A7F9385BA6D7 /* RegionHistoryEvent.swift */; };
 		D17102722E751AC7ECD8F278 /* ThreatWebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F54BE7FAB855C48FFD83B13 /* ThreatWebSocketClient.swift */; };
@@ -68,6 +69,7 @@
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8F2BECB950730B1B0C48EE56 /* siren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = siren.wav; sourceTree = "<group>"; };
 		8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		9A13E90781CE797D24F859D6 /* clearance.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clearance.wav; sourceTree = "<group>"; };
 		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C04391E80219E2B099533C21 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 				D030500F1F4D0B8471A88103 /* AlertViewModelV3.swift */,
 				8F7FB3048F4260BCAEE21C4F /* AppDelegate.swift */,
 				8BA16504A891512121DBF64D /* Assets.xcassets */,
+				9A13E90781CE797D24F859D6 /* clearance.wav */,
 				F207912A937C87B6D7143563 /* ContentView.swift */,
 				1D5CF43F48702EDF4967BC37 /* CriticalAlertManager.swift */,
 				3C09ADEA4D52330CA8C514F0 /* ErrorView.swift */,
@@ -247,6 +250,7 @@
 			files = (
 				0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */,
 				1D0C280BB11CFCDC3CAF26EC /* GoogleService-Info.plist in Resources */,
+				BE7F41A65C0A94AC69149859 /* clearance.wav in Resources */,
 				F9981CFEFAF1962CC2C1E43D /* siren.wav in Resources */,
 				76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */,
 				6641B169DC12DCDDC2B1AF8F /* vidbiy.wav in Resources */,
