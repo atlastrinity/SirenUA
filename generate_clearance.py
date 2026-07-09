@@ -1,9 +1,7 @@
 import os
-import io
+import subprocess
 import numpy as np
 import soundfile as sf
-import scipy.signal as signal
-from ukrainian_tts.tts import TTS, Voices, Stress
 
 def main():
     sr_target = 44100
@@ -13,50 +11,51 @@ def main():
     warning_data, sr_warning = sf.read('./Sources/SirenUA/warning.wav')
     if sr_warning != sr_target:
         raise ValueError(f"Expected warning.wav samplerate to be {sr_target}, got {sr_warning}")
-    
-    # 1.9 seconds of prefix
+        
     prefix_len = int(1.9 * sr_target)
     beep_prefix = warning_data[:prefix_len]
     
-    # 2. Initialize TTS engine and synthesize the speech
-    print("⏳ Initializing TTS engine...")
-    tts = TTS(device='cpu')
+    # 2. Use gTTS to synthesize the Ukrainian speech
+    print("⏳ Synthesizing speech via gTTS...")
+    from gtts import gTTS
+    text = "Увага! Відбій загрози!"
+    tts = gTTS(text=text, lang='uk')
     
-    text = "Увага! Ві/дбій загрози!"  # Using slash for correct accent stress if needed, or normal dictionary stress
-    print(f"🎙️ Synthesizing speech: '{text}' using Dmytro's voice...")
+    mp3_path = "temp_speech.mp3"
+    wav_path = "temp_speech.wav"
+    tts.save(mp3_path)
     
-    wav_data = io.BytesIO()
-    tts.tts(text, Voices.Dmytro.value, Stress.Dictionary.value, wav_data)
-    wav_data.seek(0)
+    # 3. Convert MP3 to WAV using ffmpeg at 44100 Hz, mono
+    print("⏳ Converting MP3 to WAV via ffmpeg...")
+    subprocess.run([
+        "ffmpeg", "-y", "-i", mp3_path, 
+        "-ar", str(sr_target), "-ac", "1", wav_path
+    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     
-    speech_data, sr_speech = sf.read(wav_data)
-    print(f"✅ Synthesized successfully. SR: {sr_speech}, Shape: {speech_data.shape}")
+    # 4. Load the converted speech WAV
+    speech_data, sr_speech = sf.read(wav_path)
     
-    # 3. Resample speech from 22050 Hz to 44100 Hz
-    if sr_speech == 22050:
-        print("⏳ Resampling speech from 22050 Hz to 44100 Hz using resample_poly...")
-        speech_resampled = signal.resample_poly(speech_data, 2, 1)
-    elif sr_speech == sr_target:
-        speech_resampled = speech_data
-    else:
-        print(f"⏳ Resampling speech from {sr_speech} Hz to {sr_target} Hz...")
-        num_samples = int(len(speech_data) * sr_target / sr_speech)
-        speech_resampled = signal.resample(speech_data, num_samples)
-        
-    # 4. Concatenate prefix and resampled speech
-    print("⏳ Concatenating beep prefix and speech...")
-    # Add a tiny silence buffer (0.1s) between beep and speech
+    # 5. Concatenate beep prefix, 0.1s silence buffer, and speech
+    print("⏳ Concatenating beep prefix and gTTS speech...")
     silence_buffer = np.zeros(int(0.1 * sr_target))
-    combined = np.concatenate([beep_prefix, silence_buffer, speech_resampled])
+    combined = np.concatenate([beep_prefix, silence_buffer, speech_data])
     
-    # Normalize to max absolute amplitude of 0.95 to match warning.wav
+    # Normalize to max absolute amplitude of 0.95
     combined = combined / np.max(np.abs(combined)) * 0.95
     
-    # 5. Save the output wav file
+    # 6. Save final clearance.wav
+    output_path = './Sources/SirenUA/clearPermission.wav' # wait, we should overwrite clearance.wav!
     output_path = './Sources/SirenUA/clearance.wav'
     print(f"💾 Saving final audio to {output_path}...")
     sf.write(output_path, combined, sr_target)
-    print("🎉 Done!")
+    
+    # 7. Cleanup temp files
+    if os.path.exists(mp3_path):
+        os.remove(mp3_path)
+    if os.path.exists(wav_path):
+        os.remove(wav_path)
+        
+    print("🎉 Done generating gTTS clearance.wav!")
 
 if __name__ == '__main__':
     main()
