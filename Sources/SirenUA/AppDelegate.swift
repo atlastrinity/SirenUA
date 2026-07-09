@@ -4,7 +4,7 @@ import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
     
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -13,6 +13,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         
         // Встановлюємо делегат для повідомлень Firebase
         Messaging.messaging().delegate = self
+        
+        // Встановлюємо делегат для обробки пушів у foreground
+        UNUserNotificationCenter.current().delegate = self
         
         // Реєстрація для віддалених пушів
         application.registerForRemoteNotifications()
@@ -29,11 +32,31 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         print("Failed to register for remote notifications: \(error.localizedDescription)")
     }
     
+    // Обробка FCM data push — тригерить оновлення UI через NotificationCenter
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        // FCM data payload містить threat data — сигналізуємо ViewModel оновити стан
+        if userInfo["threat_level"] != nil || userInfo["region"] != nil {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: Notification.Name("ThreatDataUpdated"), object: nil, userInfo: userInfo)
+            }
+        }
+        completionHandler(.newData)
+    }
+    
     // Обробка оновлення токена реєстрації FCM
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         print("FCM Registration Token: \(String(describing: fcmToken))")
         // Синхронізуємо підписки при отриманні токена
         NotificationManager.shared.syncTopicSubscriptions()
+    }
+    
+    // Показувати пуш-сповіщення навіть коли додаток на екрані (foreground)
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .badge])
     }
 }
 #endif

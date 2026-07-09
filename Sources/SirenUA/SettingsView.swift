@@ -35,7 +35,6 @@ struct SettingsView: View {
     @State private var loginErrorMessage: String? = nil
 
     @EnvironmentObject var storeManager: StoreKitManager
-    @StateObject private var wsClient = ThreatWebSocketClient.shared
     @State private var isPurchasing     = false
     @State private var isRegionsExpanded = false
     @State private var isInitialized     = false
@@ -48,7 +47,6 @@ struct SettingsView: View {
     @State private var alertsServerStatus:  ServerStatus = .checking
     @State private var threatsServerStatus: ServerStatus = .checking
     @State private var geminiServerStatus:  ServerStatus = .checking
-    @State private var webSocketServerStatus: ServerStatus = .checking
     // MARK: Region list
     private let allRegionsList = [
         "Вінницька область",    "Волинська область",       "Дніпропетровська область",
@@ -91,7 +89,6 @@ struct SettingsView: View {
         alertsServerStatus  = .checking
         threatsServerStatus = .checking
         geminiServerStatus  = .checking
-        webSocketServerStatus = .checking
 
         async let alertsPing  = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
         async let threatsPing = ping(url: "https://sirenua-threatserver.onrender.com/api/threats", method: "GET")
@@ -100,15 +97,6 @@ struct SettingsView: View {
         alertsServerStatus  = await alertsPing
         threatsServerStatus = await threatsPing
         geminiServerStatus  = await geminiPing
-        
-        switch wsClient.connectionState {
-        case .disconnected:
-            webSocketServerStatus = .offline(error: "Відключено")
-        case .connecting:
-            webSocketServerStatus = .checking
-        case .connected:
-            webSocketServerStatus = .online(label: "Активне")
-        }
     }
 
     private func checkGeminiStatus() async -> ServerStatus {
@@ -710,15 +698,6 @@ struct SettingsView: View {
                     status: geminiServerStatus
                 )
 
-                if storeManager.isPremium {
-                    Divider().background(Color.white.opacity(0.06))
-
-                    ServerStatusRow(
-                        name: "ШІ-потік загроз (WebSocket)",
-                        url: "ws://sirenua-threatserver.onrender.com/ws",
-                        status: webSocketServerStatus
-                    )
-                }
 
                 HStack {
                     Spacer()
@@ -727,10 +706,6 @@ struct SettingsView: View {
                         alertsServerStatus  = .checking
                         threatsServerStatus = .checking
                         geminiServerStatus  = .checking
-                        webSocketServerStatus = .checking
-                        if storeManager.isPremium {
-                            wsClient.reconnect()
-                        }
                         Task { await checkServerStatus() }
                     }) {
                         Label("Оновити статус", systemImage: "arrow.clockwise")

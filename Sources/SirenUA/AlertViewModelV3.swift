@@ -34,12 +34,16 @@ final class AlertViewModelV3: ObservableObject {
     }
 
     private var premiumObserver: NSObjectProtocol? = nil
+    private var fcmObserver: NSObjectProtocol? = nil
 
     init() {
         vmLogger.info("AlertViewModelV3 initialized")
         initializeRegions()
-        setupWebSocket()
+        setupFCMListener()
         setupRefreshLoop()
+        
+        // Initial fetch of threat data from server
+        Task { await fetchThreatState() }
         
         // Refresh UI when premium status changes (threat details visibility)
         premiumObserver = NotificationCenter.default.addObserver(
@@ -62,7 +66,9 @@ final class AlertViewModelV3: ObservableObject {
         if let premiumObserver {
             NotificationCenter.default.removeObserver(premiumObserver)
         }
-        ThreatWebSocketClient.shared.disconnect()
+        if let fcmObserver {
+            NotificationCenter.default.removeObserver(fcmObserver)
+        }
     }
 
     private func initializeRegions() {
@@ -107,49 +113,59 @@ final class AlertViewModelV3: ObservableObject {
         updateStats()
     }
 
+    // MARK: - FCM Push Listener
+    
+    /// Listens for FCM data pushes and triggers an immediate data refresh.
+    /// FCM push replaces WebSocket — when server sends push, app fetches fresh state via HTTP.
+    private func setupFCMListener() {
+        fcmObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("ThreatDataUpdated"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            vmLogger.info("FCM push received — fetching fresh threat state")
+            Task { @MainActor in
+                await self.fetchThreatState()
+            }
+        }
+    }
+
+    // MARK: - Refresh Loop (HTTP polling every 30s)
+    
     private func setupRefreshLoop() {
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
                 try? await Task.sleep(for: .seconds(self.refreshInterval))
-                
-                // HTTP fallback: poll ubilling directly only when WebSocket is disconnected
-                let wsConnected = ThreatWebSocketClient.shared.connectionState == .connected
-                if wsConnected {
-                    continue
-                }
-                
-                vmLogger.info("WebSocket disconnected — falling back to HTTP polling")
-                await self.fetchLiveAlerts()
+                await self.fetchThreatState()
             }
         }
     }
 
-    // setupThreatRefreshLoop has been removed in favor of WebSockets.
+    // MARK: - Fetch Threat State (HTTP — replaces WebSocket)
     
-    private func setupWebSocket() {
-        ThreatWebSocketClient.shared.events
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] event in
-                guard let self = self else { return }
-                switch event {
-                case .initialState(let threats):
-                    self.applyThreats(threats)
-                    self.updateStats()
-                    self.updateLastAlertedRegion()
-                    self.isFirstFetch = false
-                case .threatUpdate(let region, let threat):
-                    self.applySingleThreat(region: region, threat: threat)
-                    self.updateStats()
-                    self.updateLastAlertedRegion()
-                }
-            }
-            .store(in: &cancellables)
-            
-        // Connect for all users — server proxies official alerts + threat data
-        ThreatWebSocketClient.shared.connect(to: threatServerURL)
+    /// Fetches full threat state from server via GET /api/threats.
+    /// Called on: init, every 30s (polling), and on FCM push trigger.
+    private func fetchThreatState() async {
+        guard !isFetching else { return }
+        isFetching = true
+        
+        do {
+            let threats = try await networkManager.fetchThreats(serverURL: threatServerURL)
+            applyThreats(threats)
+            updateStats()
+            updateLastAlertedRegion()
+            isFirstThreatFetch = false
+        } catch {
+            vmLogger.error("Error fetching threats: \(error.localizedDescription)")
+            // Fallback: try fetching live alerts from ubilling
+            await fetchLiveAlerts()
+        }
+        
+        isFetching = false
     }
-    
+
     private func applySingleThreat(region: String, threat: ThreatInfo) {
         guard let index = alerts.firstIndex(where: { $0.name == region }) else { return }
         let oldThreatLevel = alerts[index].threatLevel
@@ -289,8 +305,7 @@ final class AlertViewModelV3: ObservableObject {
     }
     
     func refreshThreats() {
-        ThreatWebSocketClient.shared.disconnect()
-        ThreatWebSocketClient.shared.connect(to: threatServerURL)
+        Task { await fetchThreatState() }
     }
 
     private func fetchLiveAlerts() async {
@@ -369,9 +384,7 @@ final class AlertViewModelV3: ObservableObject {
     }
 
     func refreshAlerts() {
-        // Primary: reconnect WebSocket to get fresh initial_state
-        ThreatWebSocketClient.shared.disconnect()
-        ThreatWebSocketClient.shared.connect(to: threatServerURL)
+        Task { await fetchThreatState() }
     }
 
     func updateAlertStatus(id: Int, isActive: Bool) {
