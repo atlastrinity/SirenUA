@@ -23,9 +23,13 @@ struct ShelterDetailView: View {
     private var timeText: String? {
         guard let route else { return nil }
         let minutes = Int(route.expectedTravelTime / 60)
-        return minutes < 60
-            ? "\(minutes) хв"
-            : String(format: "%.1f год", Double(minutes) / 60)
+        if minutes < 60 {
+            return "\(minutes) хв"
+        } else {
+            let h = minutes / 60
+            let m = minutes % 60
+            return m > 0 ? "\(h) год \(m) хв" : "\(h) год"
+        }
     }
 
     var body: some View {
@@ -422,7 +426,13 @@ struct NavigationOverlay: View {
     private var timeText: String {
         guard let route else { return "" }
         let minutes = Int(route.expectedTravelTime / 60)
-        return minutes < 60 ? "\(minutes) хв" : String(format: "%.1f год", Double(minutes) / 60)
+        if minutes < 60 {
+            return "\(minutes) хв"
+        } else {
+            let h = minutes / 60
+            let m = minutes % 60
+            return m > 0 ? "\(h) год \(m) хв" : "\(h) год"
+        }
     }
 
     var body: some View {
