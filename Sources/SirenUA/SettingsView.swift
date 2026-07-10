@@ -838,26 +838,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Button(action: {
-                        haptic(.medium)
-                        showingAdminPanel = true
-                    }) {
-                        HStack {
-                            Image(systemName: "safari.fill")
-                            Text("Веб-панель керування (/admin)")
-                        }
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                        .background(Color.siPurple.opacity(0.25))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.siPurple.opacity(0.4), lineWidth: 1)
-                        )
-                    }
-                    .padding(.top, 4)
+
                 }
             }
         }
