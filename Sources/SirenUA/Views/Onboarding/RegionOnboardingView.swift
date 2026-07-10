@@ -7,6 +7,7 @@ struct RegionOnboardingView: View {
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
     
     @State private var localTrackedList: Set<String> = []
+    @State private var searchText = ""
     
     private let allRegionsList = [
         "Вінницька область",    "Волинська область",       "Дніпропетровська область",
@@ -22,6 +23,14 @@ struct RegionOnboardingView: View {
     
     private var themeColor: Color {
         Color(red: 0.20, green: 0.52, blue: 0.98) // siBlue
+    }
+    
+    private var filteredRegions: [String] {
+        if searchText.isEmpty {
+            return allRegionsList
+        } else {
+            return allRegionsList.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        }
     }
     
     var body: some View {
@@ -120,9 +129,34 @@ struct RegionOnboardingView: View {
                     
                     // Option 2: Custom region picker list
                     if !allRegionsTracked {
+                        // Search bar
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.white.opacity(0.4))
+                            TextField("Пошук області...", text: $searchText)
+                                .foregroundColor(.white)
+                                .font(.system(size: 14))
+                                .disableAutocorrection(true)
+                            if !searchText.isEmpty {
+                                Button(action: {
+                                    searchText = ""
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.white.opacity(0.4))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.06))
+                        .cornerRadius(10)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 10)
+                        .transition(.opacity)
+
                         ScrollView {
                             VStack(spacing: 10) {
-                                ForEach(allRegionsList, id: \.self) { region in
+                                ForEach(filteredRegions, id: \.self) { region in
                                     Button(action: {
                                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                         if localTrackedList.contains(region) {
@@ -202,7 +236,7 @@ struct RegionOnboardingView: View {
             }
         }
         .onAppear {
-            // Load current tracked regions if any, or default to some regions (like Kiev)
+            // Load current tracked regions if any, or default to some regions (like Kyiv)
             if !trackedRegionsString.isEmpty {
                 localTrackedList = Set(trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
             } else {
