@@ -454,13 +454,36 @@ struct AlertRegionDetailView: View {
         let telemetryLines = lines.filter { isTelemetryLine($0) }
         
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "bell.badge.fill")
+            HStack(alignment: .center) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bell.badge.fill")
+                        .foregroundStyle(themeColor)
+                        .font(.system(size: 14))
+                    Text("Що відомо")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                
+                if let threat = selectedThreat, let dynamic = threat.dynamicETA {
+                    let _ = timeRefreshTrigger // Force refresh on timer tick
+                    Spacer()
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(dynamic)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(themeColor.opacity(0.12))
+                    .cornerRadius(8)
                     .foregroundStyle(themeColor)
-                    .font(.system(size: 14))
-                Text("Що відомо")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(themeColor.opacity(0.25), lineWidth: 1)
+                    )
+                }
             }
             
             if !descriptionLines.isEmpty {
