@@ -19,7 +19,6 @@ struct AlertRegionDetailView: View {
         !region.isActive && region.threatLevel != nil
     }
     
-    /// Поточна вибрана загроза (або nil якщо немає)
     private var selectedThreat: SingleThreatInfo? {
         guard !region.activeThreats.isEmpty else { return nil }
         let idx = min(selectedThreatIndex, region.activeThreats.count - 1)
@@ -46,7 +45,6 @@ struct AlertRegionDetailView: View {
         }
     }
     
-    /// Emoji icon for the current threat type
     private var threatTypeEmoji: String {
         switch region.threatType {
         case "shahed": return "🛩"
@@ -62,7 +60,6 @@ struct AlertRegionDetailView: View {
 
     var body: some View {
         ZStack {
-            // Dark glassmorphism background
             Color(red: 0.06, green: 0.06, blue: 0.10)
                 .ignoresSafeArea()
 
@@ -94,7 +91,7 @@ struct AlertRegionDetailView: View {
                         .onAppear { isPulsing = true }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            let _ = timeRefreshTrigger // Force refresh on timer tick
+                            let _ = timeRefreshTrigger
                             Text(statusTitle)
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundStyle(themeColor)
@@ -129,7 +126,7 @@ struct AlertRegionDetailView: View {
                     )
                     .shadow(color: themeColor.opacity(0.15), radius: 12)
 
-                    // Region name with glassmorphism
+                    // Region name card
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "location.fill")
@@ -161,7 +158,7 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // ── Multi-threat selector (shows only if 2+ active threats) ──
+                    // Multi-threat selector
                     if region.activeThreats.count > 1 {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -178,12 +175,17 @@ struct AlertRegionDetailView: View {
                                 HStack(spacing: 10) {
                                     ForEach(Array(region.activeThreats.enumerated()), id: \.element.id) { idx, threat in
                                         let isSelected = (idx == selectedThreatIndex)
-                                        threatMiniCard(threat: threat, isSelected: isSelected)
-                                            .onTapGesture {
-                                                withAnimation(.easeInOut(duration: 0.25)) {
-                                                    selectedThreatIndex = idx
-                                                }
+                                        ThreatMiniCard(
+                                            threat: threat,
+                                            isSelected: isSelected,
+                                            themeColor: themeColor,
+                                            timeRefreshTrigger: timeRefreshTrigger
+                                        )
+                                        .onTapGesture {
+                                            withAnimation(.easeInOut(duration: 0.25)) {
+                                                selectedThreatIndex = idx
                                             }
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 4)
@@ -226,11 +228,11 @@ struct AlertRegionDetailView: View {
                             Text(isThreatActive ? "Загроза: \(displayLevel)" : "Рівень \(region.level)")
                                 .font(.system(size: 16, weight: .bold))
                         }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(themeColor.opacity(0.12))
-                            .foregroundStyle(themeColor)
-                            .cornerRadius(12)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(themeColor.opacity(0.12))
+                        .foregroundStyle(themeColor)
+                        .cornerRadius(12)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,17 +252,20 @@ struct AlertRegionDetailView: View {
                     )
 
                     // Card 1: Що відомо (Premium-only) or Purchase CTA
-                    // Uses selected threat's detail if available, falls back to region's legacy threatDetail
                     if let detail = selectedThreat?.detail ?? region.threatDetail, !detail.isEmpty {
                         if isPremium {
-                            threatDetailCard(detail: detail)
+                            ThreatDetailCard(
+                                detail: detail,
+                                threat: selectedThreat,
+                                themeColor: themeColor,
+                                timeRefreshTrigger: timeRefreshTrigger
+                            )
                         } else {
-                            premiumPurchaseCTA()
+                            PremiumPurchaseCTA(storeManager: storeManager)
                         }
                     }
                     
                     // Card 2: Імовірність загрози (Premium only)
-                    // Uses selected threat's confidence if available
                     if isPremium, let confidence = selectedThreat?.confidence ?? region.threatConfidence {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
@@ -273,7 +278,6 @@ struct AlertRegionDetailView: View {
                             }
                             
                             HStack(spacing: 20) {
-                                // Circular confidence ring
                                 ZStack {
                                     Circle()
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 6)
@@ -329,7 +333,7 @@ struct AlertRegionDetailView: View {
                         )
                     }
 
-                    // History button (moved above warning)
+                    // Chronology Navigation Link
                     NavigationLink(destination: RegionHistoryView(regionName: region.name, themeColor: themeColor)) {
                         HStack(spacing: 12) {
                             ZStack {
@@ -342,12 +346,7 @@ struct AlertRegionDetailView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Хронологія подій")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                Text("Переглянути історію загроз")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.4))
+                                textChronologyLabel()
                             }
 
                             Spacer()
@@ -373,7 +372,7 @@ struct AlertRegionDetailView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Warning message (moved below chronology)
+                    // Warning card
                     if (region.isActive || isThreatActive) && !isConfirmed {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack(spacing: 12) {
@@ -393,7 +392,6 @@ struct AlertRegionDetailView: View {
                                 .foregroundStyle(.secondary)
                                 .lineSpacing(4)
 
-                            // Action buttons for warning
                             HStack(spacing: 12) {
                                 Button(action: {
                                     dismiss()
@@ -445,219 +443,6 @@ struct AlertRegionDetailView: View {
         } // ZStack
     }
 
-    // MARK: - Extracted Sub-Views
-    
-    @ViewBuilder
-    private func threatDetailCard(detail: String) -> some View {
-        let lines = detail.components(separatedBy: "\n")
-        let descriptionLines = lines.filter { !isTelemetryLine($0) }
-        let telemetryLines = lines.filter { isTelemetryLine($0) }
-        
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center) {
-                HStack(spacing: 6) {
-                    Image(systemName: "bell.badge.fill")
-                        .foregroundStyle(themeColor)
-                        .font(.system(size: 14))
-                    Text("Що відомо")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                
-                if let threat = selectedThreat, let dynamic = threat.dynamicETA {
-                    let _ = timeRefreshTrigger // Force refresh on timer tick
-                    Spacer()
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 10, weight: .bold))
-                        Text(dynamic)
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(themeColor.opacity(0.12))
-                    .cornerRadius(8)
-                    .foregroundStyle(themeColor)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(themeColor.opacity(0.25), lineWidth: 1)
-                    )
-                }
-            }
-            
-            if !descriptionLines.isEmpty {
-                Text(descriptionLines.joined(separator: "\n"))
-                    .font(.system(size: 15, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .lineSpacing(6)
-            }
-            
-            if !telemetryLines.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(telemetryLines, id: \.self) { line in
-                        telemetryRow(line: line)
-                    }
-                }
-                .padding(12)
-                .background(Color.black.opacity(0.25))
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(themeColor.opacity(0.3), lineWidth: 1)
-                )
-                .padding(.top, 4)
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .cornerRadius(20)
-        .shadow(radius: 15)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    LinearGradient(
-                        colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-    }
-    
-    @ViewBuilder
-    private func threatMiniCard(threat: SingleThreatInfo, isSelected: Bool) -> some View {
-        let _ = timeRefreshTrigger // Force redraw on timer tick
-        HStack(spacing: 6) {
-            Image(systemName: threat.threatIcon)
-                .font(.system(size: 14, weight: .bold))
-            Text(threat.threatLabel)
-                .font(.system(size: 13, weight: .semibold))
-            if let eta = threat.dynamicETA, !eta.isEmpty {
-                Text("(\(eta))")
-                    .font(.system(size: 11))
-                    .opacity(0.7)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(isSelected ? themeColor.opacity(0.2) : Color.white.opacity(0.05))
-        .foregroundStyle(isSelected ? themeColor : .white)
-        .cornerRadius(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(isSelected ? themeColor : Color.white.opacity(0.1), lineWidth: 1)
-        )
-    }
-
-    @ViewBuilder
-    private func telemetryRow(line: String) -> some View {
-        if let (label, value) = parseTelemetryLine(line) {
-            let displayValue: String = {
-                if label == "Очікуваний час", let dynamic = selectedThreat?.dynamicETA {
-                    return dynamic
-                }
-                if (label == "Відстань" || label == "Відстань до цілі"), let threat = selectedThreat {
-                    let dynLine = threat.dynamicDistance(from: line)
-                    if let (_, val) = parseTelemetryLine(dynLine) {
-                        return val
-                    }
-                }
-                return value
-            }()
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(label + ":")
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
-                Text(displayValue)
-                    .font(.system(size: 14, weight: .bold, design: .monospaced))
-                    .foregroundStyle(themeColor)
-            }
-        } else {
-            Text(line)
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                .foregroundStyle(themeColor)
-        }
-    }
-    
-    @ViewBuilder
-    private func premiumPurchaseCTA() -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.yellow, .orange],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            
-            Text("Деталі загрози доступні\nлише з Premium підпискою")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-            
-            Text("Отримайте доступ до аналітики загроз, телеметрії руху, прогнозів та хронології подій.")
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-            
-            Button(action: {
-                Task {
-                    if let product = storeManager.storeProducts.first(where: { $0.id.contains("monthly") }) ?? storeManager.storeProducts.first {
-                        _ = try? await storeManager.purchase(product)
-                    }
-                }
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 14))
-                    Text("Підключити Premium")
-                        .font(.system(size: 15, weight: .bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    LinearGradient(
-                        colors: [.yellow, .orange],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .foregroundStyle(.black)
-                .cornerRadius(14)
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
-        .cornerRadius(20)
-        .shadow(radius: 15)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    LinearGradient(
-                        colors: [.yellow.opacity(0.4), .orange.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-    }
-
-    private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .medium
-        return formatter.string(from: Date())
-    }
-    
     private func confidenceColor(_ confidence: Int) -> Color {
         if confidence >= 85 { return .red }
         if confidence >= 60 { return .orange }
@@ -670,44 +455,16 @@ struct AlertRegionDetailView: View {
         return "Можлива загроза"
     }
 
-    private func isTelemetryLine(_ line: String) -> Bool {
-        let prefixes = [
-            "Відстань до цілі:",
-            "Кількість цілей:",
-            "Напрямок запуску:",
-            "Тип:",
-            "Швидкість руху:",
-            "Висота польоту:",
-            "Очікуваний час:",
-            "Відстань:",
-            "Історичний маршрут підтверджено",
-            "Патерн підтверджений аналітикою"
-        ]
-        return prefixes.contains(where: { line.hasPrefix($0) })
-    }
-
-    private func parseTelemetryLine(_ line: String) -> (String, String)? {
-        let prefixes = [
-            "Відстань до цілі",
-            "Кількість цілей",
-            "Напрямок запуску",
-            "Тип",
-            "Швидкість руху",
-            "Висота польоту",
-            "Очікуваний час",
-            "Відстань"
-        ]
-        
-        for prefix in prefixes {
-            if line.hasPrefix(prefix + ":") {
-                let value = line.replacingOccurrences(of: prefix + ":", with: "").trimmingCharacters(in: .whitespaces)
-                return (prefix, value)
-            }
-        }
-        return nil
+    @ViewBuilder
+    private func textChronologyLabel() -> some View {
+        Text("Хронологія подій")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white)
+        Text("Переглянути історію загроз")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.white.opacity(0.4))
     }
 }
-
 
 struct AlertRegionDetailView_Previews: PreviewProvider {
     static var previews: some View {
