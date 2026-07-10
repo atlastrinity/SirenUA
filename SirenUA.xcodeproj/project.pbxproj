@@ -52,6 +52,7 @@
 		DAB0109DBB6DDEE3BEFD4973 /* ShelterItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EBAD5E8706EFEEC0F927B6 /* ShelterItem.swift */; };
 		DAF92976F6869766756C9374 /* View+PressEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91A8EB5D33BEA49BCB7CBFA /* View+PressEvents.swift */; };
 		DC10839A225D7821729BB7F8 /* SmallIconButtonV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5D4126E025C32D1D8961A9 /* SmallIconButtonV4.swift */; };
+		E3C088B7279101706D18B9C1 /* MapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B67D7E51B19A85354D587BD2 /* MapViewModel.swift */; };
 		E8485FF4785C059EBF7C63BD /* AdminRulesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = E518FB98E1D1C0239F058B20 /* AdminRulesTab.swift */; };
 		F65C4B4155B49045B12818C7 /* RegionOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70E481BA2FECC880D4AAEA1 /* RegionOnboardingView.swift */; };
 		F8EF755CF30FC3BF2A99AE6C /* AdminDashboardTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B93847811D7F44E3D2C2EC3 /* AdminDashboardTab.swift */; };
@@ -109,6 +110,7 @@
 		AA5D4126E025C32D1D8961A9 /* SmallIconButtonV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallIconButtonV4.swift; sourceTree = "<group>"; };
 		AB44D26EDD0483C6031770D3 /* AdminControlTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminControlTab.swift; sourceTree = "<group>"; };
 		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B67D7E51B19A85354D587BD2 /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
 		BA1658C6134027D3CF2D1A69 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		BB7B09972E2AF61BEE6C45E7 /* SettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCard.swift; sourceTree = "<group>"; };
 		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -322,6 +324,7 @@
 			children = (
 				013689DDFEEE1910227FD2A8 /* AdminViewModel.swift */,
 				A436C2C5186204E6DFB2C26E /* AlertViewModelV3.swift */,
+				B67D7E51B19A85354D587BD2 /* MapViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -455,6 +458,7 @@
 				9DA940DA1E27D917919A12DB /* GeoJSONManager.swift in Sources */,
 				66102DB4B8BD127FCC48E512 /* LocationManager.swift in Sources */,
 				5950A7D30F36064E9E5381CA /* MKDirectionsTransportType+Hashable.swift in Sources */,
+				E3C088B7279101706D18B9C1 /* MapViewModel.swift in Sources */,
 				0E50948AD94AF6FB81C85E06 /* NavigationOverlay.swift in Sources */,
 				4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */,
 				D88D51A31BFD78DA3B0C008C /* NotificationManager.swift in Sources */,
