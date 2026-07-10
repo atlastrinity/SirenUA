@@ -21,8 +21,8 @@ struct ThreatMapContent: MapContent {
         ForEach(activeThreatRegions) { region in
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
-            let strokeOpacity: Double = confidence >= 85 ? 0.8 : (confidence >= 60 ? 0.6 : 0.35)
-            let fillOpacity: Double = confidence >= 85 ? 0.5 : (confidence >= 60 ? 0.35 : 0.15)
+            let strokeOpacity: Double = confidence >= 85 ? 0.95 : (confidence >= 60 ? 0.8 : 0.65)
+            let fillOpacity: Double = confidence >= 85 ? 0.6 : (confidence >= 60 ? 0.45 : 0.3)
             let strokeColor: Color = threatColor.opacity(strokeOpacity)
             let fillColor: Color = threatColor.opacity(fillOpacity)
             

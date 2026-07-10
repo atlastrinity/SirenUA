@@ -56,20 +56,20 @@ struct AdminErrorStatsResponse: Codable {
 struct AdminChronologyEntry: Codable, Identifiable {
     let id: Int
     let region: String
-    let threat_level: String
-    let threat_type: String
+    let threat_level: String?
+    let threat_type: String?
     let confidence_at_set: Int?
     let confidence_at_clear: Int?
-    let was_predictive: Int
+    let was_predictive: Int?
     let prediction_accuracy: String?
-    let lifecycle_status: String
+    let lifecycle_status: String?
     let duration_seconds: Int?
     let gemini_group_id: String?
     let threat_timestamp: String?
     let threat_detail: String?
     let clearing_timestamp: String?
     let resolution_type: String?
-    let match_type: String // match, mismatch, active, cleared
+    let match_type: String? // match, mismatch, active, cleared
 }
 
 struct DailyStatEntry: Codable, Identifiable {

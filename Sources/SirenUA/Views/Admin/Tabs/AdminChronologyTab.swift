@@ -213,7 +213,7 @@ struct AdminChronologyTab: View {
                                                 }
                                             }
                                             
-                                            Text(ev.threat_type == "official_alarm" ? "Офіційна тривога" : "\(ev.threat_type) (\(ev.threat_level))")
+                                            Text(ev.threat_type == "official_alarm" ? "Офіційна тривога" : "\(ev.threat_type ?? "Загроза") (\(ev.threat_level ?? "none"))")
                                                 .font(.system(size: 11, weight: .medium))
                                                 .foregroundColor(ev.threat_type == "official_alarm" ? .red : .white.opacity(0.5))
                                             

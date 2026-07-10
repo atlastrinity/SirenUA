@@ -1,5 +1,9 @@
 import SwiftUI
 import Foundation
+import OSLog
+
+private let adminLogger = Logger(subsystem: "com.sirenua", category: "AdminViewModel")
+
 
 #if canImport(UIKit)
 import UIKit
@@ -160,10 +164,15 @@ class AdminViewModel: ObservableObject {
         let url = URL(string: "\(serverURL)/api/admin/chronology/v2?\(params)")!
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            if let decoded = try? JSONDecoder().decode(AdminChronologyV2Response.self, from: data) {
+            do {
+                let decoded = try JSONDecoder().decode(AdminChronologyV2Response.self, from: data)
                 self.correlationV2Data = decoded
+            } catch {
+                adminLogger.error("Failed to decode AdminChronologyV2Response: \(error)")
             }
-        } catch {}
+        } catch {
+            adminLogger.error("Network error in fetchCorrelationV2: \(error)")
+        }
     }
     
     func fetchChronology() async {
@@ -183,10 +192,15 @@ class AdminViewModel: ObservableObject {
         let url = URL(string: "\(serverURL)/api/admin/chronology?\(params)")!
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            if let decoded = try? JSONDecoder().decode(AdminChronologyResponse.self, from: data) {
+            do {
+                let decoded = try JSONDecoder().decode(AdminChronologyResponse.self, from: data)
                 self.chronologyData = decoded
+            } catch {
+                adminLogger.error("Failed to decode AdminChronologyResponse: \(error)")
             }
-        } catch {}
+        } catch {
+            adminLogger.error("Network error in fetchChronology: \(error)")
+        }
     }
     
     func fetchRules() async {

@@ -80,9 +80,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
             case "medium":
                 return isExpired ? .orange : .yellow
             case "low":
-                return isExpired ? .orange : .yellow
+                return .yellow // Keep low threat yellow to represent low-severity and predictive zones clearly
             default:
-                return isExpired ? .orange : .yellow
+                return .yellow
             }
         }
         return .blue
