@@ -1,0 +1,216 @@
+import SwiftUI
+
+struct AlertListOverlayView: View {
+    let title: String
+    let color: Color
+    let alerts: [AlertRegion]
+    let filterActiveOnly: Bool
+    let isPremium: Bool
+    var onSelect: ((AlertRegion) -> Void)? = nil
+    var onClose: () -> Void
+
+    private var sortedAlerts: [AlertRegion] {
+        let filtered = filterActiveOnly ? alerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) } : alerts
+        return filtered.sorted { a, b in
+            if a.isActive != b.isActive { return a.isActive }
+            if (a.threatLevel != nil) != (b.threatLevel != nil) { return a.threatLevel != nil }
+            return (a.lastChanged ?? "") > (b.lastChanged ?? "")
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Drag handle
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.white.opacity(0.25))
+                .frame(width: 40, height: 5)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
+            // Header
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: color.opacity(0.4), radius: 8)
+                    Text("\(sortedAlerts.count) регіонів")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+
+                Spacer()
+
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onClose()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.08), lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 10)
+
+            // Separator
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(height: 1)
+                .padding(.horizontal, 22)
+
+            // List
+            ScrollView(showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    ForEach(sortedAlerts) { alert in
+                        alertRow(alert)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.ultraThinMaterial)
+        .background(Color.black.opacity(0.55).ignoresSafeArea())
+    }
+
+    private func alertRow(_ alert: AlertRegion) -> some View {
+        let isThreat = !alert.isActive && alert.threatLevel != nil
+        let rowColor = alert.isActive ? color : (isThreat ? alert.color : Color.gray)
+        
+        return Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onSelect?(alert)
+        }) {
+            HStack(alignment: .center, spacing: 14) {
+                // Status dot with optional glow
+                ZStack {
+                    if alert.isActive || isThreat {
+                        Circle()
+                            .fill(rowColor.opacity(0.3))
+                            .frame(width: 18, height: 18)
+                    }
+                    Circle()
+                        .fill(rowColor)
+                        .frame(width: 9, height: 9)
+                        .shadow(color: (alert.isActive || isThreat) ? rowColor.opacity(0.8) : .clear, radius: 4)
+                }
+                .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(alert.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+
+                    HStack(spacing: 6) {
+                        Text(alert.isActive ? "АКТИВНА" : (isThreat ? "ЗАГРОЗА" : "НЕАКТИВНА"))
+                            .font(.system(size: 9, weight: .black))
+                            .tracking(0.8)
+                            .foregroundColor(rowColor)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(rowColor.opacity(0.12))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke(rowColor.opacity(0.2), lineWidth: 1)
+                            )
+
+                        if let changed = alert.lastChanged {
+                            Text(changed)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.35))
+                        }
+                    }
+                    
+                    // Display details for premium users
+                    if isPremium, let type = alert.threatType, let detail = alert.threatDetail {
+                        Text("⚠️ \(type.uppercased()): \(detail)")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(rowColor.opacity(0.8))
+                            .multilineTextAlignment(.leading)
+                            .padding(.top, 2)
+                    }
+                    
+                    // AI confidence & ETA badge for premium users
+                    if isPremium, isThreat {
+                        HStack(spacing: 8) {
+                            if let conf = alert.threatConfidence {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "cpu")
+                                        .font(.system(size: 8))
+                                    Text("\(conf)%")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.1))
+                                .clipShape(Capsule())
+                            }
+                            if let eta = alert.displayETA, !eta.isEmpty {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 8))
+                                    Text(eta)
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .foregroundColor(.orange.opacity(0.8))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.08))
+                                .clipShape(Capsule())
+                            }
+                            if alert.isThreatPredictive {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.system(size: 8))
+                                    Text("ШІ")
+                                        .font(.system(size: 9, weight: .bold))
+                                }
+                                .foregroundColor(.purple.opacity(0.8))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.purple.opacity(0.08))
+                                .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.25))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                alert.isActive
+                    ? color.opacity(0.05)
+                    : (isThreat ? rowColor.opacity(0.03) : Color.white.opacity(0.02))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        alert.isActive ? color.opacity(0.2) : (isThreat ? rowColor.opacity(0.15) : Color.white.opacity(0.05)),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
