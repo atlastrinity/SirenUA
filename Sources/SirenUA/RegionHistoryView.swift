@@ -331,7 +331,7 @@ struct RegionHistoryView: View {
                         // Dot
                         ZStack {
                             Circle()
-                                .fill(levelColor(event.threat_level).opacity(0.2))
+                                .fill(threatTypeColor(event.threat_type, level: event.threat_level).opacity(0.2))
                                 .frame(width: 28, height: 28)
                             Circle()
                                 .fill(levelColor(event.threat_level))
@@ -365,7 +365,12 @@ struct RegionHistoryView: View {
     // MARK: - Event Card
     
     private func eventCard(_ event: RegionHistoryEvent) -> some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(spacing: 0) {
+            // Left accent vertical stripe
+            Rectangle()
+                .fill(threatTypeColor(event.threat_type, level: event.threat_level))
+                .frame(width: 4)
+            
             VStack(alignment: .leading, spacing: 10) {
                 // Top row: type icon + name + time
                 HStack(alignment: .center, spacing: 8) {
@@ -410,13 +415,13 @@ struct RegionHistoryView: View {
                         .lineLimit(3)
                 }
             }
+            .padding(14)
         }
-        .padding(14)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(levelColor(event.threat_level).opacity(0.15), lineWidth: 1)
+                .stroke(threatTypeColor(event.threat_type, level: event.threat_level).opacity(0.15), lineWidth: 1)
         )
     }
     
@@ -495,6 +500,20 @@ struct RegionHistoryView: View {
         case "medium": return .yellow
         case "low": return Color(red: 0.4, green: 0.8, blue: 1.0)
         case "none": return .green
+        default: return .gray
+        }
+    }
+    
+    private func threatTypeColor(_ type: String?, level: String) -> Color {
+        if type == "official_alarm" {
+            return level == "none" ? .green : .red
+        }
+        switch type {
+        case "shahed": return .yellow
+        case "kab": return .orange
+        case "ballistic", "iskander": return .red
+        case "mig31k", "tu95": return .purple
+        case "cruise_missile": return Color(red: 1.0, green: 0.2, blue: 0.4)
         default: return .gray
         }
     }
