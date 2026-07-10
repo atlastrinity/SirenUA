@@ -176,11 +176,7 @@ struct SettingsView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        if adminAuthenticated && adminViewMode {
-                            adminDashboardCard
-                            diagnosticsCard
-                            mockScenariosCard
-                        }
+                        adminDashboardCard
                         
                         notificationsCard
                         mapCard
@@ -306,25 +302,6 @@ struct SettingsView: View {
 
                 Spacer()
 
-                if adminAuthenticated {
-                    Button(action: {
-                        haptic(.medium)
-                        adminViewMode.toggle()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: adminViewMode ? "person.fill" : "crown.fill")
-                                .font(.system(size: 11, weight: .bold))
-                            Text(adminViewMode ? "Юзер" : "Адмін")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(adminViewMode ? Color.siOrange : Color.siPurple)
-                        .clipShape(Capsule())
-                        .shadow(color: (adminViewMode ? Color.siOrange : Color.siPurple).opacity(0.3), radius: 6, x: 0, y: 2)
-                    }
-                }
 
                 Button(action: {
                     haptic(.medium)
@@ -875,95 +852,6 @@ struct SettingsView: View {
                 .lineSpacing(5)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            StyledDivider()
-            
-            if adminAuthenticated {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "person.crop.circle.badge.checkmark")
-                            .font(.system(size: 14))
-                            .foregroundColor(.siGreen)
-                        Text("Адміністратор")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white)
-                        Spacer()
-                        Button(action: {
-                            haptic(.medium)
-                            adminAuthenticated = false
-                            adminViewMode = false
-                        }) {
-                            Text("Вийти")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(6)
-                        }
-                    }
-                    Text("Ви успішно авторизовані в системі як адміністратор додатка.")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.4))
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "envelope.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.4))
-                        Text("Адмін Email:")
-                            .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.4))
-                        Spacer()
-                        TextField("Введіть email", text: $inputEmail)
-                            .font(.system(size: 13, design: .monospaced))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.trailing)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                            .keyboardType(.emailAddress)
-                    }
-                    
-                    if !inputEmail.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.4))
-                            Text("Пароль:")
-                                .font(.system(size: 13))
-                                .foregroundColor(.white.opacity(0.4))
-                            Spacer()
-                            SecureField("Введіть пароль", text: $inputPassword)
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.trailing)
-                        }
-                        
-                        if let error = loginErrorMessage {
-                            Text(error)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.red)
-                                .padding(.top, 2)
-                        }
-                        
-                        Button(action: {
-                            checkCredentials()
-                        }) {
-                            HStack {
-                                Spacer()
-                                Text("Увійти як Адмін")
-                                    .font(.system(size: 13, weight: .bold))
-                                Spacer()
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .background(Color.siBlue)
-                            .cornerRadius(8)
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-            }
         }
         .padding(18)
         .background(
