@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 import SafariServices
 
-// MARK: - API Decodable Models
+// MARK: - Decodable API Models (v2)
 
 struct AdminErrorEntry: Codable, Identifiable {
     let id: Int
@@ -20,21 +20,31 @@ struct AdminErrorsResponse: Codable {
 }
 
 struct SourceStat: Codable, Identifiable {
-    var id: String { source }
+    let id = UUID()
     let source: String
     let count: Int
+    enum CodingKeys: String, CodingKey {
+        case source, count
+    }
 }
 
 struct TypeStat: Codable, Identifiable {
-    var id: String { error_type }
+    let id = UUID()
     let error_type: String
     let count: Int
+    enum CodingKeys: String, CodingKey {
+        case error_type = "error_type"
+        case count
+    }
 }
 
 struct HourlyStat: Codable, Identifiable {
-    var id: String { hour }
+    let id = UUID()
     let hour: String
     let count: Int
+    enum CodingKeys: String, CodingKey {
+        case hour, count
+    }
 }
 
 struct AdminErrorStatsResponse: Codable {
@@ -64,19 +74,22 @@ struct AdminChronologyEntry: Codable, Identifiable {
 }
 
 struct DailyStatEntry: Codable, Identifiable {
-    var id: String { day }
+    let id = UUID()
     let day: String
     let total_events: Int
     let cleared: Int
-    let active: Int
+    let active: Int?
     let confirmed: Int
     let overestimated: Int
+    let mitigated: Int?
     let predictive: Int
+    enum CodingKeys: String, CodingKey {
+        case day, total_events, cleared, active, confirmed, overestimated, mitigated, predictive
+    }
 }
 
 struct AdminChronologyResponse: Codable {
     let total: Int
-    let days: Int
     let events: [AdminChronologyEntry]
     let daily_stats: [DailyStatEntry]
 }
@@ -117,97 +130,227 @@ struct GeminiRulesHistoryResponse: Codable {
     let entries: [GeminiRuleAuditEntry]
 }
 
+// MARK: - Redesigned Dashboard v2 Decodables
+
+struct DashboardAccuracyStats: Codable {
+    let confirmed: Int?
+    let mitigated: Int?
+    let overestimated: Int?
+    let active: Int?
+    let total: Int?
+}
+
+struct DashboardThreatTypeStat: Codable, Identifiable {
+    let id = UUID()
+    let threat_type: String
+    let count: Int
+    enum CodingKeys: String, CodingKey {
+        case threat_type, count
+    }
+}
+
+struct DashboardRegionStat: Codable, Identifiable {
+    let id = UUID()
+    let region: String
+    let count: Int
+    enum CodingKeys: String, CodingKey {
+        case region, count
+    }
+}
+
+struct DashboardHourlyStat: Codable, Identifiable {
+    let id = UUID()
+    let hour: Int
+    let count: Int
+    enum CodingKeys: String, CodingKey {
+        case hour, count
+    }
+}
+
+struct AdminDashboardStatsResponse: Codable {
+    let total_events_7d: Int
+    let accuracy: DashboardAccuracyStats
+    let accuracy_pct: Double
+    let active_now: Int
+    let avg_early_seconds: Int?
+    let by_type: [DashboardThreatTypeStat]
+    let top_regions: [DashboardRegionStat]
+    let hourly: [DashboardHourlyStat]
+    let errors_24h: Int
+}
+
+// MARK: - Redesigned Correlation v2 Decodables
+
+struct AdminChronologyV2Entry: Codable, Identifiable {
+    let id: Int
+    let region: String
+    let threat_level: String
+    let threat_type: String
+    let confidence_at_set: Int?
+    let confidence_at_clear: Int?
+    let was_predictive: Int
+    let prediction_accuracy: String?
+    let lifecycle_status: String
+    let duration_seconds: Int?
+    let gemini_group_id: String?
+    let ai_timestamp: String?
+    let threat_detail: String?
+    let attack_vector: String?
+    let target_count: Int?
+    let speed_kmh: Int?
+    let weapon_subtype: String?
+    let launch_origin: String?
+    let altitude_category: String?
+    let distance_to_target_km: Double?
+    let event_phase: String?
+    let source_reliability: String?
+    let civilian_risk_level: String?
+    let clearing_timestamp: String?
+    let resolution_type: String?
+    let alarm_timestamp: String?
+    let time_delta_seconds: Int?
+    let match_type: String // confirmed, mitigated, overestimated, active, cleared
+    let match_reason: String?
+    let telemetry_summary: String?
+}
+
+struct DailyStatEntryV2: Codable, Identifiable {
+    let id = UUID()
+    let day: String
+    let total_events: Int
+    let cleared: Int
+    let confirmed: Int
+    let overestimated: Int
+    let mitigated: Int
+    let predictive: Int
+    enum CodingKeys: String, CodingKey {
+        case day, total_events, cleared, confirmed, overestimated, mitigated, predictive
+    }
+}
+
+struct TypeBreakdownEntry: Codable, Identifiable {
+    let id = UUID()
+    let threat_type: String
+    let prediction_accuracy: String?
+    let count: Int
+    enum CodingKeys: String, CodingKey {
+        case threat_type, prediction_accuracy, count
+    }
+}
+
+struct DeltaDistributionBucket: Identifiable {
+    let id: String
+    let label: String
+    let minutes: Int
+    let count: Int
+}
+
+struct AdminChronologyV2Response: Codable {
+    let total: Int
+    let stats: [String: Int]
+    let events: [AdminChronologyV2Entry]
+    let daily_stats: [DailyStatEntryV2]
+    let delta_distribution: [String: Int]
+    let type_breakdown: [TypeBreakdownEntry]
+}
+
+// MARK: - UI Constants
+
+struct ChartColorTheme {
+    static let confirmed = Color(red: 0.29, green: 0.87, blue: 0.50) // #4ade80
+    static let mitigated = Color(red: 0.65, green: 0.54, blue: 0.98) // #a78bfa
+    static let overestimated = Color(red: 1.00, green: 0.36, blue: 0.36) // #ff5c5c
+    static let active = Color(red: 0.98, green: 0.75, blue: 0.14) // #fbbf24
+    static let cleared = Color(red: 0.35, green: 0.43, blue: 0.53) // #5a6e87
+    static let accent = Color(red: 0.31, green: 0.62, blue: 1.00) // #4f9eff
+    static let cyan = Color(red: 0.13, green: 0.83, blue: 0.93) // #22d3ee
+    static let orange = Color(red: 0.98, green: 0.57, blue: 0.24) // #fb923c
+    static let bg = Color(red: 0.04, green: 0.05, blue: 0.08)
+    static let cardBg = Color(red: 0.07, green: 0.10, blue: 0.13)
+}
+
 // MARK: - AdminDashboardView
 
 struct AdminDashboardView: View {
     @Environment(\.dismiss) var dismiss
+    
+    // Custom Horizontal Scrollable Navigation Tabs
     @State private var selectedTab = 0
-    @State private var daysFilter = 7
-    @State private var sourceFilter = ""
-    @State private var typeFilter = ""
-    @State private var regionFilter = ""
+    private let tabs = [
+        "Дашборд",
+        "Кореляція AI",
+        "Хронологія",
+        "AI Правила",
+        "Помилки",
+        "Керування"
+    ]
     
     // Server status pings
     @State private var alertsStatus: String = "Перевірка..."
     @State private var threatsStatus: String = "Перевірка..."
     @State private var geminiStatus: String = "Перевірка..."
     
-    // Errors Tab Data
-    @State private var totalErrorsCount = 0
-    @State private var err429Count = 0
-    @State private var firebaseErrorsCount = 0
-    @State private var geminiErrorsCount = 0
-    @State private var errorStats: AdminErrorStatsResponse? = nil
-    @State private var errorsList: [AdminErrorEntry] = []
-    
-    // Chronology Tab Data
-    @State private var chronologyData: AdminChronologyResponse? = nil
-    @State private var activeThreatsCount = 0
-    @State private var matchCount = 0
-    @State private var mismatchCount = 0
-    
-    // Rules Tab Data
-    @State private var activeRules: [GeminiRule] = []
-    @State private var ruleAuditHistory: [GeminiRuleAuditEntry] = []
+    // Filters
+    @State private var daysFilter = 7
     @State private var rulesDaysFilter = 30
     
-    // Loading State
+    // Chronology Filters
+    @State private var chrRegionFilter = ""
+    @State private var chrThreatTypeFilter = ""
+    @State private var chrMatchFilter = ""
+    
+    // AI Rules Filters
+    @State private var rulesTypeFilter = ""
+    @State private var rulesThreatTypeFilter = ""
+    @State private var rulesActionFilter = ""
+    
+    // Correlation Filters
+    @State private var corDaysFilter = 7
+    @State private var corRegionFilter = ""
+    @State private var corThreatTypeFilter = ""
+    @State private var corMatchFilter = ""
+    @State private var corUseDateRange = false
+    @State private var corDateFrom = Date().addingTimeInterval(-7*86400)
+    @State private var corDateTo = Date()
+    
+    // Errors Filters
+    @State private var errDaysFilter = 7
+    @State private var errSourceFilter = ""
+    @State private var errTypeFilter = ""
+    
+    // Manual Threat Simulation Form
+    @State private var simRegion = "Київська область"
+    @State private var simLevel = "high"
+    @State private var simThreatType = "shahed"
+    @State private var simDetail = "Група ударних БПЛА рухається курсом на Васильків"
+    @State private var showSimSuccessMessage = false
+    @State private var simSuccessText = ""
+    
+    // Data Loading states
     @State private var isLoading = false
     @State private var showRebuildSuccess = false
+    
+    // Tab Data Stores
+    @State private var dashboardStats: AdminDashboardStatsResponse? = nil
+    @State private var correlationV2Data: AdminChronologyV2Response? = nil
+    @State private var chronologyData: AdminChronologyResponse? = nil
+    @State private var activeRules: [GeminiRule] = []
+    @State private var ruleAuditHistory: [GeminiRuleAuditEntry] = []
+    @State private var errorsList: [AdminErrorEntry] = []
+    @State private var errorStats: AdminErrorStatsResponse? = nil
+    
+    @State private var regionsList: [String] = []
     
     private let serverURL = "https://sirenua-threatserver.onrender.com"
 
     var body: some View {
         NavigationView {
             ZStack {
-                Color(red: 0.05, green: 0.07, blue: 0.10).ignoresSafeArea()
+                ChartColorTheme.bg.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Custom Header
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("🚨 SirenUA Admin Panel")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 6, height: 6)
-                                Text("Нативний моніторинг")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                        }
-                        Spacer()
-                        Button(action: {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            dismiss()
-                        }) {
-                            Text("Готово")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(Color.blue.opacity(0.3))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(Color(red: 0.09, green: 0.11, blue: 0.15))
-                    
-                    // Segmented Tab Control
-                    Picker("", selection: $selectedTab) {
-                        Text("Помилки").tag(0)
-                        Text("Хронологія").tag(1)
-                        Text("AI Правила").tag(2)
-                        Text("Керування").tag(3)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color(red: 0.07, green: 0.09, blue: 0.12))
-                    
+                    headerView
+                    tabSelectorView
                     Divider().background(Color.white.opacity(0.1))
                     
                     if isLoading {
@@ -221,11 +364,15 @@ struct AdminDashboardView: View {
                             VStack(spacing: 16) {
                                 switch selectedTab {
                                 case 0:
-                                    errorsTabContent
+                                    dashboardTabContent
                                 case 1:
-                                    chronologyTabContent
+                                    correlationTabContent
                                 case 2:
+                                    chronologyTabContent
+                                case 3:
                                     rulesTabContent
+                                case 4:
+                                    errorsTabContent
                                 default:
                                     controlTabContent
                                 }
@@ -235,224 +382,706 @@ struct AdminDashboardView: View {
                             .padding(.bottom, 32)
                         }
                         .refreshable {
-                            await refreshAllData()
+                            await refreshCurrentTab()
                         }
                     }
                 }
             }
+            #if os(iOS)
             .navigationBarHidden(true)
+            #else
+            .navigationTitle("")
+            #endif
             .preferredColorScheme(.dark)
             .task {
+                await loadRegions()
                 await refreshAllData()
             }
         }
     }
     
-    // MARK: - Tab: Errors
+    // MARK: - Header
     
-    private var errorsTabContent: some View {
-        VStack(spacing: 16) {
-            // Filters Section
-            VStack(spacing: 8) {
+    private var headerView: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("🚨 SirenUA Console")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 6, height: 6)
+                        .shadow(color: .green, radius: 4)
+                    Text("Нативний iOS моніторинг")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+            }
+            Spacer()
+            Button(action: {
+                triggerHaptic()
+                dismiss()
+            }) {
+                Text("Готово")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Color.blue.opacity(0.3))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(ChartColorTheme.cardBg)
+    }
+    
+    // MARK: - Tab Selector Bar
+    
+    private var tabSelectorView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(0..<tabs.count, id: \.self) { idx in
+                    Button(action: {
+                        triggerHaptic("light")
+                        selectedTab = idx
+                        Task { await refreshCurrentTab() }
+                    }) {
+                        Text(tabs[idx])
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(selectedTab == idx ? .white : .white.opacity(0.55))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                selectedTab == idx ? Color.blue.opacity(0.3) : Color.white.opacity(0.04)
+                            )
+                            .cornerRadius(18)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .stroke(selectedTab == idx ? Color.blue.opacity(0.6) : Color.clear, lineWidth: 1)
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .background(ChartColorTheme.bg)
+    }
+    
+    // MARK: - Tab 0: Dashboard (Дашборд)
+    
+    private var dashboardTabContent: some View {
+        VStack(spacing: 14) {
+            if let d = dashboardStats {
+                // Stat grid
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    statBox(title: "📈 Подій (7д)", value: "\(d.total_events_7d)", color: ChartColorTheme.accent)
+                    statBox(title: "🎯 Точність AI", value: "\(Int(d.accuracy_pct))%", color: ChartColorTheme.confirmed)
+                    statBox(title: "⚡ Активних зараз", value: "\(d.active_now)", color: ChartColorTheme.active)
+                    statBox(title: "⏱️ Випередження AI", value: d.avg_early_seconds != nil ? formatDuration(d.avg_early_seconds!) : "—", color: ChartColorTheme.cyan)
+                }
+                
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    statBox(title: "✅ Підтверджено", value: "\(d.accuracy.confirmed ?? 0)", color: ChartColorTheme.confirmed)
+                    statBox(title: "🛡️ Збито/РЕБ", value: "\(d.accuracy.mitigated ?? 0)", color: ChartColorTheme.mitigated)
+                    statBox(title: "❌ Помилкові", value: "\(d.accuracy.overestimated ?? 0)", color: ChartColorTheme.overestimated)
+                    statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h)", color: ChartColorTheme.orange)
+                }
+                
+                // Accuracy sector map
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("🎯 Результати аналізу AI")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                    
+                    Chart {
+                        SectorMark(angle: .value("Count", d.accuracy.confirmed ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            .foregroundStyle(ChartColorTheme.confirmed)
+                            .annotation(position: .overlay) {
+                                Text("\(d.accuracy.confirmed ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                            }
+                        SectorMark(angle: .value("Count", d.accuracy.mitigated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            .foregroundStyle(ChartColorTheme.mitigated)
+                            .annotation(position: .overlay) {
+                                Text("\(d.accuracy.mitigated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                            }
+                        SectorMark(angle: .value("Count", d.accuracy.overestimated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            .foregroundStyle(ChartColorTheme.overestimated)
+                            .annotation(position: .overlay) {
+                                Text("\(d.accuracy.overestimated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                            }
+                        SectorMark(angle: .value("Count", d.accuracy.active ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            .foregroundStyle(ChartColorTheme.active)
+                    }
+                    .frame(height: 140)
+                    
+                    HStack(spacing: 12) {
+                        legendItem(title: "Підтв.", color: ChartColorTheme.confirmed)
+                        legendItem(title: "Збито", color: ChartColorTheme.mitigated)
+                        legendItem(title: "Помилк.", color: ChartColorTheme.overestimated)
+                        legendItem(title: "Актив.", color: ChartColorTheme.active)
+                    }
+                    .font(.system(size: 11))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
+                
+                // Threat types bar chart
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("🚀 Загрози за типами (7д)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                    
+                    Chart {
+                        ForEach(d.by_type) { item in
+                            BarMark(
+                                x: .value("Кількість", item.count),
+                                y: .value("Тип", item.threat_type)
+                            )
+                            .foregroundStyle(ChartColorTheme.accent)
+                            .cornerRadius(4)
+                        }
+                    }
+                    .frame(height: CGFloat(max(80, d.by_type.count * 25)))
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
+
+                // Top regions
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("🗺️ Топ регіонів за загрозами")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                    
+                    Chart {
+                        ForEach(d.top_regions) { item in
+                            BarMark(
+                                x: .value("Кількість", item.count),
+                                y: .value("Область", String(item.region.prefix(12)))
+                            )
+                            .foregroundStyle(ChartColorTheme.cyan)
+                            .cornerRadius(4)
+                        }
+                    }
+                    .frame(height: 180)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
+
+                // Hourly timeline
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("🕐 Розподіл загроз за годинами доби")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                    
+                    Chart {
+                        ForEach(d.hourly) { item in
+                            AreaMark(
+                                x: .value("Година", item.hour),
+                                y: .value("Кількість", item.count)
+                            )
+                            .foregroundStyle(ChartColorTheme.accent.opacity(0.15))
+                            .interpolationMethod(.catmullRom)
+                            
+                            LineMark(
+                                x: .value("Година", item.hour),
+                                y: .value("Кількість", item.count)
+                            )
+                            .foregroundStyle(ChartColorTheme.accent)
+                            .interpolationMethod(.catmullRom)
+                            .symbol(Circle())
+                        }
+                    }
+                    .frame(height: 140)
+                    .chartXScale(domain: 0...23)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
+            } else {
+                Text("Не вдалося завантажити статистику.")
+                    .foregroundColor(.white.opacity(0.4))
+                    .padding(.top, 40)
+            }
+        }
+    }
+    
+    // MARK: - Tab 1: Correlation AI (Кореляція)
+    
+    private var correlationTabContent: some View {
+        VStack(spacing: 14) {
+            // Advanced Filters Accordion/Panel
+            VStack(spacing: 10) {
                 HStack {
-                    Text("Фільтри")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white.opacity(0.4))
+                    Text("Фільтрація подій")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
                     Spacer()
+                    Toggle("Діапазон дат", isOn: $corUseDateRange)
+                        .labelsHidden()
+                        .tint(.blue)
+                }
+                
+                if corUseDateRange {
+                    DatePicker("Від:", selection: $corDateFrom, displayedComponents: .date)
+                        .font(.system(size: 12))
+                    DatePicker("До:", selection: $corDateTo, displayedComponents: .date)
+                        .font(.system(size: 12))
+                } else {
+                    HStack {
+                        Text("Період:")
+                            .font(.system(size: 12))
+                        Spacer()
+                        Picker("", selection: $corDaysFilter) {
+                            Text("1 день").tag(1)
+                            Text("3 дні").tag(3)
+                            Text("7 днів").tag(7)
+                            Text("14 днів").tag(14)
+                            Text("30 днів").tag(30)
+                        }
+                        .pickerStyle(.menu)
+                    }
                 }
                 
                 HStack(spacing: 8) {
-                    Picker("Джерело", selection: $sourceFilter) {
-                        Text("Всі").tag("")
-                        Text("Server").tag("server")
-                        Text("Firebase").tag("firebase")
-                        Text("Gemini").tag("gemini")
+                    Picker("Регіон", selection: $corRegionFilter) {
+                        Text("Всі області").tag("")
+                        ForEach(regionsList, id: \.self) { r in
+                            Text(r).tag(r)
+                        }
                     }
                     .pickerStyle(.menu)
                     .tint(.white)
-                    .background(Color.white.opacity(0.05))
+                    .background(Color.white.opacity(0.04))
                     .cornerRadius(8)
                     
-                    Picker("Тип", selection: $typeFilter) {
-                        Text("Всі").tag("")
-                        Text("429").tag("429_rate_limit")
-                        Text("500").tag("500_server")
-                        Text("Timeout").tag("timeout")
-                        Text("General").tag("general")
+                    Picker("Загроза", selection: $corThreatTypeFilter) {
+                        Text("Всі типи").tag("")
+                        Text("Shahed").tag("shahed")
+                        Text("МіГ-31К").tag("mig31k")
+                        Text("Крилаті ракети").tag("cruise_missile")
+                        Text("Балістика").tag("ballistic")
+                        Text("Обстріл").tag("artillery")
+                        Text("БПЛА").tag("recon")
                     }
                     .pickerStyle(.menu)
                     .tint(.white)
-                    .background(Color.white.opacity(0.05))
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                }
+                
+                HStack {
+                    Picker("Результат", selection: $corMatchFilter) {
+                        Text("Всі результати").tag("")
+                        Text("✅ Підтверджено").tag("match")
+                        Text("🛡️ Збито/РЕБ").tag("mitigated")
+                        Text("❌ Помилкові").tag("mismatch")
+                        Text("⏱️ Активні").tag("active")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
                     .cornerRadius(8)
                     
-                    Picker("Днів", selection: $daysFilter) {
-                        Text("1 д").tag(1)
-                        Text("3 д").tag(3)
-                        Text("7 д").tag(7)
-                        Text("30 д").tag(30)
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.white)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(8)
+                    Spacer()
                     
                     Button(action: {
-                        Task { await fetchErrors() }
+                        Task { await fetchCorrelationV2() }
                     }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 13, weight: .bold))
+                        Text("Оновити фільтр")
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(10)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                             .background(Color.blue)
                             .cornerRadius(8)
                     }
                 }
             }
-            .padding(10)
-            .background(Color.white.opacity(0.03))
+            .padding(12)
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
             
-            // Stats cards grid
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                statBox(title: "Всього помилок", value: "\(totalErrorsCount)", color: .red)
-                statBox(title: "429 Rate Limit", value: "\(err429Count)", color: .yellow)
-                statBox(title: "Firebase", value: "\(firebaseErrorsCount)", color: .orange)
-                statBox(title: "Gemini", value: "\(geminiErrorsCount)", color: .purple)
-            }
-            
-            // Swift Charts Section
-            if let stats = errorStats {
+            if let corr = correlationV2Data {
+                // Dynamic stats counters
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    statBox(title: "Всього", value: "\(corr.total)", color: .white)
+                    statBox(title: "✅ Підтверджено", value: "\(corr.stats["confirmed"] ?? 0)", color: ChartColorTheme.confirmed)
+                    statBox(title: "🛡️ Збито", value: "\(corr.stats["mitigated"] ?? 0)", color: ChartColorTheme.mitigated)
+                }
+                
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    statBox(title: "❌ Помилкові", value: "\(corr.stats["overestimated"] ?? 0)", color: ChartColorTheme.overestimated)
+                    statBox(title: "⏱️ Активні", value: "\(corr.stats["active"] ?? 0)", color: ChartColorTheme.active)
+                }
+
+                // Chart: Stacked Bar Chart daily accuracy
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Джерела помилок")
+                    Text("📊 Динаміка аналізу AI за днями")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.white.opacity(0.6))
                     
                     Chart {
-                        ForEach(stats.by_source) { item in
+                        ForEach(corr.daily_stats) { item in
                             BarMark(
-                                x: .value("Count", item.count),
-                                y: .value("Source", item.source)
+                                x: .value("Day", formatShortDate(item.day)),
+                                y: .value("Confirmed", item.confirmed)
                             )
-                            .foregroundStyle(
-                                item.source == "server" ? Color.blue :
-                                item.source == "firebase" ? Color.orange : Color.purple
+                            .foregroundStyle(ChartColorTheme.confirmed)
+                            
+                            BarMark(
+                                x: .value("Day", formatShortDate(item.day)),
+                                y: .value("Mitigated", item.mitigated)
                             )
+                            .foregroundStyle(ChartColorTheme.mitigated)
+                            
+                            BarMark(
+                                x: .value("Day", formatShortDate(item.day)),
+                                y: .value("False", item.overestimated)
+                            )
+                            .foregroundStyle(ChartColorTheme.overestimated)
                         }
                     }
-                    .frame(height: 120)
+                    .frame(height: 150)
                 }
                 .padding(14)
-                .background(Color.white.opacity(0.03))
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
                 
-                // Hourly Timeline Chart
+                // Chart: Delta Distribution Histogram
+                let buckets = getSortedBuckets(corr.delta_distribution)
+                if !buckets.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("⏱️ Часове випередження AI до тривоги")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        Chart {
+                            ForEach(buckets) { item in
+                                BarMark(
+                                    x: .value("Час", item.label),
+                                    y: .value("Кількість", item.count)
+                                )
+                                .foregroundStyle(item.minutes >= 0 ? ChartColorTheme.confirmed : ChartColorTheme.overestimated)
+                                .cornerRadius(4)
+                            }
+                        }
+                        .frame(height: 130)
+                    }
+                    .padding(14)
+                    .background(ChartColorTheme.cardBg)
+                    .cornerRadius(14)
+                }
+                
+                // Chart: Type breakdown
+                if !corr.type_breakdown.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("🚀 Результати ШІ по типу загрози")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        Chart {
+                            ForEach(corr.type_breakdown) { item in
+                                BarMark(
+                                    x: .value("Тип", item.threat_type),
+                                    y: .value("Кількість", item.count)
+                                )
+                                .foregroundStyle(by: .value("Статус", formatAccuracyStatus(item.prediction_accuracy)))
+                            }
+                        }
+                        .chartForegroundStyleScale([
+                            "Підтверджено": ChartColorTheme.confirmed,
+                            "Збито/РЕБ": ChartColorTheme.mitigated,
+                            "Помилково": ChartColorTheme.overestimated,
+                            "Інше": ChartColorTheme.cleared
+                        ])
+                        .frame(height: 150)
+                    }
+                    .padding(14)
+                    .background(ChartColorTheme.cardBg)
+                    .cornerRadius(14)
+                }
+                
+                // Event cards list
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Динаміка помилок (Line Chart)")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.5))
-                    
-                    Chart {
-                        ForEach(stats.hourly) { item in
-                            LineMark(
-                                x: .value("Hour", String(item.hour.suffix(5))),
-                                y: .value("Count", item.count)
-                            )
-                            .foregroundStyle(Color.red)
-                            .symbol(Circle())
-                        }
+                    HStack {
+                        Text("Детальна кореляція (\(corr.events.count))")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                        Spacer()
                     }
-                    .frame(height: 140)
-                }
-                .padding(14)
-                .background(Color.white.opacity(0.03))
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
-            }
-            
-            // Errors List Table
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Записи помилок (\(errorsList.count))")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                
-                if errorsList.isEmpty {
-                    Text("Не знайдено помилок за вибраний період 🎉")
-                        .font(.system(size: 13))
-                        .foregroundColor(.gray)
-                        .padding(.vertical, 20)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else {
-                    VStack(spacing: 8) {
-                        ForEach(errorsList.prefix(50)) { error in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text(error.source.uppercased())
-                                        .font(.system(size: 10, weight: .bold))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(
-                                            error.source == "server" ? Color.blue.opacity(0.2) :
-                                            error.source == "firebase" ? Color.orange.opacity(0.2) : Color.purple.opacity(0.2)
-                                        )
-                                        .foregroundColor(
-                                            error.source == "server" ? Color.blue :
-                                            error.source == "firebase" ? Color.orange : Color.purple
-                                        )
-                                        .cornerRadius(4)
-                                    
-                                    Text(error.error_type)
-                                        .font(.system(size: 10, weight: .bold))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.red.opacity(0.15))
-                                        .foregroundColor(.red)
-                                        .cornerRadius(4)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatShortTime(error.timestamp))
+                    
+                    if groupedCorrelationEvents.isEmpty {
+                        Text("Немає подій за вибраними фільтрами.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 30)
+                    } else {
+                        ForEach(groupedCorrelationEvents, id: \.0) { day, events in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("📅 \(day) (\(events.count) детекцій)")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 2)
+                                
+                                ForEach(events) { ev in
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        // Title line
+                                        HStack {
+                                            Text(ev.match_type == "confirmed" ? "✅" :
+                                                 ev.match_type == "mitigated" ? "🛡️" :
+                                                 ev.match_type == "overestimated" ? "❌" :
+                                                 ev.match_type == "active" ? "⏱️" : "🔄")
+                                            
+                                            Text(ev.region)
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(.white)
+                                            
+                                            Spacer()
+                                            
+                                            Text(ev.threat_level)
+                                                .font(.system(size: 9, weight: .bold))
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(
+                                                    ev.threat_level == "high" ? Color.red.opacity(0.2) : Color.yellow.opacity(0.2)
+                                                )
+                                                .foregroundColor(
+                                                    ev.threat_level == "high" ? Color.red : Color.yellow
+                                                )
+                                                .cornerRadius(4)
+                                            
+                                            if let conf = ev.confidence_at_set {
+                                                Text("\(conf)%")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.white.opacity(0.5))
+                                            }
+                                        }
+                                        
+                                        // Meta Grid
+                                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                                            metaRow(label: "AI детекція:", value: ev.ai_timestamp != nil ? formatShortTime(ev.ai_timestamp!) : "—")
+                                            metaRow(label: "Офіційна тривога:", value: ev.alarm_timestamp != nil ? formatShortTime(ev.alarm_timestamp!) : "—")
+                                            
+                                            if let delta = ev.time_delta_seconds {
+                                                let sign = delta > 0 ? "+" : ""
+                                                metaRow(label: "Δ Час:", value: "\(sign)\(formatDuration(delta))", color: delta >= 0 ? .green : .red)
+                                            } else {
+                                                metaRow(label: "Δ Час:", value: "—")
+                                            }
+                                            
+                                            metaRow(label: "Тривалість:", value: ev.duration_seconds != nil ? formatDuration(ev.duration_seconds!) : "—")
+                                        }
                                         .font(.system(size: 11))
-                                        .foregroundColor(.white.opacity(0.4))
-                                }
-                                
-                                Text(error.message)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.85))
-                                    .lineLimit(2)
-                                
-                                if let ep = error.endpoint {
-                                    Text("Endpoint: \(ep)")
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(.white.opacity(0.4))
+                                        
+                                        // Match reason box
+                                        if let reason = ev.match_reason {
+                                            Text(reason)
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(
+                                                    ev.match_type == "confirmed" ? ChartColorTheme.confirmed :
+                                                    ev.match_type == "mitigated" ? ChartColorTheme.mitigated :
+                                                    ev.match_type == "overestimated" ? ChartColorTheme.overestimated :
+                                                    ev.match_type == "active" ? ChartColorTheme.active : .white.opacity(0.5)
+                                                )
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color.white.opacity(0.03))
+                                                .cornerRadius(6)
+                                        }
+                                        
+                                        // Telemetry Summary tags
+                                        if let telem = ev.telemetry_summary, !telem.isEmpty {
+                                            ScrollView(.horizontal, showsIndicators: false) {
+                                                HStack(spacing: 6) {
+                                                    ForEach(telem.components(separatedBy: " | "), id: \.self) { tag in
+                                                        Text(tag)
+                                                            .font(.system(size: 9, weight: .bold))
+                                                            .padding(.horizontal, 6)
+                                                            .padding(.vertical, 2.5)
+                                                            .background(Color.cyan.opacity(0.12))
+                                                            .foregroundColor(ChartColorTheme.cyan)
+                                                            .cornerRadius(4)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .padding(12)
+                                    .background(Color.white.opacity(0.02))
+                                    .cornerRadius(10)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
                                 }
                             }
-                            .padding(10)
-                            .background(Color.white.opacity(0.02))
-                            .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
                         }
                     }
                 }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
             }
-            .padding(14)
-            .background(Color.white.opacity(0.03))
-            .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
         }
     }
     
-    // MARK: - Tab: Chronology
+    private func metaRow(label: String, value: String, color: Color = .white.opacity(0.6)) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .foregroundColor(.white.opacity(0.35))
+            Text(value)
+                .foregroundColor(color)
+                .fontWeight(.medium)
+            Spacer()
+        }
+    }
+    
+    private func getSortedBuckets(_ dict: [String: Int]) -> [DeltaDistributionBucket] {
+        var items: [DeltaDistributionBucket] = []
+        for (k, v) in dict {
+            let minStr = k.replacingOccurrences(of: " хв", with: "").trimmingCharacters(in: .whitespaces)
+            let mins = Int(minStr) ?? 0
+            items.append(DeltaDistributionBucket(id: k, label: k, minutes: mins, count: v))
+        }
+        return items.sorted(by: { $0.minutes < $1.minutes })
+    }
+
+    private func formatAccuracyStatus(_ status: String?) -> String {
+        switch status {
+        case "confirmed": return "Підтверджено"
+        case "mitigated": return "Збито/РЕБ"
+        case "overestimated": return "Помилково"
+        default: return "Інше"
+        }
+    }
+
+    private var groupedCorrelationEvents: [(String, [AdminChronologyV2Entry])] {
+        guard let events = correlationV2Data?.events else { return [] }
+        let grouped = Dictionary(grouping: events) { ev in
+            if let ts = ev.ai_timestamp, ts.count >= 10 {
+                return String(ts.prefix(10))
+            }
+            return "Невідома дата"
+        }
+        return grouped.sorted { $0.key > $1.key }
+    }
+
+    private var groupedChronologyEvents: [(String, [AdminChronologyEntry])] {
+        guard let events = chronologyData?.events else { return [] }
+        let grouped = Dictionary(grouping: events) { ev in
+            if let ts = ev.threat_timestamp, ts.count >= 10 {
+                return String(ts.prefix(10))
+            }
+            return "Невідома дата"
+        }
+        return grouped.sorted { $0.key > $1.key }
+    }
+
+    // MARK: - Tab 2: Chronology (legacy)
     
     private var chronologyTabContent: some View {
         VStack(spacing: 16) {
+            // Filters Panel
+            VStack(spacing: 10) {
+                HStack {
+                    Text("Фільтрація хронології")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                
+                HStack {
+                    Text("Період:")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Picker("", selection: $daysFilter) {
+                        Text("1 день").tag(1)
+                        Text("3 дні").tag(3)
+                        Text("7 днів").tag(7)
+                        Text("14 днів").tag(14)
+                        Text("30 днів").tag(30)
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                HStack(spacing: 8) {
+                    Picker("Регіон", selection: $chrRegionFilter) {
+                        Text("Всі області").tag("")
+                        ForEach(regionsList, id: \.self) { r in
+                            Text(r).tag(r)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                    
+                    Picker("Загроза", selection: $chrThreatTypeFilter) {
+                        Text("Всі типи").tag("")
+                        Text("Shahed").tag("shahed")
+                        Text("МіГ-31К").tag("mig31k")
+                        Text("Крилаті ракети").tag("cruise_missile")
+                        Text("Балістика").tag("ballistic")
+                        Text("КАБ").tag("kab")
+                        Text("Артилерія").tag("artillery")
+                        Text("БПЛА").tag("recon")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                }
+                
+                HStack {
+                    Picker("Результат", selection: $chrMatchFilter) {
+                        Text("Всі результати").tag("")
+                        Text("✅ Співпадіння").tag("match")
+                        Text("🛡️ Збито/РЕБ").tag("mitigated")
+                        Text("❌ Неспівпадіння").tag("mismatch")
+                        Text("⏱️ Активні").tag("active")
+                        Text("🔄 Зняті").tag("cleared")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        Task { await fetchChronology() }
+                    }) {
+                        Text("Оновити фільтр")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color.blue)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+            .padding(12)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+
             // Stats grid
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                statBox(title: "Всього подій", value: "\(chronologyData?.total ?? 0)", color: .blue)
-                statBox(title: "⏱️ Активні тривоги", value: "\(activeThreatsCount)", color: .yellow)
-                statBox(title: "✅ Співпадіння AI", value: "\(matchCount)", color: .green)
-                statBox(title: "❌ Неспівпадіння AI", value: "\(mismatchCount)", color: .red)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                statBox(title: "Всього подій", value: "\(chronologyData?.total ?? 0)", color: ChartColorTheme.accent)
+                statBox(title: "✅ Співпадіння AI", value: "\(chronologyData?.events.filter({ $0.match_type == "match" }).count ?? 0)", color: ChartColorTheme.confirmed)
+                statBox(title: "🛡️ Збито/РЕБ", value: "\(chronologyData?.events.filter({ $0.match_type == "mitigated" }).count ?? 0)", color: ChartColorTheme.mitigated)
+            }
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                statBox(title: "❌ Неспівпадіння", value: "\(chronologyData?.events.filter({ $0.match_type == "mismatch" }).count ?? 0)", color: ChartColorTheme.overestimated)
+                statBox(title: "⏱️ Активні", value: "\(chronologyData?.events.filter({ $0.match_type == "active" }).count ?? 0)", color: ChartColorTheme.active)
             }
             
             if let chrono = chronologyData {
@@ -480,137 +1109,210 @@ struct AdminDashboardView: View {
                     .frame(height: 140)
                 }
                 .padding(14)
-                .background(Color.white.opacity(0.03))
+                .background(ChartColorTheme.cardBg)
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
                 
                 // Accuracy Line Chart
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Точність передбачень ШІ (%)")
+                    Text("Точність передбачень (%)")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.white.opacity(0.5))
                     
                     Chart {
                         ForEach(chrono.daily_stats) { item in
-                            let total = item.confirmed + item.overestimated
-                            let pct = total > 0 ? Double(item.confirmed) / Double(total) * 100.0 : nil
-                            if let val = pct {
+                            let confirmedCount = item.confirmed
+                            let overestimatedCount = item.overestimated
+                            let mitigatedCount = item.mitigated ?? 0
+                            let total = confirmedCount + overestimatedCount + mitigatedCount
+                            if total > 0 {
+                                let accuracy = Double(confirmedCount) + Double(mitigatedCount) * 0.8
+                                let accuracyPct = (accuracy / Double(total)) * 100.0
+                                
+                                AreaMark(
+                                    x: .value("Day", formatShortDate(item.day)),
+                                    y: .value("Точність", accuracyPct)
+                                )
+                                .foregroundStyle(ChartColorTheme.confirmed.opacity(0.1))
+                                .interpolationMethod(.catmullRom)
+                                
                                 LineMark(
                                     x: .value("Day", formatShortDate(item.day)),
-                                    y: .value("Точність %", val)
+                                    y: .value("Точність", accuracyPct)
                                 )
-                                .foregroundStyle(Color.green)
+                                .foregroundStyle(ChartColorTheme.confirmed)
+                                .interpolationMethod(.catmullRom)
                                 .symbol(Circle())
                             }
                         }
                     }
-                    .chartYScale(range: .plotDimension(padding: 10))
                     .frame(height: 140)
+                    .chartYScale(domain: 0...100)
                 }
                 .padding(14)
-                .background(Color.white.opacity(0.03))
+                .background(ChartColorTheme.cardBg)
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
                 
-                // Timeline list
+                // Grouped Timeline list
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Стрічка подій хронології")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
                     
-                    ForEach(chrono.events.prefix(40)) { ev in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text(ev.match_type == "match" ? "✅" :
-                                 ev.match_type == "mismatch" ? "❌" :
-                                 ev.match_type == "active" ? "⏱️" : "🔄")
-                            .font(.system(size: 16))
-                            
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack {
-                                    Text(ev.region)
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                    if let duration = ev.duration_seconds {
-                                        Text(formatDuration(duration))
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.white.opacity(0.4))
-                                    }
-                                }
+                    if groupedChronologyEvents.isEmpty {
+                        Text("Немає подій за вибраними фільтрами.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 30)
+                    } else {
+                        ForEach(groupedChronologyEvents, id: \.0) { day, events in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("📅 \(day) (\(events.count) подій)")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 2)
                                 
-                                Text("\(ev.threat_type) (\(ev.threat_level))")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-                                
-                                if let detail = ev.threat_detail {
-                                    Text(detail)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white.opacity(0.8))
-                                        .lineLimit(2)
+                                ForEach(events) { ev in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Text(ev.match_type == "match" ? "✅" :
+                                             ev.match_type == "mitigated" ? "🛡️" :
+                                             ev.match_type == "mismatch" ? "❌" :
+                                             ev.match_type == "active" ? "⏱️" : "🔄")
+                                        .font(.system(size: 16))
+                                        
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            HStack {
+                                                Text(ev.region)
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                Spacer()
+                                                if let duration = ev.duration_seconds {
+                                                    Text(formatDuration(duration))
+                                                        .font(.system(size: 11))
+                                                        .foregroundColor(.white.opacity(0.4))
+                                                }
+                                            }
+                                            
+                                            Text("\(ev.threat_type) (\(ev.threat_level))")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.white.opacity(0.5))
+                                            
+                                            if let detail = ev.threat_detail {
+                                                Text(detail)
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .lineLimit(2)
+                                            }
+                                            
+                                            HStack {
+                                                if let tts = ev.threat_timestamp {
+                                                    Text("Початок: \(formatShortTime(tts))")
+                                                }
+                                                if let cts = ev.clearing_timestamp {
+                                                    Text(" · Відбій: \(formatShortTime(cts))")
+                                                }
+                                            }
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.white.opacity(0.35))
+                                        }
+                                    }
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.01))
+                                    .cornerRadius(8)
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.05), lineWidth: 1))
                                 }
-                                
-                                HStack {
-                                    if let tts = ev.threat_timestamp {
-                                        Text("Початок: \(formatShortTime(tts))")
-                                    }
-                                    if let cts = ev.clearing_timestamp {
-                                        Text(" · Відбій: \(formatShortTime(cts))")
-                                    }
-                                    if let res = ev.resolution_type, !res.isEmpty, res != "unknown" {
-                                        let label = res == "impact" ? "💥 Влучання" : 
-                                                    res == "intercepted" ? "🛡️ Збито" : res
-                                        Text(" · \(label)")
-                                            .foregroundColor(res == "impact" ? .red.opacity(0.8) : .green.opacity(0.8))
-                                            .fontWeight(.bold)
-                                    }
-                                }
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.35))
                             }
                         }
-                        .padding(10)
-                        .background(Color.white.opacity(0.01))
-                        .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.05), lineWidth: 1))
                     }
                 }
                 .padding(14)
-                .background(Color.white.opacity(0.03))
+                .background(ChartColorTheme.cardBg)
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
             }
         }
     }
     
-    // MARK: - Tab: Rules
+    // MARK: - Tab 3: AI Rules (Правила)
     
     private var rulesTabContent: some View {
         VStack(spacing: 16) {
-            // Rules days filter
-            HStack {
-                Text("Днів аудиту:")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-                
-                Picker("", selection: $rulesDaysFilter) {
-                    Text("7 днів").tag(7)
-                    Text("14 днів").tag(14)
-                    Text("30 днів").tag(30)
-                }
-                .pickerStyle(.menu)
-                .tint(.white)
-                .background(Color.white.opacity(0.05))
-                .cornerRadius(8)
-                .onChange(of: rulesDaysFilter) { oldValue, newValue in
-                    Task { await fetchRules() }
+            // Rules Filters Panel
+            VStack(spacing: 10) {
+                HStack {
+                    Text("Фільтрація правил & аудиту")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
                 }
                 
-                Spacer()
+                HStack {
+                    Text("Днів аудиту:")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Picker("", selection: $rulesDaysFilter) {
+                        Text("7 днів").tag(7)
+                        Text("14 днів").tag(14)
+                        Text("30 днів").tag(30)
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                HStack(spacing: 8) {
+                    Picker("Тип правила", selection: $rulesTypeFilter) {
+                        Text("Всі типи").tag("")
+                        Text("Маршрут").tag("route_pattern")
+                        Text("Довіра").tag("confidence_correction")
+                        Text("Часовий").tag("time_pattern")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                    
+                    Picker("Загроза", selection: $rulesThreatTypeFilter) {
+                        Text("Всі типи").tag("")
+                        Text("Shahed").tag("shahed")
+                        Text("МіГ-31К").tag("mig31k")
+                        Text("Крилаті ракети").tag("cruise_missile")
+                        Text("Балістика").tag("ballistic")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                }
+                
+                HStack {
+                    Picker("Дія аудиту", selection: $rulesActionFilter) {
+                        Text("Всі дії").tag("")
+                        Text("Створено").tag("added")
+                        Text("Деактивовано").tag("deactivated")
+                        Text("Видалено").tag("removed")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(8)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        Task { await fetchRules() }
+                    }) {
+                        Text("Оновити фільтр")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color.blue)
+                            .cornerRadius(8)
+                    }
+                }
             }
-            .padding(10)
-            .background(Color.white.opacity(0.03))
+            .padding(12)
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
             
             // Active rules list
             VStack(alignment: .leading, spacing: 10) {
@@ -626,10 +1328,10 @@ struct AdminDashboardView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     ForEach(activeRules) { rule in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text(rule.rule_type)
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.system(size: 9, weight: .bold))
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(Color.blue.opacity(0.2))
@@ -648,8 +1350,25 @@ struct AdminDashboardView: View {
                             }
                             
                             Text(rule.rule_text)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.95))
+                                .lineLimit(3)
+                            
+                            HStack(spacing: 8) {
+                                if let src = rule.source_region, !src.isEmpty {
+                                    let dst = rule.target_region ?? ""
+                                    Text("🗺️ \(src) → \(dst)")
+                                }
+                                if let th = rule.threat_type, !th.isEmpty {
+                                    Text("🚀 \(th)")
+                                }
+                                Spacer()
+                                Text(formatShortTime(rule.updated_at))
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white.opacity(0.35))
+                            }
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.5))
                         }
                         .padding(10)
                         .background(Color.white.opacity(0.02))
@@ -659,9 +1378,8 @@ struct AdminDashboardView: View {
                 }
             }
             .padding(14)
-            .background(Color.white.opacity(0.03))
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
             
             // Rules history audit log
             VStack(alignment: .leading, spacing: 10) {
@@ -680,7 +1398,7 @@ struct AdminDashboardView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Text(entry.action.uppercased())
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.system(size: 9, weight: .bold))
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(
@@ -700,21 +1418,30 @@ struct AdminDashboardView: View {
                                     .foregroundColor(.white.opacity(0.4))
                             }
                             
-                            if let text = entry.rule_text {
+                            if let text = entry.rule_text, !text.isEmpty {
                                 Text(text)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.85))
-                            } else if let reason = entry.reason {
+                            } else if let reason = entry.reason, !reason.isEmpty {
                                 Text(reason)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.85))
                             }
                             
-                            if let t = entry.threat_type {
-                                Text("Тип загрози: \(t)")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.4))
+                            HStack(spacing: 8) {
+                                if let t = entry.threat_type, !t.isEmpty {
+                                    Text("Загроза: \(t)")
+                                }
+                                if let src = entry.source_region, !src.isEmpty {
+                                    let dst = entry.target_region ?? ""
+                                    Text("Маршрут: \(src) → \(dst)")
+                                }
+                                if let reason = entry.reason, entry.rule_text != nil, !reason.isEmpty {
+                                    Text("Причина: \(reason)")
+                                }
                             }
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.4))
                         }
                         .padding(10)
                         .background(Color.white.opacity(0.02))
@@ -724,16 +1451,306 @@ struct AdminDashboardView: View {
                 }
             }
             .padding(14)
-            .background(Color.white.opacity(0.03))
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
         }
     }
     
-    // MARK: - Tab: Control
+    // MARK: - Tab 4: Errors (Помилки)
+    
+    private var errorsTabContent: some View {
+        VStack(spacing: 16) {
+            // Filters Section
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Фільтри")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white.opacity(0.4))
+                    Spacer()
+                }
+                
+                HStack(spacing: 8) {
+                    Picker("Джерело", selection: $errSourceFilter) {
+                        Text("Всі").tag("")
+                        Text("Server").tag("server")
+                        Text("Firebase").tag("firebase")
+                        Text("Gemini").tag("gemini")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(8)
+                    
+                    Picker("Тип", selection: $errTypeFilter) {
+                        Text("Всі").tag("")
+                        Text("429").tag("429_rate_limit")
+                        Text("500").tag("500_server")
+                        Text("Timeout").tag("timeout")
+                        Text("General").tag("general")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(8)
+                    
+                    Picker("Днів", selection: $errDaysFilter) {
+                        Text("1 д").tag(1)
+                        Text("3 д").tag(3)
+                        Text("7 д").tag(7)
+                        Text("30 д").tag(30)
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.white)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(8)
+                    
+                    Button(action: {
+                        Task { await fetchErrors() }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Color.blue)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+            .padding(10)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+            
+            // Stats cards grid
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                statBox(title: "Всього помилок", value: "\(errorStats?.total ?? 0)", color: .red)
+                statBox(title: "429 Rate Limit", value: "\(errorStats?.by_type.first(where: { $0.error_type == "429_rate_limit" })?.count ?? 0)", color: .yellow)
+                statBox(title: "Firebase", value: "\(errorStats?.by_source.first(where: { $0.source == "firebase" })?.count ?? 0)", color: .orange)
+                statBox(title: "Gemini", value: "\(errorStats?.by_source.first(where: { $0.source == "gemini" })?.count ?? 0)", color: .purple)
+            }
+            
+            // Swift Charts Section
+            if let stats = errorStats {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Джерела помилок")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                    
+                    Chart {
+                        ForEach(stats.by_source) { item in
+                            BarMark(
+                                x: .value("Count", item.count),
+                                y: .value("Source", item.source)
+                            )
+                            .foregroundStyle(
+                                item.source == "server" ? Color.blue :
+                                item.source == "firebase" ? Color.orange : Color.purple
+                            )
+                        }
+                    }
+                    .frame(height: 120)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(12)
+                
+                // Hourly error chart
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Розподіл помилок за годинами (48г)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                    
+                    Chart {
+                        ForEach(stats.hourly) { item in
+                            BarMark(
+                                x: .value("Hour", item.hour),
+                                y: .value("Count", item.count)
+                            )
+                            .foregroundStyle(Color.red)
+                        }
+                    }
+                    .frame(height: 120)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(12)
+            }
+            
+            // Errors List Table
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Записи помилок (\(errorsList.count))")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                
+                if errorsList.isEmpty {
+                    Text("Не знайдено помилок за вибраний період 🎉")
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(errorsList.prefix(50)) { error in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text(error.source.uppercased())
+                                        .font(.system(size: 9, weight: .bold))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(
+                                            error.source == "server" ? Color.blue.opacity(0.2) :
+                                            error.source == "firebase" ? Color.orange.opacity(0.2) : Color.purple.opacity(0.2)
+                                        )
+                                        .foregroundColor(
+                                            error.source == "server" ? Color.blue :
+                                            error.source == "firebase" ? Color.orange : Color.purple
+                                        )
+                                        .cornerRadius(4)
+                                    
+                                    Text(error.error_type)
+                                        .font(.system(size: 9, weight: .bold))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.red.opacity(0.15))
+                                        .foregroundColor(.red)
+                                        .cornerRadius(4)
+                                    
+                                    Spacer()
+                                    
+                                    Text(formatShortTime(error.timestamp))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.white.opacity(0.4))
+                                }
+                                
+                                Text(error.message)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .lineLimit(2)
+                            }
+                            .padding(10)
+                            .background(Color.white.opacity(0.02))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+            }
+            .padding(14)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+        }
+    }
+    
+    // MARK: - Tab 5: Control (Керування)
     
     private var controlTabContent: some View {
         VStack(spacing: 16) {
+            // Interactive Threat Injection Panel (Redesigned)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(ChartColorTheme.cyan)
+                    Text("Ручний інжектор загроз")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                
+                VStack(spacing: 10) {
+                    HStack {
+                        Text("Область:")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                        Spacer()
+                        Picker("", selection: $simRegion) {
+                            ForEach(regionsList, id: \.self) { r in
+                                Text(r).tag(r)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.03))
+                    .cornerRadius(8)
+                    
+                    HStack {
+                        Text("Рівень загрози:")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                        Spacer()
+                        Picker("", selection: $simLevel) {
+                            Text("Зелений (none)").tag("none")
+                            Text("Жовтий (low)").tag("low")
+                            Text("Помаранчевий (medium)").tag("medium")
+                            Text("Червоний (high)").tag("high")
+                            Text("Бордовий (critical)").tag("critical")
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.03))
+                    .cornerRadius(8)
+                    
+                    HStack {
+                        Text("Тип загрози:")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                        Spacer()
+                        Picker("", selection: $simThreatType) {
+                            Text("Шахед (shahed)").tag("shahed")
+                            Text("МіГ-31К (mig31k)").tag("mig31k")
+                            Text("Крилаті ракети (cruise_missile)").tag("cruise_missile")
+                            Text("Балістика (ballistic)").tag("ballistic")
+                            Text("КАБ (kab)").tag("kab")
+                            Text("Артилерія (artillery)").tag("artillery")
+                            Text("Розвід. БПЛА (recon)").tag("recon")
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.03))
+                    .cornerRadius(8)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Детальний опис загрози:")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.5))
+                        TextField("Наприклад: Повідомляють про рух БПЛА...", text: $simDetail)
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Color.white.opacity(0.03))
+                            .cornerRadius(8)
+                    }
+                    
+                    Button(action: {
+                        triggerHaptic()
+                        Task { await injectCustomThreat() }
+                    }) {
+                        HStack {
+                            Image(systemName: "paperplane.fill")
+                            Text("Надіслати загрозу в систему")
+                        }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                    }
+                    
+                    if showSimSuccessMessage {
+                        Text(simSuccessText)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.green)
+                            .padding(.top, 4)
+                    }
+                }
+            }
+            .padding(14)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+            
             // Rebuild rules section
             VStack(alignment: .leading, spacing: 12) {
                 Text("Самонавчання ШІ (Gemini)")
@@ -746,7 +1763,7 @@ struct AdminDashboardView: View {
                     .lineSpacing(4)
                 
                 Button(action: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    triggerHaptic()
                     Task { await rebuildRules() }
                 }) {
                     HStack {
@@ -770,9 +1787,8 @@ struct AdminDashboardView: View {
                 }
             }
             .padding(14)
-            .background(Color.white.opacity(0.03))
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
             
             // Server Diagnostics
             VStack(alignment: .leading, spacing: 12) {
@@ -790,7 +1806,7 @@ struct AdminDashboardView: View {
                 .padding(.vertical, 4)
                 
                 Button(action: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    triggerHaptic()
                     alertsStatus = "Перевірка..."
                     threatsStatus = "Перевірка..."
                     geminiStatus = "Перевірка..."
@@ -806,31 +1822,35 @@ struct AdminDashboardView: View {
                 }
             }
             .padding(14)
-            .background(Color.white.opacity(0.03))
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
             
-            // Threat Simulation
+            // Threat Simulation Scenarios (Extended)
             VStack(alignment: .leading, spacing: 12) {
-                Text("Симуляція загроз (Розробка)")
+                Text("Сценарії симуляції загроз")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("Запустіть тестові сценарії для перевірки відображення загроз на карті та перевірки логіки FCM пушів.")
+                Text("Запустіть масові тестові сценарії для перевірки відображення загроз на карті, РЕБ та FCM пушів.")
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.55))
                     .lineSpacing(4)
                 
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     HStack(spacing: 8) {
-                        simulationButton(title: "Шахеди з півдня", scenario: "shaheds_south", color: .yellow)
+                        simulationButton(title: "Шахеди (Південь)", scenario: "shaheds_south", color: .yellow)
                         simulationButton(title: "Зліт МіГ-31К", scenario: "mig_takeoff", color: .orange)
                     }
                     
                     HStack(spacing: 8) {
                         simulationButton(title: "Ракети (Захід)", scenario: "cruise_missiles_west", color: .blue)
+                        simulationButton(title: "Балістика (Харків)", scenario: "ballistic_kharkiv", color: .red)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        simulationButton(title: "💥 Масована атака", scenario: "massive_attack", color: .purple)
                         Button(action: {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            triggerHaptic()
                             Task { await postClearAll() }
                         }) {
                             HStack {
@@ -849,15 +1869,14 @@ struct AdminDashboardView: View {
                 }
             }
             .padding(14)
-            .background(Color.white.opacity(0.03))
+            .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
         }
     }
     
     private func simulationButton(title: String, scenario: String, color: Color) -> some View {
         Button(action: {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            triggerHaptic()
             Task { await postTriggerScenario(scenario) }
         }) {
             HStack {
@@ -902,64 +1921,128 @@ struct AdminDashboardView: View {
         }
     }
     
-    // MARK: - API Networking helpers
+    // MARK: - Networking & API Logic
+    
+    private func refreshCurrentTab() async {
+        switch selectedTab {
+        case 0:
+            await fetchDashboardStats()
+        case 1:
+            await fetchCorrelationV2()
+        case 2:
+            await fetchChronology()
+        case 3:
+            await fetchRules()
+        case 4:
+            await fetchErrors()
+        default:
+            await performDiagnostics()
+        }
+    }
     
     private func refreshAllData() async {
         isLoading = true
         await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.fetchErrors() }
+            group.addTask { await self.fetchDashboardStats() }
+            group.addTask { await self.fetchCorrelationV2() }
             group.addTask { await self.fetchChronology() }
             group.addTask { await self.fetchRules() }
+            group.addTask { await self.fetchErrors() }
             group.addTask { await self.performDiagnostics() }
         }
         isLoading = false
     }
     
-    private func fetchErrors() async {
-        let params = "days=\(daysFilter)" + (sourceFilter.isEmpty ? "" : "&source=\(sourceFilter)") + (typeFilter.isEmpty ? "" : "&error_type=\(typeFilter)")
-        
+    private func fetchDashboardStats() async {
+        let url = URL(string: "\(serverURL)/api/admin/dashboard/stats")!
         do {
-            let statsUrl = URL(string: "\(serverURL)/api/admin/errors/stats?days=\(daysFilter)")!
-            let errorsUrl = URL(string: "\(serverURL)/api/admin/errors?\(params)")!
-            
-            let (statsData, _) = try await URLSession.shared.data(from: statsUrl)
-            let (errorsData, _) = try await URLSession.shared.data(from: errorsUrl)
-            
-            if let decodedStats = try? JSONDecoder().decode(AdminErrorStatsResponse.self, from: statsData) {
-                self.errorStats = decodedStats
-                self.totalErrorsCount = decodedStats.total
-                
-                let r429 = decodedStats.by_type.first(where: { $0.error_type == "429_rate_limit" })
-                self.err429Count = r429?.count ?? 0
-                let fb = decodedStats.by_source.first(where: { $0.source == "firebase" })
-                self.firebaseErrorsCount = fb?.count ?? 0
-                let gem = decodedStats.by_source.first(where: { $0.source == "gemini" })
-                self.geminiErrorsCount = gem?.count ?? 0
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let decoded = try? JSONDecoder().decode(AdminDashboardStatsResponse.self, from: data) {
+                self.dashboardStats = decoded
             }
-            
-            if let decodedErrors = try? JSONDecoder().decode(AdminErrorsResponse.self, from: errorsData) {
-                self.errorsList = decodedErrors.errors
+        } catch {}
+    }
+    
+    private func fetchCorrelationV2() async {
+        var params = ""
+        
+        if corUseDateRange {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            let fromStr = formatter.string(from: corDateFrom)
+            let toStr = formatter.string(from: corDateTo)
+            params = "date_from=\(fromStr)&date_to=\(toStr)"
+        } else {
+            params = "days=\(corDaysFilter)"
+        }
+        
+        if !corRegionFilter.isEmpty {
+            if let escaped = corRegionFilter.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                params += "&region=\(escaped)"
+            }
+        }
+        if !corThreatTypeFilter.isEmpty {
+            params += "&threat_type=\(corThreatTypeFilter)"
+        }
+        if !corMatchFilter.isEmpty {
+            params += "&match_result=\(corMatchFilter)"
+        }
+        
+        let url = URL(string: "\(serverURL)/api/admin/chronology/v2?\(params)")!
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let decoded = try? JSONDecoder().decode(AdminChronologyV2Response.self, from: data) {
+                self.correlationV2Data = decoded
             }
         } catch {}
     }
     
     private func fetchChronology() async {
-        let url = URL(string: "\(serverURL)/api/admin/chronology?days=\(daysFilter)")!
+        var params = "days=\(daysFilter)"
+        if !chrRegionFilter.isEmpty {
+            if let escaped = chrRegionFilter.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                params += "&region=\(escaped)"
+            }
+        }
+        if !chrThreatTypeFilter.isEmpty {
+            params += "&threat_type=\(chrThreatTypeFilter)"
+        }
+        if !chrMatchFilter.isEmpty {
+            params += "&prediction_accuracy=\(chrMatchFilter)"
+        }
+        
+        let url = URL(string: "\(serverURL)/api/admin/chronology?\(params)")!
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             if let decoded = try? JSONDecoder().decode(AdminChronologyResponse.self, from: data) {
                 self.chronologyData = decoded
-                self.activeThreatsCount = decoded.events.filter({ $0.match_type == "active" }).count
-                self.matchCount = decoded.events.filter({ $0.match_type == "match" }).count
-                self.mismatchCount = decoded.events.filter({ $0.match_type == "mismatch" }).count
             }
         } catch {}
     }
     
     private func fetchRules() async {
+        var rulesParams = "active_only=true&limit=100"
+        if !rulesTypeFilter.isEmpty {
+            rulesParams += "&rule_type=\(rulesTypeFilter)"
+        }
+        if !rulesThreatTypeFilter.isEmpty {
+            rulesParams += "&threat_type=\(rulesThreatTypeFilter)"
+        }
+        
+        var auditParams = "days=\(rulesDaysFilter)"
+        if !rulesTypeFilter.isEmpty {
+            auditParams += "&rule_type=\(rulesTypeFilter)"
+        }
+        if !rulesThreatTypeFilter.isEmpty {
+            auditParams += "&threat_type=\(rulesThreatTypeFilter)"
+        }
+        if !rulesActionFilter.isEmpty {
+            auditParams += "&action=\(rulesActionFilter)"
+        }
+        
         do {
-            let rulesUrl = URL(string: "\(serverURL)/api/analytics/rules?active_only=true")!
-            let historyUrl = URL(string: "\(serverURL)/api/admin/rules/history?days=\(rulesDaysFilter)")!
+            let rulesUrl = URL(string: "\(serverURL)/api/analytics/rules?\(rulesParams)")!
+            let historyUrl = URL(string: "\(serverURL)/api/admin/rules/history?\(auditParams)")!
             
             let (rulesData, _) = try await URLSession.shared.data(from: rulesUrl)
             let (historyData, _) = try await URLSession.shared.data(from: historyUrl)
@@ -970,6 +2053,37 @@ struct AdminDashboardView: View {
             
             if let decodedHistory = try? JSONDecoder().decode(GeminiRulesHistoryResponse.self, from: historyData) {
                 self.ruleAuditHistory = decodedHistory.entries
+            }
+        } catch {}
+    }
+    
+    private func fetchErrors() async {
+        let params = "days=\(errDaysFilter)" + (errSourceFilter.isEmpty ? "" : "&source=\(errSourceFilter)") + (errTypeFilter.isEmpty ? "" : "&error_type=\(errTypeFilter)")
+        
+        do {
+            let statsUrl = URL(string: "\(serverURL)/api/admin/errors/stats?days=\(errDaysFilter)")!
+            let errorsUrl = URL(string: "\(serverURL)/api/admin/errors?\(params)")!
+            
+            let (statsData, _) = try await URLSession.shared.data(from: statsUrl)
+            let (errorsData, _) = try await URLSession.shared.data(from: errorsUrl)
+            
+            if let decodedStats = try? JSONDecoder().decode(AdminErrorStatsResponse.self, from: statsData) {
+                self.errorStats = decodedStats
+            }
+            
+            if let decodedErrors = try? JSONDecoder().decode(AdminErrorsResponse.self, from: errorsData) {
+                self.errorsList = decodedErrors.errors
+            }
+        } catch {}
+    }
+    
+    private func loadRegions() async {
+        let url = URL(string: "\(serverURL)/api/threats")!
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let threats = json["threats"] as? [String: Any] {
+                self.regionsList = threats.keys.sorted()
             }
         } catch {}
     }
@@ -1027,6 +2141,43 @@ struct AdminDashboardView: View {
         } catch {}
     }
     
+    private func injectCustomThreat() async {
+        do {
+            var req = URLRequest(url: URL(string: "\(serverURL)/api/threats/mock")!)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            let body: [String: Any] = [
+                "region": simRegion,
+                "level": simLevel,
+                "threat_type": simThreatType,
+                "detail": simDetail
+            ]
+            
+            req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            let (data, res) = try await URLSession.shared.data(for: req)
+            if let http = res as? HTTPURLResponse {
+                if http.statusCode == 200 {
+                    simSuccessText = "✅ Загрозу успішно надіслано в \(simRegion)!"
+                    showSimSuccessMessage = true
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    showSimSuccessMessage = false
+                } else {
+                    if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = errorJson["detail"] as? String {
+                        simSuccessText = "⚠️ Помилка: \(detail)"
+                    } else {
+                        simSuccessText = "⚠️ Помилка сервера (\(http.statusCode))"
+                    }
+                    showSimSuccessMessage = true
+                }
+            }
+        } catch {
+            simSuccessText = "⚠️ Помилка мережі: \(error.localizedDescription)"
+            showSimSuccessMessage = true
+        }
+    }
+    
     private func postTriggerScenario(_ scenario: String) async {
         do {
             var req = URLRequest(url: URL(string: "\(serverURL)/api/threats/scenario")!)
@@ -1052,18 +2203,17 @@ struct AdminDashboardView: View {
         } catch {}
     }
     
-    // MARK: - Date/Format Helpers
+    // MARK: - Format helpers
     
     private func formatShortTime(_ ts: String) -> String {
-        // Input format: YYYY-MM-DD HH:MM:SS (UTC)
         guard ts.count >= 19 else { return ts }
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         formatter.timeZone = TimeZone(abbreviation: "UTC")
         if let date = formatter.date(from: String(ts.prefix(19))) {
             let localFormatter = DateFormatter()
-            localFormatter.timeStyle = .medium
-            localFormatter.dateStyle = .none
+            localFormatter.timeStyle = .short
+            localFormatter.dateStyle = .short
             localFormatter.timeZone = TimeZone.current
             return localFormatter.string(from: date)
         }
@@ -1071,30 +2221,52 @@ struct AdminDashboardView: View {
     }
     
     private func formatShortDate(_ dateStr: String) -> String {
-        // Input format: YYYY-MM-DD
         guard dateStr.count >= 10 else { return dateStr }
-        return String(dateStr.suffix(5)) // MM-DD
+        return String(dateStr.suffix(5))
     }
     
     private func formatDuration(_ sec: Int) -> String {
-        if sec < 60 { return "\(sec)с" }
-        if sec < 3600 { return "\(sec / 60)хв" }
-        return "\(sec / 3600)год"
+        let positiveSec = abs(sec)
+        if positiveSec < 60 { return "\(positiveSec)с" }
+        if positiveSec < 3600 { return "\(positiveSec / 60)хв" }
+        return "\(positiveSec / 3600)год"
     }
 
     private func statBox(title: String, value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.white.opacity(0.5))
             Text(value)
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundColor(color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(11)
         .background(Color.white.opacity(0.03))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
+    }
+    
+    private func legendItem(title: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(title)
+                .foregroundColor(.white.opacity(0.6))
+        }
+    }
+
+    private func triggerHaptic(_ style: String = "medium") {
+        #if canImport(UIKit)
+        let feedbackStyle: UIImpactFeedbackGenerator.FeedbackStyle
+        switch style {
+        case "light": feedbackStyle = .light
+        case "heavy": feedbackStyle = .heavy
+        default: feedbackStyle = .medium
+        }
+        UIImpactFeedbackGenerator(style: feedbackStyle).impactOccurred()
+        #endif
     }
 }

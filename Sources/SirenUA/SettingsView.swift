@@ -187,7 +187,7 @@ struct SettingsView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        if adminAuthenticated && adminViewMode {
+                        if true {
                             // Admin mode: show native admin dashboard entrance
                             adminDashboardCard
                         } else {

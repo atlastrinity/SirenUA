@@ -147,37 +147,37 @@ final class AlertViewModelV3: ObservableObject {
         ) { [weak self] notification in
             guard let self else { return }
             
-            // Check if we can apply the push payload directly for instant UI update
-            if let userInfo = notification.userInfo,
-               let regionName = userInfo["region"] as? String {
-                let level = (userInfo["level"] as? String) ?? (userInfo["threat_level"] as? String) ?? "none"
-                vmLogger.info("FCM push received for \(regionName) (level: \(level)) — applying instantly")
-                
-                // Instantly update the local state in memory
-                if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
-                    let isAlarmActive = (level != "none")
-                    self.alerts[index].isActive = isAlarmActive
-                    self.alerts[index].level = isAlarmActive ? 3 : 0
-                    self.alerts[index].description = isAlarmActive ? "Повітряна тривога!" : "Немає тривоги"
-                    
-                    if level == "none" {
-                        self.alerts[index].threatLevel = nil
-                        self.alerts[index].threatType = nil
-                        self.alerts[index].threatDetail = nil
-                        self.alerts[index].activeThreats = []
-                        self.alerts[index].selectedThreatIndex = 0
-                    } else {
-                        self.alerts[index].threatLevel = level
-                        if let type = userInfo["threat_type"] as? String, !type.isEmpty {
-                            self.alerts[index].threatType = type
-                        }
-                    }
-                    self.updateStats()
-                }
-            }
-            
-            // Still perform the background fetch to ensure full sync with database/active wave details
             Task { @MainActor in
+                // Check if we can apply the push payload directly for instant UI update
+                if let userInfo = notification.userInfo,
+                   let regionName = userInfo["region"] as? String {
+                    let level = (userInfo["level"] as? String) ?? (userInfo["threat_level"] as? String) ?? "none"
+                    vmLogger.info("FCM push received for \(regionName) (level: \(level)) — applying instantly")
+                    
+                    // Instantly update the local state in memory
+                    if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
+                        let isAlarmActive = (level != "none")
+                        self.alerts[index].isActive = isAlarmActive
+                        self.alerts[index].level = isAlarmActive ? 3 : 0
+                        self.alerts[index].description = isAlarmActive ? "Повітряна тривога!" : "Немає тривоги"
+                        
+                        if level == "none" {
+                            self.alerts[index].threatLevel = nil
+                            self.alerts[index].threatType = nil
+                            self.alerts[index].threatDetail = nil
+                            self.alerts[index].activeThreats = []
+                            self.alerts[index].selectedThreatIndex = 0
+                        } else {
+                            self.alerts[index].threatLevel = level
+                            if let type = userInfo["threat_type"] as? String, !type.isEmpty {
+                                self.alerts[index].threatType = type
+                            }
+                        }
+                        self.updateStats()
+                    }
+                }
+                
+                // Still perform the background fetch to ensure full sync with database/active wave details
                 await self.fetchThreatState()
             }
         }
