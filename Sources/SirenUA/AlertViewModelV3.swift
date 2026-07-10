@@ -1,5 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 import CoreLocation
 import Combine
 import OSLog
@@ -35,6 +38,7 @@ final class AlertViewModelV3: ObservableObject {
 
     private var premiumObserver: NSObjectProtocol? = nil
     private var fcmObserver: NSObjectProtocol? = nil
+    private var foregroundObserver: NSObjectProtocol? = nil
 
     init() {
         vmLogger.info("AlertViewModelV3 initialized")
@@ -59,6 +63,21 @@ final class AlertViewModelV3: ObservableObject {
                 }
             }
         }
+        
+        #if os(iOS)
+        // Refresh when app enters foreground (resumes from background)
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            vmLogger.info("App entered foreground — fetching fresh threat state")
+            Task { @MainActor in
+                await self.fetchThreatState()
+            }
+        }
+        #endif
     }
 
     deinit {
@@ -68,6 +87,9 @@ final class AlertViewModelV3: ObservableObject {
         }
         if let fcmObserver {
             NotificationCenter.default.removeObserver(fcmObserver)
+        }
+        if let foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
         }
     }
 
@@ -122,9 +144,39 @@ final class AlertViewModelV3: ObservableObject {
             forName: Notification.Name("ThreatDataUpdated"),
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             guard let self else { return }
-            vmLogger.info("FCM push received — fetching fresh threat state")
+            
+            // Check if we can apply the push payload directly for instant UI update
+            if let userInfo = notification.userInfo,
+               let regionName = userInfo["region"] as? String {
+                let level = (userInfo["level"] as? String) ?? (userInfo["threat_level"] as? String) ?? "none"
+                vmLogger.info("FCM push received for \(regionName) (level: \(level)) — applying instantly")
+                
+                // Instantly update the local state in memory
+                if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
+                    let isAlarmActive = (level != "none")
+                    self.alerts[index].isActive = isAlarmActive
+                    self.alerts[index].level = isAlarmActive ? 3 : 0
+                    self.alerts[index].description = isAlarmActive ? "Повітряна тривога!" : "Немає тривоги"
+                    
+                    if level == "none" {
+                        self.alerts[index].threatLevel = nil
+                        self.alerts[index].threatType = nil
+                        self.alerts[index].threatDetail = nil
+                        self.alerts[index].activeThreats = []
+                        self.alerts[index].selectedThreatIndex = 0
+                    } else {
+                        self.alerts[index].threatLevel = level
+                        if let type = userInfo["threat_type"] as? String, !type.isEmpty {
+                            self.alerts[index].threatType = type
+                        }
+                    }
+                    self.updateStats()
+                }
+            }
+            
+            // Still perform the background fetch to ensure full sync with database/active wave details
             Task { @MainActor in
                 await self.fetchThreatState()
             }
