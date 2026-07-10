@@ -317,6 +317,7 @@ struct AdminDashboardView: View {
     @State private var errDaysFilter = 7
     @State private var errSourceFilter = ""
     @State private var errTypeFilter = ""
+    @State private var expandedErrorId: Int? = nil
     
     // Manual Threat Simulation Form
     @State private var simRegion = "Київська область"
@@ -1568,13 +1569,45 @@ struct AdminDashboardView: View {
             .padding(10)
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            
             // Stats cards grid
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                statBox(title: "Всього помилок", value: "\(errorStats?.total ?? 0)", color: .red)
-                statBox(title: "429 Rate Limit", value: "\(errorStats?.by_type.first(where: { $0.error_type == "429_rate_limit" })?.count ?? 0)", color: .yellow)
-                statBox(title: "Firebase", value: "\(errorStats?.by_source.first(where: { $0.source == "firebase" })?.count ?? 0)", color: .orange)
-                statBox(title: "Gemini", value: "\(errorStats?.by_source.first(where: { $0.source == "gemini" })?.count ?? 0)", color: .purple)
+            if let stats = errorStats {
+                VStack(alignment: .leading, spacing: 12) {
+                    statBox(title: "Всього помилок", value: "\(stats.total)", color: .red)
+                    
+                    let activeTypes = stats.by_type.filter { $0.count > 0 }
+                    if !activeTypes.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Розподіл за категоріями:")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white.opacity(0.4))
+                                .padding(.top, 2)
+                            
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                ForEach(activeTypes) { item in
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(formatErrorType(item.error_type))
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.7))
+                                            .lineLimit(1)
+                                        Text("\(item.count)")
+                                            .font(.system(size: 15, weight: .bold))
+                                            .foregroundColor(
+                                                item.error_type.contains("rate_limit") ? .yellow :
+                                                item.error_type.contains("api") || item.error_type.contains("firebase") || item.error_type.contains("telegram") ? .orange :
+                                                item.error_type.contains("database") || item.error_type.contains("json") ? .purple :
+                                                item.error_type.contains("network") ? .cyan : .red
+                                            )
+                                    }
+                                    .padding(8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.white.opacity(0.02))
+                                    .cornerRadius(6)
+                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.04), lineWidth: 1))
+                                }
+                            }
+                        }
+                    }
+                }
             }
             
             // Swift Charts Section
@@ -1639,6 +1672,7 @@ struct AdminDashboardView: View {
                 } else {
                     VStack(spacing: 8) {
                         ForEach(errorsList.prefix(50)) { error in
+                            let isExpanded = (expandedErrorId == error.id)
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text(error.source.uppercased())
@@ -1673,11 +1707,46 @@ struct AdminDashboardView: View {
                                 Text(error.message)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.85))
-                                    .lineLimit(2)
+                                    .lineLimit(isExpanded ? nil : 2)
+                                
+                                if isExpanded {
+                                    if let endpoint = error.endpoint, !endpoint.isEmpty {
+                                        HStack(alignment: .top) {
+                                            Text("Маршрут:")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(.white.opacity(0.4))
+                                            Text(endpoint)
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.cyan)
+                                        }
+                                        .padding(.top, 2)
+                                    }
+                                    
+                                    if let context = error.context, !context.isEmpty {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Контекст:")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(.white.opacity(0.4))
+                                            Text(context)
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.white.opacity(0.6))
+                                                .padding(6)
+                                                .background(Color.black.opacity(0.25))
+                                                .cornerRadius(4)
+                                        }
+                                        .padding(.top, 2)
+                                    }
+                                }
                             }
                             .padding(10)
-                            .background(Color.white.opacity(0.02))
+                            .background(Color.white.opacity(isExpanded ? 0.05 : 0.02))
                             .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(isExpanded ? Color.red.opacity(0.2) : Color.clear, lineWidth: 1))
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    expandedErrorId = isExpanded ? nil : error.id
+                                }
+                            }
                         }
                     }
                 }
