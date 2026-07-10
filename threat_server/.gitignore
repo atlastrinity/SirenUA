@@ -7,3 +7,6 @@ __pycache__/
 *.session-journal
 *.log
 firebase-credentials.json
+*.db
+threats_state.json
+real_threats_state.json
