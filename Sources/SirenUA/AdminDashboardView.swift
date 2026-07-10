@@ -2209,10 +2209,11 @@ struct AdminDashboardView: View {
     
     private func formatShortTime(_ ts: String) -> String {
         guard ts.count >= 19 else { return ts }
+        let cleanTs = ts.replacingOccurrences(of: "T", with: " ")
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         formatter.timeZone = TimeZone(abbreviation: "UTC")
-        if let date = formatter.date(from: String(ts.prefix(19))) {
+        if let date = formatter.date(from: String(cleanTs.prefix(19))) {
             let localFormatter = DateFormatter()
             localFormatter.timeStyle = .short
             localFormatter.dateStyle = .short
