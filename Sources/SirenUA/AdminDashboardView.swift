@@ -1523,10 +1523,19 @@ struct AdminDashboardView: View {
                     
                     Picker("Тип", selection: $errTypeFilter) {
                         Text("Всі").tag("")
-                        Text("429").tag("429_rate_limit")
-                        Text("500").tag("500_server")
-                        Text("Timeout").tag("timeout")
-                        Text("General").tag("general")
+                        Text("429 Ліміт").tag("429_rate_limit")
+                        Text("500 Сервер").tag("500_server")
+                        Text("Таймаут").tag("timeout")
+                        Text("Мережа").tag("network_error")
+                        Text("Авторизація").tag("auth")
+                        Text("Системні").tag("systemic")
+                        Text("Firebase").tag("firebase_error")
+                        Text("Telegram").tag("telegram_error")
+                        Text("Gemini").tag("gemini_api_error")
+                        Text("JSON").tag("json_parse_error")
+                        Text("База даних").tag("database_error")
+                        Text("Валідація").tag("validation_error")
+                        Text("Інші").tag("general")
                     }
                     .pickerStyle(.menu)
                     .tint(.white)
@@ -1646,7 +1655,7 @@ struct AdminDashboardView: View {
                                         )
                                         .cornerRadius(4)
                                     
-                                    Text(error.error_type)
+                                    Text(formatErrorType(error.error_type))
                                         .font(.system(size: 9, weight: .bold))
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -2233,6 +2242,25 @@ struct AdminDashboardView: View {
         if positiveSec < 60 { return "\(positiveSec)с" }
         if positiveSec < 3600 { return "\(positiveSec / 60)хв" }
         return "\(positiveSec / 3600)год"
+    }
+    
+    private func formatErrorType(_ type: String) -> String {
+        switch type {
+        case "429_rate_limit": return "429 Ліміт запитів"
+        case "500_server": return "500 Помилка сервера"
+        case "timeout": return "Таймаут з'єднання"
+        case "network_error": return "Мережевий збій"
+        case "auth": return "Помилка автентифікації"
+        case "systemic": return "Системна помилка"
+        case "firebase_error": return "Firebase/FCM збій"
+        case "telegram_error": return "Telegram API збій"
+        case "gemini_api_error": return "Gemini API збій"
+        case "json_parse_error": return "Помилка парсингу JSON"
+        case "database_error": return "Помилка бази даних"
+        case "validation_error": return "Помилка валідації"
+        case "general": return "Загальна помилка"
+        default: return type
+        }
     }
 
     private func statBox(title: String, value: String, color: Color) -> some View {
