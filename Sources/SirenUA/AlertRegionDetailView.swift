@@ -559,6 +559,12 @@ struct AlertRegionDetailView: View {
                 if label == "Очікуваний час", let dynamic = selectedThreat?.dynamicETA {
                     return dynamic
                 }
+                if (label == "Відстань" || label == "Відстань до цілі"), let threat = selectedThreat {
+                    let dynLine = threat.dynamicDistance(from: line)
+                    if let (_, val) = parseTelemetryLine(dynLine) {
+                        return val
+                    }
+                }
                 return value
             }()
             HStack(alignment: .firstTextBaseline, spacing: 8) {

@@ -280,4 +280,34 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(threat.elapsedMinutes, 10)
         XCTAssertEqual(threat.dynamicETA, "~15  хв".replacingOccurrences(of: "  ", with: " ")) // Expected remaining 15 mins (with double space normalization or direct match)
     }
+
+    func testDynamicDistanceCalculations() throws {
+        // Formulate an ISO string 15 minutes ago
+        let fifteenMinAgo = Date().addingTimeInterval(-900)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let sinceStr = formatter.string(from: fifteenMinAgo)
+        
+        let threat = SingleThreatInfo(
+            threat_id: "test_t2",
+            level: "high",
+            type: "shahed",
+            detail: "Test Detail",
+            since: sinceStr,
+            confidence: 90,
+            eta: "~45 хв",
+            is_predictive: false,
+            is_test: false,
+            group_id: nil
+        )
+        
+        XCTAssertEqual(threat.elapsedMinutes, 15)
+        
+        let originalLine = "Відстань: ~120 км"
+        let dynamicLine = threat.dynamicDistance(from: originalLine)
+        
+        // speed = 120 / 45 = 2.666... km/min
+        // remaining = 120 - 2.666... * 15 = 120 - 40 = 80 km
+        XCTAssertEqual(dynamicLine, "Відстань: ~80 км")
+    }
 }

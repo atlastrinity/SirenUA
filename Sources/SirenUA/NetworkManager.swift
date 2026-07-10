@@ -343,6 +343,74 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
             return "\(timeStr) (\(hr) год \(mn) хв тому)"
         }
     }
+
+    /// Обчислює динамічну відстань на основі початкового значення, ETA та минулого часу
+    func dynamicDistance(from originalLine: String) -> String {
+        // Очікуваний шаблон: "Відстань: ~120 км" або "Відстань до цілі: ~250 км"
+        // Очищаємо від службових слів для безпечнішого пошуку чисел
+        let cleanLine = originalLine.replacingOccurrences(of: "~", with: "")
+                                    .replacingOccurrences(of: "до цілі:", with: "")
+                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Знаходимо перше число в рядку (відстань в км)
+        guard let numRange = cleanLine.range(of: "\\d+", options: .regularExpression),
+              let originalDistance = Double(cleanLine[numRange]) else {
+            return originalLine
+        }
+        
+        // Отримуємо початковий ETA у хвилинах
+        guard let initialETA = eta, !initialETA.isEmpty else {
+            // Якщо початкового ETA немає, робимо спрощений спад в залежності від типу цілі
+            let elapsed = elapsedMinutes
+            let speed: Double = (type?.lowercased() == "ballistics" || type?.lowercased() == "kinzhal") ? 60.0 : 2.5 // км/хв
+            let remainingDist = max(0, originalDistance - speed * Double(elapsed))
+            
+            let originalDigits = String(format: "%.0f", originalDistance)
+            let remainingDigits = String(format: "%.0f", remainingDist)
+            return originalLine.replacingOccurrences(of: originalDigits, with: remainingDigits)
+        }
+        
+        // Парсимо початковий ETA у хвилинах
+        let cleanEta = initialETA.replacingOccurrences(of: "~", with: "")
+                                 .replacingOccurrences(of: "+", with: "")
+                                 .trimmingCharacters(in: .whitespacesAndNewlines)
+                                 
+        var initialETAMinutes: Double = 0
+        if cleanEta.hasSuffix("хв") {
+            let valPart = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
+            if valPart.contains("-") {
+                let components = valPart.components(separatedBy: "-")
+                if components.count == 2, let maxVal = Double(components[1].trimmingCharacters(in: .whitespaces)) {
+                    initialETAMinutes = maxVal
+                }
+            } else if let minutes = Double(valPart) {
+                initialETAMinutes = minutes
+            }
+        } else if cleanEta.hasSuffix("год") {
+            let valPart = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
+            if valPart.contains("-") {
+                let components = valPart.components(separatedBy: "-")
+                if components.count == 2, let maxVal = Double(components[1].trimmingCharacters(in: .whitespaces)) {
+                    initialETAMinutes = maxVal * 60.0
+                }
+            } else if let hours = Double(valPart) {
+                initialETAMinutes = hours * 60.0
+            }
+        }
+        
+        guard initialETAMinutes > 0 else {
+            return originalLine
+        }
+        
+        let elapsed = Double(elapsedMinutes)
+        let speed = originalDistance / initialETAMinutes
+        let remainingDistance = max(0, originalDistance - speed * elapsed)
+        
+        let originalDigits = String(format: "%.0f", originalDistance)
+        let remainingDigits = String(format: "%.0f", remainingDistance)
+        
+        return originalLine.replacingOccurrences(of: originalDigits, with: remainingDigits)
+    }
 }
 
 struct ThreatInfo: Codable {
