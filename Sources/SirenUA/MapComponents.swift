@@ -325,7 +325,7 @@ struct AlertListOverlayView: View {
                                 .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.1))
                                 .clipShape(Capsule())
                             }
-                            if let eta = alert.threatETA, !eta.isEmpty {
+                            if let eta = alert.displayETA, !eta.isEmpty {
                                 HStack(spacing: 3) {
                                     Image(systemName: "clock")
                                         .font(.system(size: 8))

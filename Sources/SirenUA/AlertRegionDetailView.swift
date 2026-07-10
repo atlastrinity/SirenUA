@@ -9,6 +9,8 @@ struct AlertRegionDetailView: View {
     @State private var isConfirmed = false
     @State private var isPulsing = false
     @State private var selectedThreatIndex: Int = 0
+    @State private var timeRefreshTrigger = Date()
+    private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
     private var isPremium: Bool {
         storeManager.isPremium
@@ -92,11 +94,16 @@ struct AlertRegionDetailView: View {
                         .onAppear { isPulsing = true }
 
                         VStack(alignment: .leading, spacing: 3) {
+                            let _ = timeRefreshTrigger // Force refresh on timer tick
                             Text(statusTitle)
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundStyle(themeColor)
 
-                            if let changed = region.lastChanged {
+                            if let threatTime = selectedThreat?.formattedSince {
+                                Text("Виявлено: \(threatTime)")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.45))
+                            } else if let changed = region.lastChanged {
                                 Text(changed)
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(.white.opacity(0.45))
@@ -432,6 +439,9 @@ struct AlertRegionDetailView: View {
         .onChange(of: region.activeThreats) { oldValue, newValue in
             selectedThreatIndex = max(0, newValue.count - 1)
         }
+        .onReceive(refreshTimer) { _ in
+            timeRefreshTrigger = Date()
+        }
         } // ZStack
     }
 
@@ -496,12 +506,13 @@ struct AlertRegionDetailView: View {
     
     @ViewBuilder
     private func threatMiniCard(threat: SingleThreatInfo, isSelected: Bool) -> some View {
+        let _ = timeRefreshTrigger // Force redraw on timer tick
         HStack(spacing: 6) {
             Image(systemName: threat.threatIcon)
                 .font(.system(size: 14, weight: .bold))
             Text(threat.threatLabel)
                 .font(.system(size: 13, weight: .semibold))
-            if let eta = threat.eta, !eta.isEmpty {
+            if let eta = threat.dynamicETA, !eta.isEmpty {
                 Text("(\(eta))")
                     .font(.system(size: 11))
                     .opacity(0.7)
@@ -521,11 +532,17 @@ struct AlertRegionDetailView: View {
     @ViewBuilder
     private func telemetryRow(line: String) -> some View {
         if let (label, value) = parseTelemetryLine(line) {
+            let displayValue: String = {
+                if label == "Очікуваний час", let dynamic = selectedThreat?.dynamicETA {
+                    return dynamic
+                }
+                return value
+            }()
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(label + ":")
                     .font(.system(size: 14, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.6))
-                Text(value)
+                Text(displayValue)
                     .font(.system(size: 14, weight: .bold, design: .monospaced))
                     .foregroundStyle(themeColor)
             }

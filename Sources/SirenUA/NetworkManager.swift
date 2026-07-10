@@ -212,6 +212,137 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         default:               return "Загроза"
         }
     }
+
+    /// Обчислена дата виявлення загрози з ISO8601
+    var sinceDate: Date? {
+        guard let since = since else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: since) {
+            return date
+        }
+        // Спроба без мікросекунд
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: since) {
+            return date
+        }
+        // Спроба для звичайного формату YYYY-MM-DD HH:MM:SS
+        let customFormatter = DateFormatter()
+        customFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        customFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return customFormatter.date(from: since)
+    }
+
+    /// Скільки хвилин пройшло з моменту виявлення загрози
+    var elapsedMinutes: Int {
+        guard let date = sinceDate else { return 0 }
+        return Int(Date().timeIntervalSince(date) / 60)
+    }
+
+    /// Динамічний час прибуття (ETA), перерахований відносно поточного часу
+    var dynamicETA: String? {
+        guard let eta = eta, !eta.isEmpty else {
+            // Якщо ETA не задано, повертаємо час виявлення
+            let minAgo = elapsedMinutes
+            if minAgo <= 0 {
+                return "щойно"
+            } else if minAgo < 60 {
+                return "\(minAgo) хв тому"
+            } else {
+                let hr = minAgo / 60
+                let mn = minAgo % 60
+                return "\(hr) год \(mn) хв тому"
+            }
+        }
+        
+        let elapsed = elapsedMinutes
+        
+        // Очищаємо рядок ETA від зайвих символів
+        let cleanEta = eta.replacingOccurrences(of: "~", with: "")
+                          .replacingOccurrences(of: "+", with: "")
+                          .trimmingCharacters(in: .whitespacesAndNewlines)
+                          
+        if cleanEta.hasSuffix("хв") {
+            let valPart = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
+            if valPart.contains("-") {
+                let components = valPart.components(separatedBy: "-")
+                if components.count == 2, let minVal = Int(components[0].trimmingCharacters(in: .whitespaces)), let maxVal = Int(components[1].trimmingCharacters(in: .whitespaces)) {
+                    let newMin = max(0, minVal - elapsed)
+                    let newMax = max(0, maxVal - elapsed)
+                    if newMax == 0 {
+                        return "в області"
+                    } else if newMin == 0 {
+                        return "~до \(newMax) хв"
+                    } else {
+                        return "~\(newMin)-\(newMax) хв"
+                    }
+                }
+            } else if let minutes = Int(valPart) {
+                let remaining = minutes - elapsed
+                if remaining <= 0 {
+                    return "в області"
+                } else {
+                    return "~\(remaining) хв"
+                }
+            }
+        } else if cleanEta.hasSuffix("год") {
+            let valPart = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
+            if valPart.contains("-") {
+                let components = valPart.components(separatedBy: "-")
+                if components.count == 2, let minVal = Double(components[0].trimmingCharacters(in: .whitespaces)), let maxVal = Double(components[1].trimmingCharacters(in: .whitespaces)) {
+                    let minMin = Int(minVal * 60)
+                    let maxMin = Int(maxVal * 60)
+                    let newMin = max(0, minMin - elapsed)
+                    let newMax = max(0, maxMin - elapsed)
+                    if newMax == 0 {
+                        return "в області"
+                    } else {
+                        let newMinHr = Double(newMin) / 60.0
+                        let newMaxHr = Double(newMax) / 60.0
+                        if newMin == 0 {
+                            return String(format: "~до %.1f год", newMaxHr)
+                        } else {
+                            return String(format: "~%.1f-%.1f год", newMinHr, newMaxHr)
+                        }
+                    }
+                }
+            } else if let hours = Double(valPart) {
+                let remainingMin = Int(hours * 60) - elapsed
+                if remainingMin <= 0 {
+                    return "в області"
+                } else {
+                    let remainingHr = Double(remainingMin) / 60.0
+                    return String(format: "~%.1f-%.1f год", remainingHr, remainingHr) // Safe fallback
+                }
+            }
+        }
+        
+        return eta
+    }
+
+    /// Форматований час виявлення (київський час)
+    var detectionTimeString: String {
+        guard let date = sinceDate else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Europe/Kyiv")
+        return formatter.string(from: date)
+    }
+
+    /// Час виявлення + скільки часу тому (наприклад: "19:20 (12 хв тому)")
+    var formattedSince: String {
+        let timeStr = detectionTimeString
+        let elapsed = elapsedMinutes
+        if elapsed <= 0 {
+            return "\(timeStr) (щойно)"
+        } else if elapsed < 60 {
+            return "\(timeStr) (\(elapsed) хв тому)"
+        } else {
+            let hr = elapsed / 60
+            let mn = elapsed % 60
+            return "\(timeStr) (\(hr) год \(mn) хв тому)"
+        }
+    }
 }
 
 struct ThreatInfo: Codable {

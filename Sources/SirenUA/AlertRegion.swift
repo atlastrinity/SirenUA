@@ -29,6 +29,14 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         return activeThreats[idx]
     }
 
+    /// Динамічне значення ETA з урахуванням поточного часу
+    var displayETA: String? {
+        if let current = currentThreat {
+            return current.dynamicETA
+        }
+        return threatETA
+    }
+
     /// Кількість активних загроз різних типів
     var threatCount: Int { activeThreats.count }
 

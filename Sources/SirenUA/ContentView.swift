@@ -79,6 +79,8 @@ struct ContentView: View {
     
     // Стан для анімацій (пульсація)
     @State private var dummyState = false
+    @State private var timeRefreshTrigger = Date()
+    private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
     private var shouldBlinkLastAlert: Bool {
         guard let timestamp = viewModel.lastViewedTimestamp else { return true }
@@ -448,6 +450,9 @@ struct ContentView: View {
                         centerMapOnAlerts()
                     }
                 }
+                .onReceive(refreshTimer) { _ in
+                    timeRefreshTrigger = Date()
+                }
     }
     
     @ViewBuilder
@@ -564,6 +569,7 @@ struct ContentView: View {
                         
                         // Dynamic text label with confidence and ETA
                         VStack(spacing: 1) {
+                            let _ = timeRefreshTrigger // Force refresh on timer tick
                             Text(alert.name)
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.white)
@@ -584,7 +590,7 @@ struct ContentView: View {
                                             .font(.system(size: 7, weight: .bold))
                                             .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
                                     }
-                                    if let eta = alert.threatETA, !eta.isEmpty {
+                                    if let eta = alert.displayETA, !eta.isEmpty {
                                         Text(eta)
                                             .font(.system(size: 7, weight: .medium))
                                             .foregroundColor(.white.opacity(0.7))

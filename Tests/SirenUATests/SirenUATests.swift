@@ -256,4 +256,28 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(threat.eta, "~1-2 год")
         XCTAssertEqual(threat.is_predictive, true)
     }
+
+    func testDynamicETACalculations() throws {
+        // Formulate an ISO string 10 minutes ago
+        let tenMinAgo = Date().addingTimeInterval(-600)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let sinceStr = formatter.string(from: tenMinAgo)
+        
+        let threat = SingleThreatInfo(
+            threat_id: "test_t1",
+            level: "high",
+            type: "shahed",
+            detail: "Test Detail",
+            since: sinceStr,
+            confidence: 90,
+            eta: "~25 хв",
+            is_predictive: false,
+            is_test: false,
+            group_id: nil
+        )
+        
+        XCTAssertEqual(threat.elapsedMinutes, 10)
+        XCTAssertEqual(threat.dynamicETA, "~15  хв".replacingOccurrences(of: "  ", with: " ")) // Expected remaining 15 mins (with double space normalization or direct match)
+    }
 }
