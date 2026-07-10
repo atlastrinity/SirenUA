@@ -102,7 +102,7 @@
 		73D05AA6EF664F667B662B2F /* TelemetryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryRow.swift; sourceTree = "<group>"; };
 		7CEFC7F09656C89CEA9E0972 /* BottomDashboardV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomDashboardV4.swift; sourceTree = "<group>"; };
 		80AA13725CEBE7B0899F8EE5 /* ThreatDetailCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatDetailCard.swift; sourceTree = "<group>"; };
-		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_regions.geojson; sourceTree = "<group>"; };
 		8B33387695CB0CE00D86B8F2 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		8B93847811D7F44E3D2C2EC3 /* AdminDashboardTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardTab.swift; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
