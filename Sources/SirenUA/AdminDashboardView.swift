@@ -1173,55 +1173,56 @@ struct AdminDashboardView: View {
                                     .padding(.top, 8)
                                     .padding(.bottom, 2)
                                 
-                                ForEach(events) { ev in
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Text(ev.match_type == "match" ? "✅" :
-                                             ev.match_type == "mitigated" ? "🛡️" :
-                                             ev.match_type == "mismatch" ? "❌" :
-                                             ev.match_type == "active" ? "⏱️" : "🔄")
-                                        .font(.system(size: 16))
-                                        
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            HStack {
-                                                Text(ev.region)
-                                                    .font(.system(size: 13, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                Spacer()
-                                                if let duration = ev.duration_seconds {
-                                                    Text(formatDuration(duration))
-                                                        .font(.system(size: 11))
-                                                        .foregroundColor(.white.opacity(0.4))
-                                                }
-                                            }
-                                            
-                                            Text("\(ev.threat_type) (\(ev.threat_level))")
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(.white.opacity(0.5))
-                                            
-                                            if let detail = ev.threat_detail {
-                                                Text(detail)
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(.white.opacity(0.8))
-                                                    .lineLimit(2)
-                                            }
-                                            
-                                            HStack {
-                                                if let tts = ev.threat_timestamp {
-                                                    Text("Початок: \(formatShortTime(tts))")
-                                                }
-                                                if let cts = ev.clearing_timestamp {
-                                                    Text(" · Відбій: \(formatShortTime(cts))")
-                                                }
-                                            }
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.white.opacity(0.35))
-                                        }
-                                    }
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.01))
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.05), lineWidth: 1))
-                                }
+                                  ForEach(events) { ev in
+                                      HStack(alignment: .top, spacing: 8) {
+                                          Text(ev.match_type == "match" ? "✅" :
+                                               ev.match_type == "mitigated" ? "🛡️" :
+                                               ev.match_type == "mismatch" ? "❌" :
+                                               ev.match_type == "official" ? "🚨" :
+                                               ev.match_type == "active" ? "⏱️" : "🔄")
+                                          .font(.system(size: 16))
+                                          
+                                          VStack(alignment: .leading, spacing: 3) {
+                                              HStack {
+                                                  Text(ev.region)
+                                                      .font(.system(size: 13, weight: .bold))
+                                                      .foregroundColor(.white)
+                                                  Spacer()
+                                                  if let duration = ev.duration_seconds {
+                                                      Text(formatDuration(duration))
+                                                          .font(.system(size: 11))
+                                                          .foregroundColor(.white.opacity(0.4))
+                                                  }
+                                              }
+                                              
+                                              Text(ev.threat_type == "official_alarm" ? "Офіційна тривога" : "\(ev.threat_type) (\(ev.threat_level))")
+                                                  .font(.system(size: 11, weight: .medium))
+                                                  .foregroundColor(ev.threat_type == "official_alarm" ? .red : .white.opacity(0.5))
+                                              
+                                              if let detail = ev.threat_detail {
+                                                  Text(detail)
+                                                      .font(.system(size: 12))
+                                                      .foregroundColor(.white.opacity(0.8))
+                                                      .lineLimit(2)
+                                              }
+                                              
+                                              HStack {
+                                                  if let tts = ev.threat_timestamp {
+                                                      Text("Початок: \(formatShortTime(tts))")
+                                                  }
+                                                  if let cts = ev.clearing_timestamp {
+                                                      Text(" · Відбій: \(formatShortTime(cts))")
+                                                  }
+                                              }
+                                              .font(.system(size: 10))
+                                              .foregroundColor(.white.opacity(0.35))
+                                          }
+                                      }
+                                      .padding(10)
+                                      .background(ev.match_type == "official" ? Color.red.opacity(0.08) : Color.white.opacity(0.01))
+                                      .cornerRadius(8)
+                                      .overlay(RoundedRectangle(cornerRadius: 8).stroke(ev.match_type == "official" ? Color.red.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1))
+                                  }
                             }
                         }
                     }
@@ -1308,6 +1309,45 @@ struct AdminDashboardView: View {
                             .background(Color.blue)
                             .cornerRadius(8)
                     }
+                }
+            }
+            .padding(12)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+            
+            // Rebuild rules section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("🧠 Самонавчання ШІ (Gemini)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                
+                Text("Запуск примусового аналізу paired_events для генерації нових правил або оновлення наявних.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineSpacing(3)
+                
+                Button(action: {
+                    triggerHaptic()
+                    Task { await rebuildRules() }
+                }) {
+                    HStack {
+                        Image(systemName: "brain.head.profile")
+                        Text("Перебудувати правила навчання")
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.purple.opacity(0.3))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.purple.opacity(0.5), lineWidth: 1))
+                }
+                
+                if showRebuildSuccess {
+                    Text("✅ Правила успішно перебудовано на сервері!")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.green)
+                        .padding(.top, 2)
                 }
             }
             .padding(12)
@@ -1750,45 +1790,7 @@ struct AdminDashboardView: View {
             .padding(14)
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
-            
-            // Rebuild rules section
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Самонавчання ШІ (Gemini)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text("Запуск примусового аналізуpaired_events для генерації нових правил або оновлення наявних.")
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.55))
-                    .lineSpacing(4)
-                
-                Button(action: {
-                    triggerHaptic()
-                    Task { await rebuildRules() }
-                }) {
-                    HStack {
-                        Image(systemName: "brain.head.profile")
-                        Text("Перебудувати правила навчання")
-                    }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.purple.opacity(0.3))
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.5), lineWidth: 1))
-                }
-                
-                if showRebuildSuccess {
-                    Text("✅ Правила успішно перебудовано на сервері!")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.green)
-                        .padding(.top, 4)
-                }
-            }
-            .padding(14)
-            .background(ChartColorTheme.cardBg)
-            .cornerRadius(12)
+
             
             // Server Diagnostics
             VStack(alignment: .leading, spacing: 12) {
