@@ -120,7 +120,23 @@ struct ContentView: View {
         return ZStack(alignment: .top) {
             // 1. ШАР КАРТИ
             Map(position: $mapViewModel.cameraPosition, selection: $mapViewModel.selectedShelter) {
-                mapContent
+                ThreatMapContent(
+                    activeThreatRegions: activeThreatRegions,
+                    activeAlertRegions: activeAlertRegions,
+                    alertsDict: alertsDict,
+                    alerts: viewModel.alerts,
+                    isPremium: viewModel.isPremium,
+                    lastAlertedRegionName: viewModel.lastAlertedRegionName,
+                    allFoundShelters: mapViewModel.allFoundShelters,
+                    selectedShelter: mapViewModel.selectedShelter,
+                    route: mapViewModel.route,
+                    timeRefreshTrigger: timeRefreshTrigger,
+                    currentUserCoordinate: currentUserCoordinate,
+                    getThreatTypeDescriptionShort: { viewModel.getThreatTypeDescriptionShort($0) },
+                    onRegionSelected: { region in
+                        mapViewModel.selectedRegionForDetail = region
+                    }
+                )
             }
             .mapStyle(selectedMapStyle)
             .colorScheme(.dark)
@@ -530,115 +546,7 @@ struct ContentView: View {
         }
     }
     
-    @MapContentBuilder
-    private var mapContent: some MapContent {
-        ForEach(activeThreatRegions) { region in
-            let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
-            let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
-            let strokeOpacity: Double = confidence >= 85 ? 0.8 : (confidence >= 60 ? 0.6 : 0.35)
-            let fillOpacity: Double = confidence >= 85 ? 0.5 : (confidence >= 60 ? 0.35 : 0.15)
-            let strokeColor: Color = threatColor.opacity(strokeOpacity)
-            let fillColor: Color = threatColor.opacity(fillOpacity)
-            
-            ForEach(region.identifiablePolygons) { item in
-                MapPolygon(item.polygon)
-                    .stroke(strokeColor, lineWidth: 0.5)
-                    .foregroundStyle(fillColor)
-            }
-        }
 
-        ForEach(activeAlertRegions) { region in
-            let isLastAlerted = region.nameUK == viewModel.lastAlertedRegionName
-            
-            ForEach(region.identifiablePolygons) { item in
-                MapPolygon(item.polygon)
-                    .stroke(.red.opacity(0.6), lineWidth: 0.7)
-                    .foregroundStyle(isLastAlerted ? .red.opacity(0.5) : .red.opacity(0.35))
-            }
-        }
-        
-        Annotation("Ви", coordinate: currentUserCoordinate) {
-            Image(systemName: "location.north.fill")
-                .foregroundColor(.white)
-                .padding(8)
-                .background(Color.green)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                .shadow(radius: 5)
-        }
-        
-        ForEach(viewModel.alerts) { alert in
-            if alert.isActive || (viewModel.isPremium && alert.threatLevel != nil) {
-                Annotation(coordinate: alert.coordinate) {
-                    VStack(spacing: 4) {
-                        Button(action: {
-                            mapViewModel.selectedRegionForDetail = alert
-                        }) {
-                            Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : alert.icon)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(5)
-                                .background(alert.isActive ? Color.red : alert.color)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                                .shadow(radius: 3)
-                        }
-                        
-                        VStack(spacing: 1) {
-                            let _ = timeRefreshTrigger
-                            Text(alert.name)
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            if viewModel.isPremium, let type = alert.threatType {
-                                Text(viewModel.getThreatTypeDescriptionShort(type))
-                                    .font(.system(size: 8, weight: .semibold))
-                                    .foregroundColor(.yellow)
-                                    .lineLimit(1)
-                                    .multilineTextAlignment(.center)
-                            }
-                            
-                            if viewModel.isPremium, alert.threatLevel != nil {
-                                HStack(spacing: 3) {
-                                    if let conf = alert.threatConfidence {
-                                        Text("⚙️ \(conf)%")
-                                            .font(.system(size: 7, weight: .bold))
-                                            .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
-                                    }
-                                    if let eta = alert.displayETA, !eta.isEmpty {
-                                        Text(eta)
-                                            .font(.system(size: 7, weight: .medium))
-                                            .foregroundColor(.white.opacity(0.7))
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
-                        )
-                    }
-                } label: {
-                    EmptyView()
-                }
-            }
-        }
-        
-        ForEach(mapViewModel.allFoundShelters, id: \.self) { shelter in
-            Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
-                .tint(mapViewModel.selectedShelter == shelter ? .green : .blue)
-                .tag(shelter)
-        }
-        
-        if let route = mapViewModel.route {
-            MapPolyline(route)
-                .stroke(.blue, lineWidth: 5)
-        }
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {

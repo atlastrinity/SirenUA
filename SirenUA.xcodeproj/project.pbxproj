@@ -31,6 +31,7 @@
 		77911458D26F128B6595C4CB /* AdminErrorsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE58E39146F997321AEBD3B /* AdminErrorsTab.swift */; };
 		81679A36A0C498A8F3AD0B26 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C84D82D0834D6540E612184 /* CriticalAlertManager.swift */; };
 		835749ACCAA2AB2C0F25ED6C /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E64D5D56FBB6E54F397F43 /* AdminDashboardView.swift */; };
+		855C6AB6373E40BE550CEC83 /* ThreatMapContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */; };
 		8DE395A72A39F9861D44A3EC /* RegionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34711DC64A7284E773156999 /* RegionHistoryView.swift */; };
 		9C2604C1882C919AF67F9B06 /* AdminControlTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB44D26EDD0483C6031770D3 /* AdminControlTab.swift */; };
 		9DA940DA1E27D917919A12DB /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DC6491EE57F52BE4F83350 /* GeoJSONManager.swift */; };
@@ -121,6 +122,7 @@
 		CFE0BC3871D497F65492C083 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D095FF259C3F660FB4D0FB15 /* MKDirectionsTransportType+Hashable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MKDirectionsTransportType+Hashable.swift"; sourceTree = "<group>"; };
 		E518FB98E1D1C0239F058B20 /* AdminRulesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminRulesTab.swift; sourceTree = "<group>"; };
+		EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatMapContent.swift; sourceTree = "<group>"; };
 		EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = warning.wav; sourceTree = "<group>"; };
 		F4FCDD604237AFB48CCEBE29 /* AlertListOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertListOverlayView.swift; sourceTree = "<group>"; };
 		FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -305,6 +307,7 @@
 				8B33387695CB0CE00D86B8F2 /* ShareSheet.swift */,
 				1827FA12485C38287F9CCFC0 /* ShelterDetailView.swift */,
 				AA5D4126E025C32D1D8961A9 /* SmallIconButtonV4.swift */,
+				EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */,
 				925E120A440DB03B70EC83CE /* TopAlertBannerV4.swift */,
 			);
 			path = Components;
@@ -475,6 +478,7 @@
 				DC10839A225D7821729BB7F8 /* SmallIconButtonV4.swift in Sources */,
 				16989F91C5C7443B2AFE61FB /* StoreKitManager.swift in Sources */,
 				D22B1569856DA5420FBEC59D /* StyledToggleRow.swift in Sources */,
+				855C6AB6373E40BE550CEC83 /* ThreatMapContent.swift in Sources */,
 				C54799935055C03981CA6F24 /* TopAlertBannerV4.swift in Sources */,
 				DAF92976F6869766756C9374 /* View+PressEvents.swift in Sources */,
 			);
