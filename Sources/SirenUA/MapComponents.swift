@@ -254,7 +254,7 @@ struct AlertListOverlayView: View {
 
     private func alertRow(_ alert: AlertRegion) -> some View {
         let isThreat = !alert.isActive && alert.threatLevel != nil
-        let rowColor = alert.isActive ? color : (isThreat ? Color.yellow : Color.gray.opacity(0.4))
+        let rowColor = alert.isActive ? color : (isThreat ? alert.color : Color.gray)
         
         return Button(action: {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -284,13 +284,13 @@ struct AlertListOverlayView: View {
                         Text(alert.isActive ? "АКТИВНА" : (isThreat ? "ЗАГРОЗА" : "НЕАКТИВНА"))
                             .font(.system(size: 9, weight: .black))
                             .tracking(0.8)
-                            .foregroundColor(alert.isActive ? color : (isThreat ? .yellow : .gray))
+                            .foregroundColor(rowColor)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
-                            .background((alert.isActive ? color : (isThreat ? .yellow : Color.gray)).opacity(0.12))
+                            .background(rowColor.opacity(0.12))
                             .clipShape(Capsule())
                             .overlay(
-                                Capsule().stroke((alert.isActive ? color : (isThreat ? .yellow : Color.gray)).opacity(0.2), lineWidth: 1)
+                                Capsule().stroke(rowColor.opacity(0.2), lineWidth: 1)
                             )
 
                         if let changed = alert.lastChanged {
@@ -304,7 +304,7 @@ struct AlertListOverlayView: View {
                     if isPremium, let type = alert.threatType, let detail = alert.threatDetail {
                         Text("⚠️ \(type.uppercased()): \(detail)")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.yellow.opacity(0.8))
+                            .foregroundColor(rowColor.opacity(0.8))
                             .multilineTextAlignment(.leading)
                             .padding(.top, 2)
                     }
@@ -367,13 +367,13 @@ struct AlertListOverlayView: View {
             .background(
                 alert.isActive
                     ? color.opacity(0.05)
-                    : (isThreat ? Color.yellow.opacity(0.03) : Color.white.opacity(0.02))
+                    : (isThreat ? rowColor.opacity(0.03) : Color.white.opacity(0.02))
             )
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
-                        alert.isActive ? color.opacity(0.2) : (isThreat ? Color.yellow.opacity(0.15) : Color.white.opacity(0.05)),
+                        alert.isActive ? color.opacity(0.2) : (isThreat ? rowColor.opacity(0.15) : Color.white.opacity(0.05)),
                         lineWidth: 1
                     )
             )

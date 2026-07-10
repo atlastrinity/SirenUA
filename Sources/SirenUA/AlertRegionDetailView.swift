@@ -40,7 +40,7 @@ struct AlertRegionDetailView: View {
         if region.isActive {
             return .red
         } else if isThreatActive {
-            return .yellow
+            return region.color
         } else {
             return .green
         }

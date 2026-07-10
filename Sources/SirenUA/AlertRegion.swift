@@ -41,21 +41,51 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var threatCount: Int { activeThreats.count }
 
     var icon: String {
-        switch level {
-        case 1: return "exclamationmark.triangle.fill"
-        case 2: return "bell.fill"
-        case 3: return "speaker.wave.3.fill"
-        default: return "info.circle.fill"
+        if isActive {
+            switch level {
+            case 1: return "exclamationmark.triangle.fill"
+            case 2: return "bell.fill"
+            case 3: return "speaker.wave.3.fill"
+            default: return "speaker.wave.3.fill"
+            }
+        } else if threatLevel != nil {
+            switch threatType {
+            case "shahed": return "airplane"
+            case "cruise_missile": return "bolt.fill"
+            case "ballistic": return "arrow.up.right"
+            case "mig31k": return "airplane"
+            case "kab": return "flame.fill"
+            default: return "exclamationmark.triangle.fill"
+            }
         }
+        return "info.circle.fill"
     }
 
     var color: Color {
-        switch level {
-        case 1: return .yellow
-        case 2: return .orange
-        case 3: return .red
-        default: return .blue
+        if isActive {
+            switch level {
+            case 1: return .yellow
+            case 2: return .orange
+            case 3: return .red
+            default: return .red
+            }
+        } else if let threat = threatLevel {
+            let isExpired = displayETA == "в області"
+            
+            switch threat {
+            case "critical":
+                return .red
+            case "high":
+                return isExpired ? .red : .orange
+            case "medium":
+                return isExpired ? .orange : .yellow
+            case "low":
+                return isExpired ? .orange : .yellow
+            default:
+                return isExpired ? .orange : .yellow
+            }
         }
+        return .blue
     }
 
     init(id: Int, name: String, isActive: Bool, level: Int, description: String, coordinate: CLLocationCoordinate2D, lastChanged: String? = nil, threatLevel: String? = nil, threatType: String? = nil, threatDetail: String? = nil) {

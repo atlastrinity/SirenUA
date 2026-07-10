@@ -128,7 +128,20 @@ struct ContentView: View {
         let hasAlerts = !activeTrackedAlerts.isEmpty
         let hasThreats = !activeTrackedThreats.isEmpty
         
-        let themeColor: Color = hasAlerts ? .red : (hasThreats ? .yellow : .green)
+        let themeColor: Color
+        if hasAlerts {
+            themeColor = .red
+        } else if hasThreats {
+            if activeTrackedThreats.contains(where: { $0.color == .red }) {
+                themeColor = .red
+            } else if activeTrackedThreats.contains(where: { $0.color == .orange }) {
+                themeColor = .orange
+            } else {
+                themeColor = .yellow
+            }
+        } else {
+            themeColor = .green
+        }
         let themeActiveCount: Int = hasAlerts ? activeTrackedAlerts.count : (hasThreats ? activeTrackedThreats.count : 0)
         let themeStatusText: String = hasAlerts ? "ТРИВОГА" : (hasThreats ? "ЗАГРОЗА" : "СПОКІЙНО")
 
@@ -350,8 +363,8 @@ struct ContentView: View {
             
             if showActiveAlerts {
                 AlertListOverlayView(
-                    title: "АКТИВНІ ТРИВОГИ",
-                    color: .red,
+                    title: hasAlerts ? "АКТИВНІ ТРИВОГИ" : "АКТИВНІ ЗАГРОЗИ",
+                    color: themeColor,
                     alerts: viewModel.alerts,
                     filterActiveOnly: true,
                     isPremium: viewModel.isPremium,
@@ -510,11 +523,12 @@ struct ContentView: View {
         // Polygons
         ForEach(activeThreatRegions) { region in
             // Градієнт прозорості на основі довіри ШІ
+            let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
             let strokeOpacity: Double = confidence >= 85 ? 0.8 : (confidence >= 60 ? 0.6 : 0.35)
             let fillOpacity: Double = confidence >= 85 ? 0.5 : (confidence >= 60 ? 0.35 : 0.15)
-            let strokeColor: Color = .yellow.opacity(strokeOpacity)
-            let fillColor: Color = .yellow.opacity(fillOpacity)
+            let strokeColor: Color = threatColor.opacity(strokeOpacity)
+            let fillColor: Color = threatColor.opacity(fillOpacity)
             
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
@@ -557,11 +571,11 @@ struct ContentView: View {
                         Button(action: {
                             selectedRegionForDetail = alert
                         }) {
-                            Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : "bell.fill")
+                            Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : alert.icon)
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(5)
-                                .background(alert.isActive ? Color.red : Color.yellow)
+                                .background(alert.isActive ? Color.red : alert.color)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
                                 .shadow(radius: 3)
