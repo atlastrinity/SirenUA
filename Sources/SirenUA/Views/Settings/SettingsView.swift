@@ -176,17 +176,17 @@ struct SettingsView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        if true {
-                            // Admin mode: show native admin dashboard entrance
+                        if adminAuthenticated && adminViewMode {
                             adminDashboardCard
-                        } else {
-                            // User mode: hide diagnosticsCard and mockScenariosCard completely
-                            notificationsCard
-                            mapCard
-                            premiumCard
-                            regionsCard
-                            aboutCard
+                            diagnosticsCard
+                            mockScenariosCard
                         }
+                        
+                        notificationsCard
+                        mapCard
+                        premiumCard
+                        regionsCard
+                        aboutCard
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
