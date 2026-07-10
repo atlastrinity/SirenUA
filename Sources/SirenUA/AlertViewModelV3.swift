@@ -178,6 +178,15 @@ final class AlertViewModelV3: ObservableObject {
         alerts[index].threatETA = threat.eta
         alerts[index].isThreatPredictive = threat.is_predictive ?? false
         
+        // Multi-threat: populate active_threats array
+        if let activeThreats = threat.active_threats, !activeThreats.isEmpty {
+            alerts[index].activeThreats = activeThreats
+            alerts[index].selectedThreatIndex = activeThreats.count - 1 // newest last
+        } else {
+            alerts[index].activeThreats = []
+            alerts[index].selectedThreatIndex = 0
+        }
+        
         if let isActive = threat.is_active {
             alerts[index].isActive = isActive
             alerts[index].level = isActive ? 3 : 0
@@ -222,6 +231,15 @@ final class AlertViewModelV3: ObservableObject {
             alerts[index].threatConfidence = threat.confidence
             alerts[index].threatETA = threat.eta
             alerts[index].isThreatPredictive = threat.is_predictive ?? false
+            
+            // Multi-threat: populate active_threats array
+            if let activeThreats = threat.active_threats, !activeThreats.isEmpty {
+                alerts[index].activeThreats = activeThreats
+                alerts[index].selectedThreatIndex = activeThreats.count - 1
+            } else {
+                alerts[index].activeThreats = []
+                alerts[index].selectedThreatIndex = 0
+            }
             
             if let isActive = threat.is_active {
                 alerts[index].isActive = isActive

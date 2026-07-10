@@ -169,6 +169,51 @@ struct ThreatResponse: Codable {
     let threats: [String: ThreatInfo]
 }
 
+struct SingleThreatInfo: Codable, Identifiable, Equatable {
+    let threat_id: String
+    let level: String
+    let type: String?
+    let detail: String?
+    let since: String?
+    let confidence: Int?
+    let eta: String?
+    let is_predictive: Bool?
+    let is_test: Bool?
+    let group_id: String?
+
+    var id: String { threat_id }
+
+    /// Іконка типу загрози для міні-картки
+    var threatIcon: String {
+        switch type {
+        case "shahed":         return "airplane"
+        case "cruise_missile": return "bolt.fill"
+        case "ballistic":      return "arrow.up.right"
+        case "mig31k":         return "jet.fill" // SF Symbol fallback
+        case "kab":            return "flame.fill"
+        case "tu95":           return "airplane.circle.fill"
+        case "iskander":       return "arrow.up.right.circle.fill"
+        case "artillery":      return "burst.fill"
+        default:               return "exclamationmark.triangle.fill"
+        }
+    }
+
+    /// Назва типу загрози українською
+    var threatLabel: String {
+        switch type {
+        case "shahed":         return "БПЛА"
+        case "cruise_missile": return "Ракети"
+        case "ballistic":      return "Балістика"
+        case "mig31k":         return "МіГ-31К"
+        case "kab":            return "КАБ"
+        case "tu95":           return "Ту-95"
+        case "iskander":       return "Іскандер"
+        case "artillery":      return "Обстріл"
+        default:               return "Загроза"
+        }
+    }
+}
+
 struct ThreatInfo: Codable {
     let level: String       // "none" | "low" | "medium" | "high" | "critical"
     let type: String?
@@ -178,6 +223,7 @@ struct ThreatInfo: Codable {
     let eta: String?        // "~20-40 хв" expected arrival time
     let is_predictive: Bool? // true if AI-predicted (not confirmed)
     let is_active: Bool?     // true if official air alarm is active
+    let active_threats: [SingleThreatInfo]?  // Масив усіх активних загроз
 }
 
 // MARK: - Network Errors

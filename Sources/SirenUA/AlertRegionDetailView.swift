@@ -8,12 +8,20 @@ struct AlertRegionDetailView: View {
     @EnvironmentObject private var storeManager: StoreKitManager
     @State private var isConfirmed = false
     @State private var isPulsing = false
+    @State private var selectedThreatIndex: Int = 0
     
     private var isPremium: Bool {
         storeManager.isPremium
     }
     private var isThreatActive: Bool {
         !region.isActive && region.threatLevel != nil
+    }
+    
+    /// Поточна вибрана загроза (або nil якщо немає)
+    private var selectedThreat: SingleThreatInfo? {
+        guard !region.activeThreats.isEmpty else { return nil }
+        let idx = min(selectedThreatIndex, region.activeThreats.count - 1)
+        return region.activeThreats[idx]
     }
     
     private var statusTitle: String {
@@ -146,6 +154,51 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
+                    // ── Multi-threat selector (shows only if 2+ active threats) ──
+                    if region.activeThreats.count > 1 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "list.bullet.rectangle.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Активні загрози (\(region.activeThreats.count))")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 4)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(Array(region.activeThreats.enumerated()), id: \.element.id) { idx, threat in
+                                        let isSelected = (idx == selectedThreatIndex)
+                                        threatMiniCard(threat: threat, isSelected: isSelected)
+                                            .onTapGesture {
+                                                withAnimation(.easeInOut(duration: 0.25)) {
+                                                    selectedThreatIndex = idx
+                                                }
+                                            }
+                                    }
+                                }
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                            }
+                        }
+                        .padding(12)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [themeColor.opacity(0.2), themeColor.opacity(0.05)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                    }
+
                     // Alert/Threat level badge
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -162,7 +215,8 @@ struct AlertRegionDetailView: View {
                                 Text(threatTypeEmoji)
                                     .font(.system(size: 18))
                             }
-                            Text(isThreatActive ? "Загроза: \(region.threatLevel?.uppercased() ?? "LOW")" : "Рівень \(region.level)")
+                            let displayLevel = selectedThreat?.level.uppercased() ?? region.threatLevel?.uppercased() ?? "LOW"
+                            Text(isThreatActive ? "Загроза: \(displayLevel)" : "Рівень \(region.level)")
                                 .font(.system(size: 16, weight: .bold))
                         }
                             .padding(.horizontal, 16)
@@ -189,7 +243,8 @@ struct AlertRegionDetailView: View {
                     )
 
                     // Card 1: Що відомо (Premium-only) or Purchase CTA
-                    if let detail = region.threatDetail, !detail.isEmpty {
+                    // Uses selected threat's detail if available, falls back to region's legacy threatDetail
+                    if let detail = selectedThreat?.detail ?? region.threatDetail, !detail.isEmpty {
                         if isPremium {
                             threatDetailCard(detail: detail)
                         } else {
@@ -198,7 +253,8 @@ struct AlertRegionDetailView: View {
                     }
                     
                     // Card 2: Імовірність загрози (Premium only)
-                    if isPremium, let confidence = region.threatConfidence {
+                    // Uses selected threat's confidence if available
+                    if isPremium, let confidence = selectedThreat?.confidence ?? region.threatConfidence {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Image(systemName: "shield.checkered")
@@ -370,6 +426,12 @@ struct AlertRegionDetailView: View {
             }
             .preferredColorScheme(.dark)
         }
+        .onAppear {
+            selectedThreatIndex = max(0, region.activeThreats.count - 1)
+        }
+        .onChange(of: region.activeThreats) { oldValue, newValue in
+            selectedThreatIndex = max(0, newValue.count - 1)
+        }
         } // ZStack
     }
 
@@ -432,6 +494,30 @@ struct AlertRegionDetailView: View {
         )
     }
     
+    @ViewBuilder
+    private func threatMiniCard(threat: SingleThreatInfo, isSelected: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: threat.threatIcon)
+                .font(.system(size: 14, weight: .bold))
+            Text(threat.threatLabel)
+                .font(.system(size: 13, weight: .semibold))
+            if let eta = threat.eta, !eta.isEmpty {
+                Text("(\(eta))")
+                    .font(.system(size: 11))
+                    .opacity(0.7)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(isSelected ? themeColor.opacity(0.2) : Color.white.opacity(0.05))
+        .foregroundStyle(isSelected ? themeColor : .white)
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isSelected ? themeColor : Color.white.opacity(0.1), lineWidth: 1)
+        )
+    }
+
     @ViewBuilder
     private func telemetryRow(line: String) -> some View {
         if let (label, value) = parseTelemetryLine(line) {

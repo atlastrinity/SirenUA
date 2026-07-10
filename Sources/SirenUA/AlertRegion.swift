@@ -19,6 +19,18 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var threatConfidence: Int? // 0-100% AI confidence score
     var threatETA: String?     // "~20-40 хв" expected arrival time
     var isThreatPredictive: Bool = false // true if AI-predicted route
+    var activeThreats: [SingleThreatInfo] = [] // Масив усіх активних загроз
+    var selectedThreatIndex: Int = 0             // Індекс вибраної загрози для UI
+
+    /// Поточна вибрана загроза для відображення у картці
+    var currentThreat: SingleThreatInfo? {
+        guard !activeThreats.isEmpty else { return nil }
+        let idx = min(selectedThreatIndex, activeThreats.count - 1)
+        return activeThreats[idx]
+    }
+
+    /// Кількість активних загроз різних типів
+    var threatCount: Int { activeThreats.count }
 
     var icon: String {
         switch level {
