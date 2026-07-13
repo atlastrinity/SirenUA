@@ -68,7 +68,9 @@ class AdminViewModel: ObservableObject {
     
     @Published var regionsList: [String] = []
     
-    let serverURL = "https://sirenua-threatserver.onrender.com"
+    var serverURL: String {
+        NetworkManager.serverURL
+    }
     
     // MARK: - Computeds
     

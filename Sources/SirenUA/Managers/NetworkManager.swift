@@ -14,6 +14,13 @@ private let networkLogger = Logger(subsystem: "com.sirenua", category: "Network"
 final class NetworkManager: Sendable {
 
     // Base URLs and User-Agent strings
+    static var serverURL: String {
+        #if targetEnvironment(simulator)
+        return "http://localhost:8085"
+        #else
+        return "https://sirenua-threatserver.onrender.com"
+        #endif
+    }
     static let alertsBaseURL  = "https://ubilling.net.ua/aerialalerts/"
     static let userAgent      = "ios-sirenua/4.2"
     static let premiumAgent   = "ios-sirenua-premium/4.2"

@@ -18,7 +18,9 @@ struct RegionHistoryView: View {
     @EnvironmentObject private var storeManager: StoreKitManager
     
     private let networkManager = NetworkManager()
-    private let serverURL = "https://sirenua-threatserver.onrender.com"
+    private var serverURL: String {
+        NetworkManager.serverURL
+    }
     
     private var isPremium: Bool {
         storeManager.isPremium

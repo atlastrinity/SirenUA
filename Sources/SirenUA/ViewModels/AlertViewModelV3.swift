@@ -37,7 +37,7 @@ final class AlertViewModelV3: ObservableObject {
     var refreshInterval: Int { 30 }
 
     var threatServerURL: String {
-        "https://sirenua-threatserver.onrender.com"
+        NetworkManager.serverURL
     }
 
     var premiumObserver: NSObjectProtocol? = nil

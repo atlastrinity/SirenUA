@@ -82,7 +82,7 @@ struct SettingsView: View {
         geminiServerStatus  = .checking
 
         async let alertsPing  = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
-        async let threatsPing = ping(url: "https://sirenua-threatserver.onrender.com/api/threats", method: "GET")
+        async let threatsPing = ping(url: "\(NetworkManager.serverURL)/api/threats", method: "GET")
         async let geminiPing  = checkGeminiStatus()
 
         alertsServerStatus  = await alertsPing
@@ -91,7 +91,7 @@ struct SettingsView: View {
     }
 
     private func checkGeminiStatus() async -> ServerStatus {
-        guard let url = URL(string: "https://sirenua-threatserver.onrender.com/api/gemini/status") else {
+        guard let url = URL(string: "\(NetworkManager.serverURL)/api/gemini/status") else {
             return .offline(error: "Невірна URL")
         }
         var request = URLRequest(url: url)
@@ -141,7 +141,7 @@ struct SettingsView: View {
     }
 
     private func triggerScenario(_ scenario: String) {
-        guard let url = URL(string: "https://sirenua-threatserver.onrender.com/api/threats/scenario") else { return }
+        guard let url = URL(string: "\(NetworkManager.serverURL)/api/threats/scenario") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
