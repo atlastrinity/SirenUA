@@ -310,9 +310,16 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
                 let remainingMin = Int(hours * 60) - elapsed
                 if remainingMin <= 0 {
                     return "в області"
+                } else if remainingMin < 60 {
+                    return "~до \(remainingMin) хв"
                 } else {
-                    let remainingHr = Double(remainingMin) / 60.0
-                    return String(format: "~%.1f-%.1f год", remainingHr, remainingHr) // Safe fallback
+                    let hr = remainingMin / 60
+                    let mn = remainingMin % 60
+                    if mn == 0 {
+                        return "~\(hr) год"
+                    } else {
+                        return "~\(hr) год \(mn) хв"
+                    }
                 }
             }
         }
