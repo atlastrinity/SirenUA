@@ -2,7 +2,7 @@ import os
 import json
 import sqlite3
 import google.generativeai as genai
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 class GeminiThreatAnalyzer:
@@ -829,3 +829,78 @@ MANDATORY fields:
             normalized[key] = val
         
         return normalized
+
+    async def reevaluate_expired_threat(self, region: str, threat_type: str, set_time: str, recent_messages: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not self.is_configured:
+            return None
+            
+        msgs_context = ""
+        for msg in recent_messages:
+            msgs_context += f"Канал: {msg['channel']}\nТекст: {msg['text']}\n---\n"
+            
+        prompt = f"""You are a military threat analyst for SirenUA.
+An early warning (predictive threat) was declared for {region} (type: {threat_type}) at {set_time} (Kyiv time).
+The estimated time of arrival (ETA) has passed, but the official state air raid siren has NOT been activated.
+
+Your task is to analyze the recent Telegram messages below and determine:
+1. Is the threat still active for {region}? (e.g., UAV is still flying in/towards the region, or active air defense is working right now).
+2. If the threat is NOT active (neutralized, passed, or was a false alarm), determine the reason (resolution_type) and prediction accuracy.
+
+=== CRITICAL EVALUATION RULES ===
+- If the messages contain no mentions of {region} or any threats in its direction since {set_time}, and the official alarm never started, it is highly likely a "false_alarm" or "lost_contact".
+- If the messages say that the targets were shot down ("збито"), intercepted, or destroyed in/near {region}, set resolution_type to "intercepted" and accuracy to "mitigated" (since air defense resolved it).
+- If the messages say that targets passed through the region without impact, set resolution_type to "passed_through" and accuracy to "confirmed" (the threat was real but passed).
+- If there is absolutely no info, no sirens, and no matches, set resolution_type to "expired" and accuracy to "overestimated" (since it was predicted but nothing materialized).
+
+=== OUTPUT FORMAT ===
+Return a JSON object with:
+{{
+  "is_active": true | false,
+  "resolution_type": "intercepted" | "passed_through" | "impact" | "lost_contact" | "false_alarm" | "expired",
+  "prediction_accuracy": "confirmed" | "mitigated" | "overestimated",
+  "reasoning_ukr": "Brief explanation in Ukrainian why this decision was made."
+}}
+
+Here are the latest Telegram messages:
+{msgs_context}
+"""
+
+        max_attempts = len(self.api_keys) if self.api_keys else 1
+        for attempt in range(max_attempts):
+            try:
+                response = await self.model.generate_content_async(
+                    prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        response_mime_type="application/json",
+                    )
+                )
+                
+                result_text = response.text
+                if result_text.startswith("```json"):
+                    result_text = result_text.split("```json", 1)[1]
+                if result_text.endswith("```"):
+                    result_text = result_text.rsplit("```", 1)[0]
+                    
+                self.last_error = None
+                return json.loads(result_text.strip())
+            except Exception as e:
+                error_msg = str(e)
+                print(f"❌ Gemini Re-evaluation API Error (Attempt {attempt + 1}/{max_attempts}): {error_msg}")
+                is_rate_limit = "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "rate limit" in error_msg.lower()
+                
+                if is_rate_limit and len(self.api_keys) > 1:
+                    self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
+                    print(f"🔄 Перемикання на наступний API ключ (Індекс {self.current_key_idx})")
+                    genai.configure(api_key=self.api_keys[self.current_key_idx])
+                    self.model = genai.GenerativeModel(self.model_name)
+                else:
+                    if is_rate_limit:
+                        self.last_error = "Rate Limit Exceeded (429)"
+                    else:
+                        self.last_error = error_msg
+                    
+                    if self._error_callback:
+                        self._error_callback("gemini", error_msg, endpoint="reevaluate_expired_threat", context=f"region={region}")
+                    return None
+        return None
+
