@@ -281,8 +281,16 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
                 let remaining = minutes - elapsed
                 if remaining <= 0 {
                     return "в області"
-                } else {
+                } else if remaining < 60 {
                     return "~\(remaining) хв"
+                } else {
+                    let hr = remaining / 60
+                    let mn = remaining % 60
+                    if mn == 0 {
+                        return "~\(hr) год"
+                    } else {
+                        return "~\(hr) год \(mn) хв"
+                    }
                 }
             }
         } else if cleanEta.hasSuffix("год") {
