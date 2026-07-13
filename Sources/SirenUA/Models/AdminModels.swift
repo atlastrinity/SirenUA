@@ -85,6 +85,16 @@ struct DailyStatEntry: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case day, total_events, cleared, active, confirmed, overestimated, mitigated, predictive
     }
+    
+    var accuracyPct: Double? {
+        let confirmedCount = confirmed
+        let overestimatedCount = overestimated
+        let mitigatedCount = mitigated ?? 0
+        let total = confirmedCount + overestimatedCount + mitigatedCount
+        guard total > 0 else { return nil }
+        let accuracy = Double(confirmedCount) + Double(mitigatedCount) * 0.8
+        return (accuracy / Double(total)) * 100.0
+    }
 }
 
 struct AdminChronologyResponse: Codable {
