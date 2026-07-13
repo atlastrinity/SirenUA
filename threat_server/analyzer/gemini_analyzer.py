@@ -8,18 +8,26 @@ from datetime import datetime
 class GeminiThreatAnalyzer:
     def __init__(self, error_callback=None, rule_audit_callback=None):
         # Configure Gemini
-        api_key = os.environ.get("GEMINI_API_KEY", "")
-        model_name = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
-        if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel(model_name)
+        keys_str = os.environ.get("GEMINI_API_KEYS", "")
+        if keys_str:
+            self.api_keys = [k.strip() for k in keys_str.split(",") if k.strip()]
+        else:
+            single_key = os.environ.get("GEMINI_API_KEY", "")
+            self.api_keys = [single_key] if single_key else []
+            
+        self.model_name = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+        self.current_key_idx = 0
+        
+        if self.api_keys:
+            genai.configure(api_key=self.api_keys[self.current_key_idx])
+            self.model = genai.GenerativeModel(self.model_name)
             self.is_configured = True
             self.last_error = None
-            print(f"🧠 GeminiAnalyzer configured with model: {model_name}")
+            print(f"🧠 GeminiAnalyzer configured with {len(self.api_keys)} keys, using model: {self.model_name}")
         else:
             self.is_configured = False
             self.last_error = "API key missing"
-            print("⚠️ GEMINI_API_KEY is not set. GeminiAnalyzer will run in mock mode.")
+            print("⚠️ GEMINI_API_KEYS is not set. GeminiAnalyzer will run in mock mode.")
 
         self.db_path = "threat_analytics.db"
         self._error_callback = error_callback
@@ -559,51 +567,70 @@ MANDATORY fields:
         for msg in messages:
             prompt += f"Канал: {msg['channel']}\nТекст: {msg['text']}\n---\n"
 
-        try:
-            response = await self.model.generate_content_async(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type="application/json",
+        max_attempts = len(self.api_keys) if self.api_keys else 1
+        for attempt in range(max_attempts):
+            try:
+                response = await self.model.generate_content_async(
+                    prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        response_mime_type="application/json",
+                    )
                 )
-            )
-            
-            result_text = response.text
-            if result_text.startswith("```json"):
-                result_text = result_text.split("```json", 1)[1]
-            if result_text.endswith("```"):
-                result_text = result_text.rsplit("```", 1)[0]
                 
-            self.last_error = None
-            results = json.loads(result_text.strip())
-            
-            # Normalize telemetry for each result
-            if isinstance(results, list):
-                for item in results:
-                    if isinstance(item, dict):
-                        if item.get("is_clear", False):
-                            # Normalize clearing telemetry
-                            item["clearing_telemetry"] = self.normalize_clearing_telemetry(item.get("clearing_telemetry"))
-                        elif item.get("threat_level", "none") != "none":
-                            # Normalize threat telemetry
-                            item["telemetry"] = self.normalize_telemetry(item.get("telemetry"))
-            
-            # Log rules injection info
-            if rules_ctx:
-                rules_count = rules_ctx.count("\n") - 1
-                print(f"🧠 [Gemini] Аналіз з {rules_count} правилами самонавчання")
-            
-            return results
-        except Exception as e:
-            error_msg = str(e)
-            print(f"❌ Gemini API Error: {error_msg}")
-            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "rate limit" in error_msg.lower():
-                self.last_error = "Rate Limit Exceeded (429)"
-            else:
-                self.last_error = error_msg
-            # Log error via callback
-            if self._error_callback:
-                self._error_callback("gemini", error_msg, endpoint="analyze_batch", context=f"messages_count={len(messages)}")
-            return []
+                result_text = response.text
+                if result_text.startswith("```json"):
+                    result_text = result_text.split("```json", 1)[1]
+                if result_text.endswith("```"):
+                    result_text = result_text.rsplit("```", 1)[0]
+                    
+                self.last_error = None
+                results = json.loads(result_text.strip())
+                
+                # Normalize telemetry for each result
+                if isinstance(results, list):
+                    for item in results:
+                        if isinstance(item, dict):
+                            if item.get("is_clear", False):
+                                # Normalize clearing telemetry
+                                item["clearing_telemetry"] = self.normalize_clearing_telemetry(item.get("clearing_telemetry"))
+                            elif item.get("threat_level", "none") != "none":
+                                # Normalize threat telemetry
+                                item["telemetry"] = self.normalize_telemetry(item.get("telemetry"))
+                
+                # Log rules injection info
+                if rules_ctx:
+                    rules_count = rules_ctx.count("\n") - 1
+                    print(f"🧠 [Gemini] Аналіз з {rules_count} правилами самонавчання (Ключ {self.current_key_idx + 1}/{len(self.api_keys)})")
+                
+                return results
+            except Exception as e:
+                error_msg = str(e)
+                print(f"❌ Gemini API Error (Attempt {attempt + 1}/{max_attempts}): {error_msg}")
+                is_rate_limit = "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "rate limit" in error_msg.lower()
+                
+                if is_rate_limit and len(self.api_keys) > 1:
+                    # Switch key
+                    self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
+                    print(f"🔄 Перемикання на наступний API ключ (Індекс {self.current_key_idx})")
+                    genai.configure(api_key=self.api_keys[self.current_key_idx])
+                    self.model = genai.GenerativeModel(self.model_name)
+                    # Continue to next attempt
+                else:
+                    if is_rate_limit:
+                        self.last_error = "Rate Limit Exceeded (429)"
+                    else:
+                        self.last_error = error_msg
+                    
+                    # Log error via callback
+                    if self._error_callback:
+                        self._error_callback("gemini", error_msg, endpoint="analyze_batch", context=f"messages_count={len(messages)}")
+                    return []
+        
+        # If we exhausted all attempts
+        self.last_error = "Rate Limit Exceeded across all available keys"
+        if self._error_callback:
+            self._error_callback("gemini", "All API keys rate limited", endpoint="analyze_batch", context=f"messages_count={len(messages)}")
+        return []
 
     @staticmethod
     def normalize_telemetry(telemetry: dict = None) -> dict:

@@ -419,6 +419,7 @@ class AdminViewModel: ObservableObject {
     func formatErrorType(_ type: String) -> String {
         switch type {
         case "429_rate_limit": return "429 Ліміт запитів"
+        case "404_not_found": return "404 Не знайдено"
         case "500_server": return "500 Помилка сервера"
         case "timeout": return "Таймаут з'єднання"
         case "network_error": return "Мережевий збій"

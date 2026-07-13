@@ -385,7 +385,7 @@ class TelegramThreatMonitor:
                     # Log clearing for each previously active region
                     for r_name, r_state in self.threat_manager.threats.items():
                         if r_state.level != "none" or True:  # Log for all since we just cleared
-                            from server import log_clearing_to_db
+                            from database.analytics_db import log_clearing_to_db
                             log_clearing_to_db(
                                 region=r_name,
                                 clearing_telemetry=clearing_telemetry,
@@ -409,7 +409,7 @@ class TelegramThreatMonitor:
                             continue
                         
                         # Log clearing BEFORE clearing the threat (to capture original state)
-                        from server import log_clearing_to_db
+                        from database.analytics_db import log_clearing_to_db
                         log_clearing_to_db(
                             region=region,
                             clearing_telemetry=clearing_telemetry,

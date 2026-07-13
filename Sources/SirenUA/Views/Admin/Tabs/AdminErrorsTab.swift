@@ -16,20 +16,22 @@ struct AdminErrorsTab: View {
                 }
                 
                 HStack(spacing: 8) {
-                    Picker("Джерело", selection: $viewModel.errSourceFilter) {
+                    Picker("Система (Джерело)", selection: $viewModel.errSourceFilter) {
                         Text("Всі").tag("")
                         Text("Server").tag("server")
                         Text("Firebase").tag("firebase")
                         Text("Gemini").tag("gemini")
+                        Text("Telegram").tag("telegram")
                     }
                     .pickerStyle(.menu)
                     .tint(.white)
                     .background(Color.white.opacity(0.05))
                     .cornerRadius(8)
                     
-                    Picker("Тип", selection: $viewModel.errTypeFilter) {
+                    Picker("Тип Помилки", selection: $viewModel.errTypeFilter) {
                         Text("Всі").tag("")
                         Text("429 Ліміт").tag("429_rate_limit")
+                        Text("404 Не знайдено").tag("404_not_found")
                         Text("500 Сервер").tag("500_server")
                         Text("Таймаут").tag("timeout")
                         Text("Мережа").tag("network_error")
