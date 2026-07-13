@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CD87911FFC4D30016E1792E0 /* HistoryAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CF6A9127B7B40A9C4DA04A /* HistoryAPI.swift */; };
+		5F978000E41C61A3881F8FB9 /* SheltersAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B73046FA6B9774B115B9FEC /* SheltersAPI.swift */; };
+		FE2BE453ABF31B1518DEDD4B /* ThreatsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A206A903E7300268410B0044 /* ThreatsAPI.swift */; };
+		014F7315C132D93462748D2A /* AlertsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3364DFF5DB8BFE77CA576F /* AlertsAPI.swift */; };
+		5BEA8BD51E777DE75FA3E402 /* AlertViewModelV3+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8697962F70C8E4D82F966D23 /* AlertViewModelV3+Helpers.swift */; };
+		C24F0F1B661A8784743E0D01 /* AlertViewModelV3+Threats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C3E7024D7EA0DA8012EDA7 /* AlertViewModelV3+Threats.swift */; };
+		91639E9713D48E6E0C54CC3D /* ContentView+Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BABC70C930114C3DB425DF3 /* ContentView+Sheets.swift */; };
+		95C40110A4FE7DDA982A83D3 /* ContentView+MapLayers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106272A6111C3A713A4C28FF /* ContentView+MapLayers.swift */; };
+		DFC0B360B4E3C34DDDBED4E9 /* ContentView+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C8022CD2CB6624817D6ECF /* ContentView+Theme.swift */; };
 		0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BA16504A891512121DBF64D /* Assets.xcassets */; };
 		0CC99CB0B44F61B4A47B2629 /* RegionHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D9BC6244BDDF4F0663E106 /* RegionHistoryEvent.swift */; };
 		0E50948AD94AF6FB81C85E06 /* NavigationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF634E9651E888F120FACE1 /* NavigationOverlay.swift */; };
@@ -76,6 +85,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		83CF6A9127B7B40A9C4DA04A /* HistoryAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HistoryAPI.swift"; sourceTree = "<group>"; };
+		1B73046FA6B9774B115B9FEC /* SheltersAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SheltersAPI.swift"; sourceTree = "<group>"; };
+		A206A903E7300268410B0044 /* ThreatsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ThreatsAPI.swift"; sourceTree = "<group>"; };
+		EC3364DFF5DB8BFE77CA576F /* AlertsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AlertsAPI.swift"; sourceTree = "<group>"; };
+		8697962F70C8E4D82F966D23 /* AlertViewModelV3+Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AlertViewModelV3+Helpers.swift"; sourceTree = "<group>"; };
+		83C3E7024D7EA0DA8012EDA7 /* AlertViewModelV3+Threats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AlertViewModelV3+Threats.swift"; sourceTree = "<group>"; };
+		9BABC70C930114C3DB425DF3 /* ContentView+Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Sheets.swift"; sourceTree = "<group>"; };
+		106272A6111C3A713A4C28FF /* ContentView+MapLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MapLayers.swift"; sourceTree = "<group>"; };
+		A6C8022CD2CB6624817D6ECF /* ContentView+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Theme.swift"; sourceTree = "<group>"; };
 		013689DDFEEE1910227FD2A8 /* AdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViewModel.swift; sourceTree = "<group>"; };
 		0339979594E28EFDB0679230 /* SirenUA.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUA.entitlements; sourceTree = "<group>"; };
 		0C84D82D0834D6540E612184 /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
@@ -222,6 +240,7 @@
 		52B7DE3CC22AF8B6DE6F6AEC /* Managers */ = {
 			isa = PBXGroup;
 			children = (
+				52B7DE3CC22AF8B6DE6F6AEF /* API */,
 				0C84D82D0834D6540E612184 /* CriticalAlertManager.swift */,
 				37DC6491EE57F52BE4F83350 /* GeoJSONManager.swift */,
 				BA1658C6134027D3CF2D1A69 /* LocationManager.swift */,
@@ -257,6 +276,9 @@
 		7546B2637B453C1E8313DE6F /* Main */ = {
 			isa = PBXGroup;
 			children = (
+				9BABC70C930114C3DB425DF3 /* ContentView+Sheets.swift */,
+				106272A6111C3A713A4C28FF /* ContentView+MapLayers.swift */,
+				A6C8022CD2CB6624817D6ECF /* ContentView+Theme.swift */,
 				30463DD6C0646A3B7A290141 /* AppDelegate.swift */,
 				52577CC4A3DB333AB117FE33 /* ContentView.swift */,
 				95ADDC4958C3DDFE90FA169C /* SirenUAApp.swift */,
@@ -345,11 +367,24 @@
 		E5204E5FBCAB4D7F29D85B7D /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				8697962F70C8E4D82F966D23 /* AlertViewModelV3+Helpers.swift */,
+				83C3E7024D7EA0DA8012EDA7 /* AlertViewModelV3+Threats.swift */,
 				013689DDFEEE1910227FD2A8 /* AdminViewModel.swift */,
 				A436C2C5186204E6DFB2C26E /* AlertViewModelV3.swift */,
 				B67D7E51B19A85354D587BD2 /* MapViewModel.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		52B7DE3CC22AF8B6DE6F6AEF /* API */ = {
+			isa = PBXGroup;
+			children = (
+				83CF6A9127B7B40A9C4DA04A /* HistoryAPI.swift */,
+				1B73046FA6B9774B115B9FEC /* SheltersAPI.swift */,
+				A206A903E7300268410B0044 /* ThreatsAPI.swift */,
+				EC3364DFF5DB8BFE77CA576F /* AlertsAPI.swift */,
+			);
+			path = API;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -458,6 +493,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD87911FFC4D30016E1792E0 /* HistoryAPI.swift in Sources */,
+				5F978000E41C61A3881F8FB9 /* SheltersAPI.swift in Sources */,
+				FE2BE453ABF31B1518DEDD4B /* ThreatsAPI.swift in Sources */,
+				014F7315C132D93462748D2A /* AlertsAPI.swift in Sources */,
+				5BEA8BD51E777DE75FA3E402 /* AlertViewModelV3+Helpers.swift in Sources */,
+				C24F0F1B661A8784743E0D01 /* AlertViewModelV3+Threats.swift in Sources */,
+				91639E9713D48E6E0C54CC3D /* ContentView+Sheets.swift in Sources */,
+				95C40110A4FE7DDA982A83D3 /* ContentView+MapLayers.swift in Sources */,
+				DFC0B360B4E3C34DDDBED4E9 /* ContentView+Theme.swift in Sources */,
 				3FEB076CAE81DF7D859DFAC9 /* AdminChronologyTab.swift in Sources */,
 				9C2604C1882C919AF67F9B06 /* AdminControlTab.swift in Sources */,
 				5404931494080E4FFF2BDB86 /* AdminCorrelationTab.swift in Sources */,

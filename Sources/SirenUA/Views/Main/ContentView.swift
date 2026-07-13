@@ -29,10 +29,10 @@ enum ActiveSheet: Identifiable, Equatable {
 //   ContentView+Sheets.swift     — sheetContent(for:), locationButton, handleOpenRegionDetail
 
 struct ContentView: View {
-    @StateObject private var viewModel = AlertViewModelV3()
-    @StateObject private var geoManager = GeoJSONManager()
-    @StateObject private var locationManager = LocationManager.shared
-    @StateObject private var mapViewModel = MapViewModel()
+    @StateObject var viewModel = AlertViewModelV3()
+    @StateObject var geoManager = GeoJSONManager()
+    @StateObject var locationManager = LocationManager.shared
+    @StateObject var mapViewModel = MapViewModel()
     
     @AppStorage("showRadar") private var showRadar = true
     @AppStorage("mapType") var mapType = 0
