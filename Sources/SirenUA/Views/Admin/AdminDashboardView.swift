@@ -70,6 +70,10 @@ struct AdminDashboardView: View {
                 await viewModel.loadRegions()
                 await viewModel.refreshAllData()
             }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .presentationBackground(.clear)
+            }
         }
     }
     
@@ -116,6 +120,7 @@ struct AdminDashboardView: View {
                     .padding(.vertical, 7)
                     .background(Color.blue.opacity(0.3))
                     .clipShape(Capsule())
+                }
             }
         }
         .padding(.horizontal, 16)

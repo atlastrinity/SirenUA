@@ -36,6 +36,7 @@ struct ContentView: View {
     @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
     @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
     @AppStorage("onboardingCompleted") private var onboardingCompleted = false
+    @AppStorage("adminAuthenticated") private var adminAuthenticated = false
     
     var centerCoordinate: CLLocationCoordinate2D {
         locationManager.location?.coordinate ?? Self.fallbackCoordinate
@@ -89,38 +90,7 @@ struct ContentView: View {
     }
     
     var body: some View {
-        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
-        let trackedList = trackedString.components(separatedBy: ";")
-        
-        let isRegionFiltered: (String) -> Bool = { name in
-            allTracked || trackedList.contains(name)
-        }
-        
-        let activeTrackedAlerts = viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
-        let activeTrackedThreats = viewModel.isPremium ? viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) } : []
-        
-        let hasAlerts = !activeTrackedAlerts.isEmpty
-        let hasThreats = !activeTrackedThreats.isEmpty
-        
-        let themeColor: Color
-        if hasAlerts {
-            themeColor = .red
-        } else if hasThreats {
-            if activeTrackedThreats.contains(where: { $0.color == .red }) {
-                themeColor = .red
-            } else if activeTrackedThreats.contains(where: { $0.color == .orange }) {
-                themeColor = .orange
-            } else {
-                themeColor = .yellow
-            }
-        } else {
-            themeColor = .green
-        }
-        let themeActiveCount: Int = hasAlerts ? activeTrackedAlerts.count : (hasThreats ? activeTrackedThreats.count : 0)
-        let themeStatusText: String = hasAlerts ? "ТРИВОГА" : (hasThreats ? "ЗАГРОЗА" : "СПОКІЙНО")
-
-        return ZStack(alignment: .top) {
+        ZStack(alignment: .top) {
             // 1. ШАР КАРТИ
             Map(position: $mapViewModel.cameraPosition, selection: $mapViewModel.selectedShelter) {
                 ThreatMapContent(
@@ -219,31 +189,7 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    Button(action: {
-                        let coord = currentUserCoordinate
-                        withAnimation(.easeInOut(duration: 1.0)) {
-                            mapViewModel.cameraPosition = .region(
-                                MKCoordinateRegion(
-                                    center: coord,
-                                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-                                )
-                            )
-                        }
-                    }) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(themeColor)
-                            .padding(10)
-                            .background(themeColor.opacity(0.15))
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
-                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                    }
-                    .simultaneousGesture(TapGesture().onEnded {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    })
-                    .padding(.trailing, 16)
+                    locationButton
                 }
                 .padding(.top, 10)
                 
@@ -322,11 +268,7 @@ struct ContentView: View {
                             mapViewModel.activeSheet = .share
                         },
                         onSettings: {
-                            if viewModel.adminAuthenticated {
-                                mapViewModel.activeSheet = .admin
-                            } else {
-                                mapViewModel.activeSheet = .settings
-                            }
+                            mapViewModel.activeSheet = .admin
                         },
                         onHistory: {
                             mapViewModel.showHistory = true
@@ -464,13 +406,7 @@ struct ContentView: View {
                 )
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail"))) { notification in
-            if let regionName = notification.userInfo?["regionName"] as? String {
-                if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
-                    mapViewModel.selectedRegionForDetail = region
-                }
-            }
-        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
         .onAppear {
             locationManager.requestPermission()
             viewModel.markLastAlertAsViewed()
@@ -555,7 +491,88 @@ struct ContentView: View {
         }
     }
     
-
+    private func isRegionFiltered(_ name: String) -> Bool {
+        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
+        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
+        let trackedList = trackedString.components(separatedBy: ";")
+        return allTracked || trackedList.contains(name)
+    }
+    
+    private var activeTrackedAlerts: [AlertRegion] {
+        viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
+    }
+    
+    private var activeTrackedThreats: [AlertRegion] {
+        guard viewModel.isPremium else { return [] }
+        return viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
+    }
+    
+    private var hasAlerts: Bool {
+        !activeTrackedAlerts.isEmpty
+    }
+    
+    private var hasThreats: Bool {
+        !activeTrackedThreats.isEmpty
+    }
+    
+    private var themeColor: Color {
+        if hasAlerts {
+            return .red
+        } else if hasThreats {
+            if activeTrackedThreats.contains(where: { $0.color == .red }) {
+                return .red
+            } else if activeTrackedThreats.contains(where: { $0.color == .orange }) {
+                return .orange
+            } else {
+                return .yellow
+            }
+        } else {
+            return .green
+        }
+    }
+    
+    private var themeActiveCount: Int {
+        hasAlerts ? activeTrackedAlerts.count : (hasThreats ? activeTrackedThreats.count : 0)
+    }
+    
+    private var themeStatusText: String {
+        hasAlerts ? "ТРИВОГА" : (hasThreats ? "ЗАГРОЗА" : "СПОКІЙНО")
+    }
+    
+    private func handleOpenRegionDetail(_ notification: Notification) {
+        guard let regionName = notification.userInfo?["regionName"] as? String else { return }
+        if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
+            mapViewModel.selectedRegionForDetail = region
+        }
+    }
+    
+    private var locationButton: some View {
+        Button(action: {
+            let coord = currentUserCoordinate
+            withAnimation(.easeInOut(duration: 1.0)) {
+                mapViewModel.cameraPosition = .region(
+                    MKCoordinateRegion(
+                        center: coord,
+                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                    )
+                )
+            }
+        }) {
+            Image(systemName: "location.fill")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(themeColor)
+                .padding(10)
+                .background(themeColor.opacity(0.15))
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
+                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+        }
+        .simultaneousGesture(TapGesture().onEnded {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        })
+        .padding(.trailing, 16)
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {
