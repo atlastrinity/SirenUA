@@ -137,52 +137,7 @@ struct AdminRulesTab: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else {
                             ForEach(viewModel.activeRules) { rule in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text(rule.rule_type)
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.blue.opacity(0.2))
-                                            .foregroundColor(.blue)
-                                            .cornerRadius(4)
-                                        
-                                        Spacer()
-                                        
-                                        Text("\(Int(rule.accuracy_score * 100))% accuracy")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(rule.accuracy_score >= 0.7 ? .green : .yellow)
-                                        
-                                        Text("Evidences: \(rule.evidence_count)")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.white.opacity(0.4))
-                                    }
-                                    
-                                    Text(rule.rule_text)
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.95))
-                                        .lineLimit(3)
-                                    
-                                    HStack(spacing: 8) {
-                                        if let src = rule.source_region, !src.isEmpty {
-                                            let dst = rule.target_region ?? ""
-                                            Text("🗺️ \(src) → \(dst)")
-                                        }
-                                        if let th = rule.threat_type, !th.isEmpty {
-                                            Text("🚀 \(th)")
-                                        }
-                                        Spacer()
-                                        Text(viewModel.formatShortTime(rule.updated_at))
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.white.opacity(0.35))
-                                    }
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.5))
-                                }
-                                .padding(10)
-                                .background(Color.white.opacity(0.02))
-                                .cornerRadius(8)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
+                                GeminiRuleRow(rule: rule, viewModel: viewModel)
                             }
                         }
                     }
@@ -204,58 +159,7 @@ struct AdminRulesTab: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else {
                             ForEach(viewModel.ruleAuditHistory) { entry in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text(entry.action.uppercased())
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(
-                                                entry.action == "added" ? Color.green.opacity(0.2) :
-                                                entry.action == "deactivated" ? Color.yellow.opacity(0.2) : Color.red.opacity(0.2)
-                                            )
-                                            .foregroundColor(
-                                                entry.action == "added" ? Color.green :
-                                                entry.action == "deactivated" ? Color.yellow : Color.red
-                                            )
-                                            .cornerRadius(4)
-                                        
-                                        Spacer()
-                                        
-                                        Text(viewModel.formatShortTime(entry.timestamp))
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.white.opacity(0.4))
-                                    }
-                                    
-                                    if let text = entry.rule_text, !text.isEmpty {
-                                        Text(text)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.white.opacity(0.85))
-                                    } else if let reason = entry.reason, !reason.isEmpty {
-                                        Text(reason)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.white.opacity(0.85))
-                                    }
-                                    
-                                    HStack(spacing: 8) {
-                                        if let t = entry.threat_type, !t.isEmpty {
-                                            Text("Загроза: \(t)")
-                                        }
-                                        if let src = entry.source_region, !src.isEmpty {
-                                            let dst = entry.target_region ?? ""
-                                            Text("Маршрут: \(src) → \(dst)")
-                                        }
-                                        if let reason = entry.reason, entry.rule_text != nil, !reason.isEmpty {
-                                            Text("Причина: \(reason)")
-                                        }
-                                    }
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.4))
-                                }
-                                .padding(10)
-                                .background(Color.white.opacity(0.02))
-                                .cornerRadius(8)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
+                                GeminiRuleAuditRow(entry: entry, viewModel: viewModel)
                             }
                         }
                     }
@@ -279,3 +183,116 @@ struct AdminRulesTab: View {
         }
     }
 }
+
+struct GeminiRuleRow: View {
+    let rule: GeminiRule
+    let viewModel: AdminViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(rule.rule_type)
+                    .font(.system(size: 9, weight: .bold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.blue.opacity(0.2))
+                    .foregroundColor(.blue)
+                    .cornerRadius(4)
+                
+                Spacer()
+                
+                Text("\(Int(rule.accuracy_score * 100))% accuracy")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(rule.accuracy_score >= 0.7 ? .green : .yellow)
+                
+                Text("Evidences: \(rule.evidence_count)")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+            
+            Text(rule.rule_text)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.95))
+                .lineLimit(3)
+            
+            HStack(spacing: 8) {
+                if let src = rule.source_region, !src.isEmpty {
+                    Text("🗺️ \(src) → \(rule.target_region ?? "")")
+                }
+                if let th = rule.threat_type, !th.isEmpty {
+                    Text("🚀 \(th)")
+                }
+                Spacer()
+                Text(viewModel.formatShortTime(rule.updated_at))
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.35))
+            }
+            .font(.system(size: 10))
+            .foregroundColor(.white.opacity(0.5))
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.02))
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
+    }
+}
+
+struct GeminiRuleAuditRow: View {
+    let entry: GeminiRuleAuditEntry
+    let viewModel: AdminViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(entry.action.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        entry.action == "added" ? Color.green.opacity(0.2) :
+                        entry.action == "deactivated" ? Color.yellow.opacity(0.2) : Color.red.opacity(0.2)
+                    )
+                    .foregroundColor(
+                        entry.action == "added" ? Color.green :
+                        entry.action == "deactivated" ? Color.yellow : Color.red
+                    )
+                    .cornerRadius(4)
+                
+                Spacer()
+                
+                Text(viewModel.formatShortTime(entry.timestamp))
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+            
+            if let text = entry.rule_text, !text.isEmpty {
+                Text(text)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
+            } else if let reason = entry.reason, !reason.isEmpty {
+                Text(reason)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            
+            HStack(spacing: 8) {
+                if let t = entry.threat_type, !t.isEmpty {
+                    Text("Загроза: \(t)")
+                }
+                if let src = entry.source_region, !src.isEmpty {
+                    Text("Маршрут: \(src) → \(entry.target_region ?? "")")
+                }
+                if let reason = entry.reason, entry.rule_text != nil, !reason.isEmpty {
+                    Text("Причина: \(reason)")
+                }
+            }
+            .font(.system(size: 10))
+            .foregroundColor(.white.opacity(0.4))
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.02))
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
+    }
+}
+
