@@ -415,7 +415,13 @@ class AdminViewModel: ObservableObject {
         let positiveSec = abs(sec)
         if positiveSec < 60 { return "\(positiveSec)с" }
         if positiveSec < 3600 { return "\(positiveSec / 60)хв" }
-        return "\(positiveSec / 3600)год"
+        let hours = positiveSec / 3600
+        let minutes = (positiveSec % 3600) / 60
+        if minutes > 0 {
+            return "\(hours)год \(minutes)хв"
+        } else {
+            return "\(hours)год"
+        }
     }
     
     func formatErrorType(_ type: String) -> String {
