@@ -7,6 +7,7 @@ private let mapLogger = Logger(subsystem: "com.sirenua", category: "Map")
 
 enum ActiveSheet: Identifiable, Equatable {
     case settings
+    case admin
     case share
     case shelterDetail(MKMapItem)
     
@@ -14,6 +15,8 @@ enum ActiveSheet: Identifiable, Equatable {
         switch self {
         case .settings:
             return "settings"
+        case .admin:
+            return "admin"
         case .share:
             return "share"
         case .shelterDetail(let item):
@@ -319,7 +322,11 @@ struct ContentView: View {
                             mapViewModel.activeSheet = .share
                         },
                         onSettings: {
-                            mapViewModel.activeSheet = .settings
+                            if viewModel.adminAuthenticated {
+                                mapViewModel.activeSheet = .admin
+                            } else {
+                                mapViewModel.activeSheet = .settings
+                            }
                         },
                         onHistory: {
                             mapViewModel.showHistory = true
@@ -495,6 +502,8 @@ struct ContentView: View {
         case .settings:
             SettingsView()
                 .presentationBackground(.clear)
+        case .admin:
+            AdminDashboardView()
         case .share:
             let shareText: String = {
                 if let shelter = mapViewModel.foundShelter {

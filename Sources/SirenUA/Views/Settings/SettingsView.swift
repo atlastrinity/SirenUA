@@ -176,8 +176,6 @@ struct SettingsView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        adminDashboardCard
-                        
                         notificationsCard
                         mapCard
                         premiumCard

@@ -3,6 +3,7 @@ import SwiftUI
 struct AdminDashboardView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel = AdminViewModel()
+    @State private var showingSettings = false
     
     // Custom Horizontal Scrollable Navigation Tabs
     @State private var selectedTab = 0
@@ -91,10 +92,23 @@ struct AdminDashboardView: View {
                 }
             }
             Spacer()
-            Button(action: {
-                viewModel.triggerHaptic()
-                dismiss()
-            }) {
+            HStack(spacing: 12) {
+                Button(action: {
+                    viewModel.triggerHaptic()
+                    showingSettings = true
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                
+                Button(action: {
+                    viewModel.triggerHaptic()
+                    dismiss()
+                }) {
                 Text("Готово")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.white)
