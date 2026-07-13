@@ -78,8 +78,7 @@ struct AdminErrorsTab: View {
             .cornerRadius(12)
             
             
-            ScrollView {
-                VStack(spacing: 16) {
+            VStack(spacing: 16) {
                     // Stats cards grid
                     if let stats = viewModel.errorStats {
                         VStack(alignment: .leading, spacing: 12) {
@@ -197,7 +196,6 @@ struct AdminErrorsTab: View {
                     .padding(14)
                     .background(ChartColorTheme.cardBg)
                     .cornerRadius(12)
-                }
             }
             .onChange(of: viewModel.errSourceFilter) { _, _ in
                 Task { await viewModel.fetchErrors() }

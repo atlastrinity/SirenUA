@@ -9,9 +9,7 @@ struct AdminCorrelationTab: View {
             filtersPanel()
             
             if let corr = viewModel.correlationV2Data {
-                ScrollView {
-                    correlationContent(corr: corr)
-                }
+                correlationContent(corr: corr)
             }
         }
         .onChange(of: viewModel.corDaysFilter) { _, _ in

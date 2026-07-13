@@ -122,9 +122,8 @@ struct AdminRulesTab: View {
             .cornerRadius(12)
             
             // Active rules list
-            ScrollView {
-                VStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 10) {
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
                         Text("Активні правила навчання (\(viewModel.activeRules.count))")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.white)
@@ -166,7 +165,6 @@ struct AdminRulesTab: View {
                     .padding(14)
                     .background(ChartColorTheme.cardBg)
                     .cornerRadius(12)
-                }
             }
             .onChange(of: viewModel.rulesDaysFilter) { _, _ in
                 Task { await viewModel.fetchRules() }

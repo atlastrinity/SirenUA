@@ -90,19 +90,18 @@ struct AdminChronologyTab: View {
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
             
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Stats grid
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                        statBox(title: "Всього подій", value: "\(viewModel.chronologyData?.total ?? 0)", color: ChartColorTheme.accent)
-                        statBox(title: "✅ Співпадіння AI", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "match" }).count ?? 0)", color: ChartColorTheme.confirmed)
-                        statBox(title: "🛡️ Збито/РЕБ", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "mitigated" }).count ?? 0)", color: ChartColorTheme.mitigated)
-                    }
-                    
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                        statBox(title: "❌ Неспівпадіння", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "mismatch" }).count ?? 0)", color: ChartColorTheme.overestimated)
-                        statBox(title: "⏱️ Активні", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "active" }).count ?? 0)", color: ChartColorTheme.active)
-                    }
+            VStack(spacing: 16) {
+                // Stats grid
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    statBox(title: "Всього подій", value: "\(viewModel.chronologyData?.total ?? 0)", color: ChartColorTheme.accent)
+                    statBox(title: "✅ Співпадіння AI", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "confirmed" }).count ?? 0)", color: ChartColorTheme.confirmed)
+                    statBox(title: "🛡️ Збито/РЕБ", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "mitigated" }).count ?? 0)", color: ChartColorTheme.mitigated)
+                }
+                
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    statBox(title: "❌ Неспівпадіння", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "overestimated" }).count ?? 0)", color: ChartColorTheme.overestimated)
+                    statBox(title: "⏱️ Активні", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "active" }).count ?? 0)", color: ChartColorTheme.active)
+                }
                     
                     if let chrono = viewModel.chronologyData {
                         /*
@@ -172,7 +171,6 @@ struct AdminChronologyTab: View {
                         .cornerRadius(12)
                     }
                 }
-            }
         }
         .onChange(of: viewModel.daysFilter) { _, _ in
             Task { await viewModel.fetchChronology() }
@@ -218,9 +216,9 @@ struct ChronologyEventRow: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text(ev.match_type == "match" ? "✅" :
+            Text(ev.match_type == "confirmed" ? "✅" :
                  ev.match_type == "mitigated" ? "🛡️" :
-                 ev.match_type == "mismatch" ? "❌" :
+                 ev.match_type == "overestimated" ? "❌" :
                  ev.match_type == "official" ? "🚨" :
                  ev.match_type == "active" ? "⏱️" : "🔄")
             .font(.system(size: 16))

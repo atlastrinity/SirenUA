@@ -268,7 +268,7 @@ struct ContentView: View {
                             mapViewModel.activeSheet = .share
                         },
                         onSettings: {
-                            mapViewModel.activeSheet = .admin
+                            mapViewModel.activeSheet = .settings
                         },
                         onHistory: {
                             mapViewModel.showHistory = true
