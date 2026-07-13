@@ -232,14 +232,22 @@ class AdminViewModel: ObservableObject {
             let (rulesData, _) = try await URLSession.shared.data(from: rulesUrl)
             let (historyData, _) = try await URLSession.shared.data(from: historyUrl)
             
-            if let decodedRules = try? JSONDecoder().decode(GeminiRulesResponse.self, from: rulesData) {
-                self.activeRules = decodedRules.rules
+            do {
+                let decoded = try JSONDecoder().decode(GeminiRulesResponse.self, from: rulesData)
+                self.activeRules = decoded.rules
+            } catch {
+                adminLogger.error("❌ rulesData decode error: \(error)")
             }
             
-            if let decodedHistory = try? JSONDecoder().decode(GeminiRulesHistoryResponse.self, from: historyData) {
-                self.ruleAuditHistory = decodedHistory.entries
+            do {
+                let decoded = try JSONDecoder().decode(GeminiRulesHistoryResponse.self, from: historyData)
+                self.ruleAuditHistory = decoded.entries
+            } catch {
+                adminLogger.error("❌ historyData decode error: \(error)")
             }
-        } catch {}
+        } catch {
+            adminLogger.error("❌ fetchRules network/request error: \(error)")
+        }
     }
     
     func fetchErrors() async {
