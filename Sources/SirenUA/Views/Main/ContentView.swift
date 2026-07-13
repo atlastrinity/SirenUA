@@ -13,17 +13,20 @@ enum ActiveSheet: Identifiable, Equatable {
     
     var id: String {
         switch self {
-        case .settings:
-            return "settings"
-        case .admin:
-            return "admin"
-        case .share:
-            return "share"
+        case .settings:           return "settings"
+        case .admin:              return "admin"
+        case .share:              return "share"
         case .shelterDetail(let item):
             return "shelter_\(item.placemark.coordinate.latitude)_\(item.placemark.coordinate.longitude)"
         }
     }
 }
+
+// MARK: - ContentView
+// Extensions live in:
+//   ContentView+Theme.swift      — themeColor, themeStatusText, themeActiveCount, hasAlerts/hasThreats, filter helpers
+//   ContentView+MapLayers.swift  — alertsDict, activeAlertRegions, activeThreatRegions, selectedMapStyle
+//   ContentView+Sheets.swift     — sheetContent(for:), locationButton, handleOpenRegionDetail
 
 struct ContentView: View {
     @StateObject private var viewModel = AlertViewModelV3()
@@ -32,7 +35,7 @@ struct ContentView: View {
     @StateObject private var mapViewModel = MapViewModel()
     
     @AppStorage("showRadar") private var showRadar = true
-    @AppStorage("mapType") private var mapType = 0
+    @AppStorage("mapType") var mapType = 0
     @AppStorage("walkingSearchRadius") private var walkingSearchRadius = 1.5
     @AppStorage("drivingSearchRadius") private var drivingSearchRadius = 5.0
     @AppStorage("onboardingCompleted") private var onboardingCompleted = false
@@ -46,41 +49,12 @@ struct ContentView: View {
         viewModel.alerts.first(where: { $0.isActive })?.coordinate ?? centerCoordinate
     }
 
-    private var selectedMapStyle: MapStyle {
-        switch mapType {
-        case 1:
-            return .hybrid
-        case 2:
-            return .imagery
-        default:
-            return .standard(elevation: .realistic)
-        }
-    }
-
-    private static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+    static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
 
     var currentUserCoordinate: CLLocationCoordinate2D {
         locationManager.location?.coordinate ?? Self.fallbackCoordinate
     }
-    
-    private var alertsDict: [String: AlertRegion] {
-        Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
-    }
-    
-    private var activeAlertRegions: [RegionPolygon] {
-        geoManager.regions.filter { region in
-            alertsDict[region.nameUK]?.isActive == true
-        }
-    }
-    
-    private var activeThreatRegions: [RegionPolygon] {
-        guard viewModel.isPremium else { return [] }
-        return geoManager.regions.filter { region in
-            guard let alert = alertsDict[region.nameUK] else { return false }
-            return !alert.isActive && alert.threatLevel != nil
-        }
-    }
-    
+
     @State private var timeRefreshTrigger = Date()
     private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
@@ -88,6 +62,8 @@ struct ContentView: View {
         guard let timestamp = viewModel.lastViewedTimestamp else { return true }
         return Date().timeIntervalSince(timestamp) < 60
     }
+    
+    // MARK: - Body
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -264,12 +240,8 @@ struct ContentView: View {
                                 serverURL: viewModel.threatServerURL
                             )
                         },
-                        onShare: {
-                            mapViewModel.activeSheet = .share
-                        },
-                        onSettings: {
-                            mapViewModel.activeSheet = .settings
-                        },
+                        onShare: { mapViewModel.activeSheet = .share },
+                        onSettings: { mapViewModel.activeSheet = .settings },
                         onHistory: {
                             mapViewModel.showHistory = true
                             viewModel.markLastAlertAsViewed()
@@ -295,9 +267,7 @@ struct ContentView: View {
                         mapViewModel.selectedRegionForDetail = region
                         mapViewModel.showHistory = false
                     },
-                    onClose: {
-                        mapViewModel.showHistory = false
-                    }
+                    onClose: { mapViewModel.showHistory = false }
                 )
                 .transition(.opacity.combined(with: .scale))
             }
@@ -313,9 +283,7 @@ struct ContentView: View {
                         mapViewModel.selectedRegionForDetail = region
                         mapViewModel.showActiveAlerts = false
                     },
-                    onClose: {
-                        mapViewModel.showActiveAlerts = false
-                    }
+                    onClose: { mapViewModel.showActiveAlerts = false }
                 )
                 .transition(.opacity.combined(with: .scale))
             }
@@ -430,148 +398,6 @@ struct ContentView: View {
         .onReceive(refreshTimer) { _ in
             timeRefreshTrigger = Date()
         }
-    }
-    
-    @ViewBuilder
-    private func sheetContent(for item: ActiveSheet) -> some View {
-        switch item {
-        case .settings:
-            SettingsView()
-                .presentationBackground(.clear)
-        case .admin:
-            AdminDashboardView()
-        case .share:
-            let shareText: String = {
-                if let shelter = mapViewModel.foundShelter {
-                    let lat = shelter.placemark.coordinate.latitude
-                    let lon = shelter.placemark.coordinate.longitude
-                    let name = shelter.name ?? ""
-                    return "🚨 Увага! Повітряна тривога.\nЗнайдено найближче укриття: \(name)\nКоординати: \(String(format: "%.5f", lat)), \(String(format: "%.5f", lon))"
-                } else {
-                    return "🚨 Увага! Повітряна тривога.\nЗнайдіть найближче безпечне місце."
-                }
-            }()
-            ShareSheet(activityItems: [shareText])
-        case .shelterDetail(let shelter):
-            if !mapViewModel.isNavigating {
-                ShelterDetailView(
-                    shelter: shelter,
-                    route: mapViewModel.route,
-                    isCalculatingRoute: mapViewModel.isCalculatingRoute,
-                    routeErrorMessage: mapViewModel.routeErrorMessage,
-                    onRouteRequested: {
-                        mapViewModel.calculateRoute(from: centerCoordinate, to: shelter)
-                    },
-                    onStartNavigation: {
-                        mapViewModel.isNavigating = true
-                        mapViewModel.activeSheet = nil
-                        
-                        if mapViewModel.route != nil {
-                            withAnimation(.easeInOut(duration: 2.0)) {
-                                let coord = currentUserCoordinate
-                                mapViewModel.cameraPosition = .userLocation(
-                                    followsHeading: true,
-                                    fallback: .camera(MapCamera(centerCoordinate: coord, distance: 400, heading: 0, pitch: 60))
-                                )
-                            }
-                        } else {
-                            let coord = currentUserCoordinate
-                            mapViewModel.cameraPosition = .userLocation(
-                                fallback: .camera(MapCamera(centerCoordinate: coord, distance: 1000, heading: 0, pitch: 0))
-                            )
-                        }
-                    }
-                )
-                .presentationDetents([.height(220)])
-                .presentationBackground(.ultraThinMaterial)
-                .presentationCornerRadius(24)
-                .presentationBackgroundInteraction(.enabled(upThrough: .height(220)))
-                .preferredColorScheme(.dark)
-            }
-        }
-    }
-    
-    private func isRegionFiltered(_ name: String) -> Bool {
-        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
-        let trackedList = trackedString.components(separatedBy: ";")
-        return allTracked || trackedList.contains(name)
-    }
-    
-    private var activeTrackedAlerts: [AlertRegion] {
-        viewModel.alerts.filter { $0.isActive && isRegionFiltered($0.name) }
-    }
-    
-    private var activeTrackedThreats: [AlertRegion] {
-        guard viewModel.isPremium else { return [] }
-        return viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
-    }
-    
-    private var hasAlerts: Bool {
-        !activeTrackedAlerts.isEmpty
-    }
-    
-    private var hasThreats: Bool {
-        !activeTrackedThreats.isEmpty
-    }
-    
-    private var themeColor: Color {
-        if hasAlerts {
-            return .red
-        } else if hasThreats {
-            if activeTrackedThreats.contains(where: { $0.color == .red }) {
-                return .red
-            } else if activeTrackedThreats.contains(where: { $0.color == .orange }) {
-                return .orange
-            } else {
-                return .yellow
-            }
-        } else {
-            return .green
-        }
-    }
-    
-    private var themeActiveCount: Int {
-        hasAlerts ? activeTrackedAlerts.count : (hasThreats ? activeTrackedThreats.count : 0)
-    }
-    
-    private var themeStatusText: String {
-        hasAlerts ? "ТРИВОГА" : (hasThreats ? "ЗАГРОЗА" : "СПОКІЙНО")
-    }
-    
-    private func handleOpenRegionDetail(_ notification: Notification) {
-        guard let regionName = notification.userInfo?["regionName"] as? String else { return }
-        if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
-            mapViewModel.selectedRegionForDetail = region
-        }
-    }
-    
-    private var locationButton: some View {
-        Button(action: {
-            let coord = currentUserCoordinate
-            withAnimation(.easeInOut(duration: 1.0)) {
-                mapViewModel.cameraPosition = .region(
-                    MKCoordinateRegion(
-                        center: coord,
-                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-                    )
-                )
-            }
-        }) {
-            Image(systemName: "location.fill")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(themeColor)
-                .padding(10)
-                .background(themeColor.opacity(0.15))
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
-                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-        }
-        .simultaneousGesture(TapGesture().onEnded {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        })
-        .padding(.trailing, 16)
     }
 }
 

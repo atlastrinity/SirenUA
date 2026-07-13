@@ -1,0 +1,235 @@
+import Foundation
+import OSLog
+
+private let threatsLogger = Logger(subsystem: "com.sirenua", category: "ThreatsAPI")
+
+// MARK: - Threats API (Premium)
+
+extension NetworkManager {
+
+    /// Fetches threat levels from the threat-monitoring server (Premium feature).
+    func fetchThreats(serverURL: String) async throws -> [String: ThreatInfo] {
+        let base = serverURL.hasSuffix("/") ? serverURL : "\(serverURL)/"
+        let urlString = "\(base)api/threats"
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidURL(urlString)
+        }
+
+        var request = makeRequest(url: url, agent: Self.premiumAgent)
+        request.timeoutInterval = 5.0   // faster timeout for threat server
+        threatsLogger.info("Fetching threats from \(urlString)")
+
+        let data = try await fetch(request: request)
+
+        do {
+            let decoded = try JSONDecoder().decode(ThreatResponse.self, from: data)
+            threatsLogger.info("Decoded threats for \(decoded.threats.count) regions")
+            return decoded.threats
+        } catch {
+            threatsLogger.error("Threat decoding failed: \(error.localizedDescription)")
+            throw NetworkError.decodingFailed(error)
+        }
+    }
+}
+
+// MARK: - Threat Models
+
+struct ThreatResponse: Codable {
+    let updated_at: String
+    let threats: [String: ThreatInfo]
+}
+
+struct ThreatInfo: Codable {
+    let level: String       // "none" | "low" | "medium" | "high" | "critical"
+    let type: String?
+    let detail: String?
+    let since: String?
+    let confidence: Int?    // 0-100% AI confidence score
+    let eta: String?        // "~20-40 хв" expected arrival time
+    let is_predictive: Bool? // true if AI-predicted (not confirmed)
+    let is_active: Bool?     // true if official air alarm is active
+    let active_threats: [SingleThreatInfo]?  // Масив усіх активних загроз
+}
+
+// MARK: - SingleThreatInfo
+
+struct SingleThreatInfo: Codable, Identifiable, Equatable {
+    let threat_id: String
+    let level: String
+    let type: String?
+    let detail: String?
+    let since: String?
+    let confidence: Int?
+    let eta: String?
+    let is_predictive: Bool?
+    let is_test: Bool?
+    let group_id: String?
+
+    var id: String { threat_id }
+
+    /// Іконка типу загрози для міні-картки
+    var threatIcon: String {
+        switch type {
+        case "shahed":          return "airplane"
+        case "cruise_missile":  return "bolt.fill"
+        case "ballistic":       return "arrow.up.right"
+        case "mig31k":          return "jet.fill"
+        case "kab":             return "flame.fill"
+        case "tu95":            return "airplane.circle.fill"
+        case "iskander":        return "arrow.up.right.circle.fill"
+        case "artillery":       return "burst.fill"
+        default:                return "exclamationmark.triangle.fill"
+        }
+    }
+
+    /// Назва типу загрози українською
+    var threatLabel: String {
+        switch type {
+        case "shahed":          return "БПЛА"
+        case "cruise_missile":  return "Ракети"
+        case "ballistic":       return "Балістика"
+        case "mig31k":          return "МіГ-31К"
+        case "kab":             return "КАБ"
+        case "tu95":            return "Ту-95"
+        case "iskander":        return "Іскандер"
+        case "artillery":       return "Обстріл"
+        default:                return "Загроза"
+        }
+    }
+
+    // MARK: Time helpers
+
+    var sinceDate: Date? {
+        guard let since = since else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: since) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: since) { return date }
+        let customFormatter = DateFormatter()
+        customFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        customFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return customFormatter.date(from: since)
+    }
+
+    var elapsedMinutes: Int {
+        guard let date = sinceDate else { return 0 }
+        return Int(Date().timeIntervalSince(date) / 60)
+    }
+
+    var detectionTimeString: String {
+        guard let date = sinceDate else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Europe/Kyiv")
+        return formatter.string(from: date)
+    }
+
+    var formattedSince: String {
+        let timeStr = detectionTimeString
+        let elapsed = elapsedMinutes
+        if elapsed <= 0 {
+            return "\(timeStr) (щойно)"
+        } else if elapsed < 60 {
+            return "\(timeStr) (\(elapsed) хв тому)"
+        } else {
+            let hr = elapsed / 60; let mn = elapsed % 60
+            return "\(timeStr) (\(hr) год \(mn) хв тому)"
+        }
+    }
+
+    var dynamicETA: String? {
+        guard let eta = eta, !eta.isEmpty else {
+            let minAgo = elapsedMinutes
+            if minAgo <= 0 { return "щойно" }
+            else if minAgo < 60 { return "\(minAgo) хв тому" }
+            else { let hr = minAgo / 60; let mn = minAgo % 60; return "\(hr) год \(mn) хв тому" }
+        }
+
+        let elapsed = elapsedMinutes
+        let cleanEta = eta.replacingOccurrences(of: "~", with: "")
+                          .replacingOccurrences(of: "+", with: "")
+                          .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if cleanEta.hasSuffix("хв") {
+            let valPart = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
+            if valPart.contains("-") {
+                let comps = valPart.components(separatedBy: "-")
+                if comps.count == 2,
+                   let minVal = Int(comps[0].trimmingCharacters(in: .whitespaces)),
+                   let maxVal = Int(comps[1].trimmingCharacters(in: .whitespaces)) {
+                    let newMin = max(0, minVal - elapsed)
+                    let newMax = max(0, maxVal - elapsed)
+                    if newMax == 0 { return "в області" }
+                    else if newMin == 0 { return "~до \(newMax) хв" }
+                    else { return "~\(newMin)-\(newMax) хв" }
+                }
+            } else if let minutes = Int(valPart) {
+                let remaining = minutes - elapsed
+                if remaining <= 0 { return "в області" }
+                else if remaining < 60 { return "~\(remaining) хв" }
+                else { let hr = remaining / 60; let mn = remaining % 60; return mn == 0 ? "~\(hr) год" : "~\(hr) год \(mn) хв" }
+            }
+        } else if cleanEta.hasSuffix("год") {
+            let valPart = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
+            if valPart.contains("-") {
+                let comps = valPart.components(separatedBy: "-")
+                if comps.count == 2,
+                   let minVal = Double(comps[0].trimmingCharacters(in: .whitespaces)),
+                   let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) {
+                    let minMin = Int(minVal * 60); let maxMin = Int(maxVal * 60)
+                    let newMin = max(0, minMin - elapsed); let newMax = max(0, maxMin - elapsed)
+                    if newMax == 0 { return "в області" }
+                    let newMinHr = Double(newMin)/60.0; let newMaxHr = Double(newMax)/60.0
+                    return newMin == 0 ? String(format: "~до %.1f год", newMaxHr) : String(format: "~%.1f-%.1f год", newMinHr, newMaxHr)
+                }
+            } else if let hours = Double(valPart) {
+                let remainingMin = Int(hours * 60) - elapsed
+                if remainingMin <= 0 { return "в області" }
+                else if remainingMin < 60 { return "~до \(remainingMin) хв" }
+                else { let hr = remainingMin / 60; let mn = remainingMin % 60; return mn == 0 ? "~\(hr) год" : "~\(hr) год \(mn) хв" }
+            }
+        }
+        return eta
+    }
+
+    func dynamicDistance(from originalLine: String) -> String {
+        let cleanLine = originalLine.replacingOccurrences(of: "~", with: "")
+                                    .replacingOccurrences(of: "до цілі:", with: "")
+                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let numRange = cleanLine.range(of: "\\d+", options: .regularExpression),
+              let originalDistance = Double(cleanLine[numRange]) else { return originalLine }
+
+        guard let initialETA = eta, !initialETA.isEmpty else {
+            let elapsed = elapsedMinutes
+            let speed: Double = (type?.lowercased() == "ballistics" || type?.lowercased() == "kinzhal") ? 60.0 : 2.5
+            let remainingDist = max(0, originalDistance - speed * Double(elapsed))
+            return originalLine.replacingOccurrences(of: String(format: "%.0f", originalDistance),
+                                                     with: String(format: "%.0f", remainingDist))
+        }
+
+        let cleanEta = initialETA.replacingOccurrences(of: "~", with: "")
+                                 .replacingOccurrences(of: "+", with: "")
+                                 .trimmingCharacters(in: .whitespacesAndNewlines)
+        var initialETAMinutes: Double = 0
+        if cleanEta.hasSuffix("хв") {
+            let val = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
+            if val.contains("-") {
+                let comps = val.components(separatedBy: "-")
+                if comps.count == 2, let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) { initialETAMinutes = maxVal }
+            } else if let minutes = Double(val) { initialETAMinutes = minutes }
+        } else if cleanEta.hasSuffix("год") {
+            let val = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
+            if val.contains("-") {
+                let comps = val.components(separatedBy: "-")
+                if comps.count == 2, let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) { initialETAMinutes = maxVal * 60.0 }
+            } else if let hours = Double(val) { initialETAMinutes = hours * 60.0 }
+        }
+        guard initialETAMinutes > 0 else { return originalLine }
+
+        let elapsed = Double(elapsedMinutes)
+        let remainingDistance = max(0, originalDistance - (originalDistance / initialETAMinutes) * elapsed)
+        return originalLine.replacingOccurrences(of: String(format: "%.0f", originalDistance),
+                                                 with: String(format: "%.0f", remainingDistance))
+    }
+}
