@@ -2,6 +2,7 @@ import SwiftUI
 import MapKit
 
 struct ThreatMapContent: MapContent {
+    let safeRegions: [RegionPolygon]
     let activeThreatRegions: [RegionPolygon]
     let activeAlertRegions: [RegionPolygon]
     let alertsDict: [String: AlertRegion]
@@ -17,7 +18,16 @@ struct ThreatMapContent: MapContent {
     let onRegionSelected: (AlertRegion) -> Void
 
     var body: some MapContent {
-        // Polygons for threat zones
+        // Polygons for safe regions (Green)
+        ForEach(safeRegions) { region in
+            ForEach(region.identifiablePolygons) { item in
+                MapPolygon(item.polygon)
+                    .stroke(.green.opacity(0.35), lineWidth: 0.5)
+                    .foregroundStyle(.green.opacity(0.06))
+            }
+        }
+
+        // Polygons for threat zones (Yellow / Orange)
         ForEach(activeThreatRegions) { region in
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
@@ -33,7 +43,7 @@ struct ThreatMapContent: MapContent {
             }
         }
 
-        // Polygons for official active alert regions
+        // Polygons for official active alert regions (Red)
         ForEach(activeAlertRegions) { region in
             let isLastAlerted = region.nameUK == lastAlertedRegionName
             
@@ -55,65 +65,71 @@ struct ThreatMapContent: MapContent {
                 .shadow(radius: 5)
         }
         
-        // Regional threat level and status badges
+        // Regional threat level and status badges (All regions, including safe green ones)
         ForEach(alerts) { alert in
-            if alert.isActive || (isPremium && alert.threatLevel != nil) {
-                Annotation(coordinate: alert.coordinate) {
-                    VStack(spacing: 4) {
-                        Button(action: {
-                            onRegionSelected(alert)
-                        }) {
-                            Image(systemName: alert.isActive ? "exclamationmark.triangle.fill" : alert.icon)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(5)
-                                .background(alert.isActive ? Color.red : alert.color)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                                .shadow(radius: 3)
+            let isThreatActive = !alert.isActive && alert.threatLevel != nil && isPremium
+            let badgeIcon: String = alert.isActive ? "exclamationmark.triangle.fill" : (isThreatActive ? alert.icon : "checkmark.circle.fill")
+            let badgeBgColor: Color = alert.isActive ? .red : (isThreatActive ? alert.color : .green)
+
+            Annotation(coordinate: alert.coordinate) {
+                VStack(spacing: 4) {
+                    Button(action: {
+                        onRegionSelected(alert)
+                    }) {
+                        Image(systemName: badgeIcon)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(5)
+                            .background(badgeBgColor)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                            .shadow(radius: 3)
+                    }
+                    
+                    VStack(spacing: 1) {
+                        let _ = timeRefreshTrigger
+                        Text(alert.name)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        if isThreatActive, let type = alert.threatType {
+                            Text(getThreatTypeDescriptionShort(type))
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(.yellow)
+                                .lineLimit(1)
+                                .multilineTextAlignment(.center)
                         }
                         
-                        VStack(spacing: 1) {
-                            let _ = timeRefreshTrigger
-                            Text(alert.name)
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            if isPremium, let type = alert.threatType {
-                                Text(getThreatTypeDescriptionShort(type))
-                                    .font(.system(size: 8, weight: .semibold))
-                                    .foregroundColor(.yellow)
-                                    .lineLimit(1)
-                                    .multilineTextAlignment(.center)
-                            }
-                            
-                            if isPremium, alert.threatLevel != nil {
-                                HStack(spacing: 3) {
-                                    if let conf = alert.threatConfidence {
-                                        Text("⚙️ \(conf)%")
-                                            .font(.system(size: 7, weight: .bold))
-                                            .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
-                                    }
-                                    if let eta = alert.displayETA, !eta.isEmpty {
-                                        Text(eta)
-                                            .font(.system(size: 7, weight: .medium))
-                                            .foregroundColor(.white.opacity(0.7))
-                                    }
+                        if isThreatActive {
+                            HStack(spacing: 3) {
+                                if let conf = alert.threatConfidence {
+                                    Text("⚙️ \(conf)%")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                                }
+                                if let eta = alert.displayETA, !eta.isEmpty {
+                                    Text(eta)
+                                        .font(.system(size: 7, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.7))
                                 }
                             }
+                        } else if !alert.isActive {
+                            Text("Без тривоги")
+                                .font(.system(size: 7, weight: .medium))
+                                .foregroundColor(.green.opacity(0.9))
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
-                        )
                     }
-                } label: {
-                    EmptyView()
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(badgeBgColor.opacity(0.3), lineWidth: 0.5)
+                    )
                 }
+            } label: {
+                EmptyView()
             }
         }
         

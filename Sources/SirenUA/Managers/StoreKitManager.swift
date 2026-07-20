@@ -22,6 +22,12 @@ final class StoreKitManager: ObservableObject {
     
     init() {
         storeLogger.info("StoreKitManager initialized")
+        // Force premium enabled by default for testing/development builds
+        if UserDefaults.standard.object(forKey: "debugPremiumMuted") == nil {
+            UserDefaults.standard.set(true, forKey: "debugPremiumEnabled")
+            UserDefaults.standard.set(false, forKey: "debugPremiumMuted")
+        }
+        
         // Start listening to background transaction updates
         updateListenerTask = listenForTransactions()
         

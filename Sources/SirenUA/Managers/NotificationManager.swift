@@ -373,7 +373,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             }
             let url = URL(fileURLWithPath: path)
             do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.duckOthers])
                 try AVAudioSession.sharedInstance().setActive(true)
                 self.audioPlayer = try AVAudioPlayer(contentsOf: url)
                 self.audioPlayer?.play()

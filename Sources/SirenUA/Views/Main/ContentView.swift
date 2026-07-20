@@ -70,6 +70,7 @@ struct ContentView: View {
             // 1. ШАР КАРТИ
             Map(position: $mapViewModel.cameraPosition, selection: $mapViewModel.selectedShelter) {
                 ThreatMapContent(
+                    safeRegions: safeRegions,
                     activeThreatRegions: activeThreatRegions,
                     activeAlertRegions: activeAlertRegions,
                     alertsDict: alertsDict,
@@ -92,6 +93,7 @@ struct ContentView: View {
             .ignoresSafeArea()
             .sheet(item: $mapViewModel.selectedRegionForDetail) { region in
                 AlertRegionDetailView(region: region)
+                    .environmentObject(viewModel)
             }
             
             // Динамічна верхня та нижня підсвітка екрану

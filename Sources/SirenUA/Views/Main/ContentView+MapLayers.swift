@@ -29,4 +29,11 @@ extension ContentView {
             return !alert.isActive && alert.threatLevel != nil
         }
     }
+
+    var safeRegions: [RegionPolygon] {
+        geoManager.regions.filter { region in
+            guard let alert = alertsDict[region.nameUK] else { return true }
+            return !alert.isActive && (alert.threatLevel == nil || !viewModel.isPremium)
+        }
+    }
 }

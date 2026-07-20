@@ -6,27 +6,32 @@ struct AlertRegionDetailView: View {
     let region: AlertRegion
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var storeManager: StoreKitManager
+    @EnvironmentObject private var viewModel: AlertViewModelV3
     @State private var isConfirmed = false
     @State private var isPulsing = false
     @State private var selectedThreatIndex: Int = 0
     @State private var timeRefreshTrigger = Date()
     private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
+    private var liveRegion: AlertRegion {
+        viewModel.alerts.first(where: { $0.name == region.name || $0.id == region.id }) ?? region
+    }
+    
     private var isPremium: Bool {
         storeManager.isPremium
     }
     private var isThreatActive: Bool {
-        !region.isActive && region.threatLevel != nil
+        !liveRegion.isActive && liveRegion.threatLevel != nil
     }
     
     private var selectedThreat: SingleThreatInfo? {
-        guard !region.activeThreats.isEmpty else { return nil }
-        let idx = min(selectedThreatIndex, region.activeThreats.count - 1)
-        return region.activeThreats[idx]
+        guard !liveRegion.activeThreats.isEmpty else { return nil }
+        let idx = min(selectedThreatIndex, liveRegion.activeThreats.count - 1)
+        return liveRegion.activeThreats[idx]
     }
     
     private var statusTitle: String {
-        if region.isActive {
+        if liveRegion.isActive {
             return "АКТИВНА ТРИВОГА"
         } else if isThreatActive {
             return "Є ЗАГРОЗА (PREMIUM)"
@@ -36,17 +41,17 @@ struct AlertRegionDetailView: View {
     }
     
     private var themeColor: Color {
-        if region.isActive {
+        if liveRegion.isActive {
             return .red
         } else if isThreatActive {
-            return region.color
+            return liveRegion.color
         } else {
             return .green
         }
     }
     
     private var threatTypeEmoji: String {
-        switch region.threatType {
+        switch liveRegion.threatType {
         case "shahed": return "🛩"
         case "cruise_missile": return "🚀"
         case "ballistic": return "💥"
@@ -224,8 +229,8 @@ struct AlertRegionDetailView: View {
                                 Text(threatTypeEmoji)
                                     .font(.system(size: 18))
                             }
-                            let displayLevel = selectedThreat?.level.uppercased() ?? region.threatLevel?.uppercased() ?? "LOW"
-                            Text(isThreatActive ? "Загроза: \(displayLevel)" : "Рівень \(region.level)")
+                            let displayLevel = selectedThreat?.level.uppercased() ?? liveRegion.threatLevel?.uppercased() ?? "LOW"
+                            Text(isThreatActive ? "Загроза: \(displayLevel)" : "Рівень \(liveRegion.level)")
                                 .font(.system(size: 16, weight: .bold))
                         }
                         .padding(.horizontal, 16)
@@ -251,8 +256,8 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Card 1: Що відомо (Premium-only) or Purchase CTA
-                    if let detail = selectedThreat?.detail ?? region.threatDetail, !detail.isEmpty {
+                    // Card 1: Що відомо (Premium-only) or Purchase CTA or Fallback Card
+                    if let detail = selectedThreat?.detail ?? liveRegion.threatDetail, !detail.isEmpty {
                         if isPremium {
                             ThreatDetailCard(
                                 detail: detail,
@@ -263,10 +268,79 @@ struct AlertRegionDetailView: View {
                         } else {
                             PremiumPurchaseCTA(storeManager: storeManager)
                         }
+                    } else if liveRegion.isActive {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "bell.badge.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Інформація про тривогу")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text("У регіоні \(liveRegion.name) оголошено офіційну повітряну тривогу. AI-моніторинг обробляє оперативні джерела та вектори загроз.")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineSpacing(4)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(themeColor.opacity(0.2), lineWidth: 1)
+                        )
+                    } else if isThreatActive {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "exclamationmark.shield.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Інформація про загрозу")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text("У регіоні \(liveRegion.name) виявлено підвищений рівень загрози. Будьте уважні та слідкуйте за оновленнями.")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineSpacing(4)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(themeColor.opacity(0.2), lineWidth: 1)
+                        )
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "checkmark.shield.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Статус області")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text("У регіоні \(liveRegion.name) активні повітряні тривоги та загрози відсутні. Обстановка спокійна.")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineSpacing(4)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(themeColor.opacity(0.2), lineWidth: 1)
+                        )
                     }
                     
                     // Card 2: Імовірність загрози (Premium only)
-                    if isPremium, let confidence = selectedThreat?.confidence ?? region.threatConfidence {
+                    if isPremium, let confidence = selectedThreat?.confidence ?? liveRegion.threatConfidence {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Image(systemName: "shield.checkered")
