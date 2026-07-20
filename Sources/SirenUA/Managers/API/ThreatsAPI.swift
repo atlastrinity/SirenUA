@@ -200,35 +200,48 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         guard let numRange = cleanLine.range(of: "\\d+", options: .regularExpression),
               let originalDistance = Double(cleanLine[numRange]) else { return originalLine }
 
-        guard let initialETA = eta, !initialETA.isEmpty else {
-            let elapsed = elapsedMinutes
-            let speed: Double = (type?.lowercased() == "ballistics" || type?.lowercased() == "kinzhal") ? 60.0 : 2.5
-            let remainingDist = max(0, originalDistance - speed * Double(elapsed))
-            return originalLine.replacingOccurrences(of: String(format: "%.0f", originalDistance),
-                                                     with: String(format: "%.0f", remainingDist))
-        }
-
-        let cleanEta = initialETA.replacingOccurrences(of: "~", with: "")
-                                 .replacingOccurrences(of: "+", with: "")
-                                 .trimmingCharacters(in: .whitespacesAndNewlines)
-        var initialETAMinutes: Double = 0
-        if cleanEta.hasSuffix("хв") {
-            let val = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
-            if val.contains("-") {
-                let comps = val.components(separatedBy: "-")
-                if comps.count == 2, let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) { initialETAMinutes = maxVal }
-            } else if let minutes = Double(val) { initialETAMinutes = minutes }
-        } else if cleanEta.hasSuffix("год") {
-            let val = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
-            if val.contains("-") {
-                let comps = val.components(separatedBy: "-")
-                if comps.count == 2, let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) { initialETAMinutes = maxVal * 60.0 }
-            } else if let hours = Double(val) { initialETAMinutes = hours * 60.0 }
-        }
-        guard initialETAMinutes > 0 else { return originalLine }
-
         let elapsed = Double(elapsedMinutes)
-        let remainingDistance = max(0, originalDistance - (originalDistance / initialETAMinutes) * elapsed)
+        let remainingDistance: Double
+
+        if let initialETA = eta, !initialETA.isEmpty {
+            let cleanEta = initialETA.replacingOccurrences(of: "~", with: "")
+                                     .replacingOccurrences(of: "+", with: "")
+                                     .trimmingCharacters(in: .whitespacesAndNewlines)
+            var initialETAMinutes: Double = 0
+            if cleanEta.hasSuffix("хв") {
+                let val = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
+                if val.contains("-") {
+                    let comps = val.components(separatedBy: "-")
+                    if comps.count == 2, let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) { initialETAMinutes = maxVal }
+                } else if let minutes = Double(val) { initialETAMinutes = minutes }
+            } else if cleanEta.hasSuffix("год") {
+                let val = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
+                if val.contains("-") {
+                    let comps = val.components(separatedBy: "-")
+                    if comps.count == 2, let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) { initialETAMinutes = maxVal * 60.0 }
+                } else if let hours = Double(val) { initialETAMinutes = hours * 60.0 }
+            }
+
+            if initialETAMinutes > 0 {
+                remainingDistance = max(0, originalDistance - (originalDistance / initialETAMinutes) * elapsed)
+            } else {
+                remainingDistance = originalDistance
+            }
+        } else {
+            let speed: Double = (type?.lowercased() == "ballistics" || type?.lowercased() == "kinzhal") ? 60.0 : 2.5
+            remainingDistance = max(0, originalDistance - speed * Double(elapsed))
+        }
+
+        if remainingDistance <= 0 {
+            let pattern = "(Відстань\\s+(до\\s+целі:|до\\s+цілі:)?\\s*~?\\\\d+\\s*км|Відстань:\\s*~?\\\\d+\\s*км)"
+            if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
+                let nsString = originalLine as NSString
+                let updated = regex.stringByReplacingMatches(in: originalLine, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "Ціль в області")
+                return updated
+            }
+            return originalLine.replacingOccurrences(of: String(format: "%.0f", originalDistance), with: "0")
+        }
+
         return originalLine.replacingOccurrences(of: String(format: "%.0f", originalDistance),
                                                  with: String(format: "%.0f", remainingDistance))
     }

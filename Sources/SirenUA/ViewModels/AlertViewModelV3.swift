@@ -145,10 +145,8 @@ final class AlertViewModelV3: ObservableObject {
                     vmLogger.info("FCM push received for \(regionName) (level: \(level)) — applying instantly")
 
                     if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
-                        let isAlarmActive = (level != "none")
-                        self.alerts[index].isActive = isAlarmActive
-                        self.alerts[index].level = isAlarmActive ? 3 : 0
-                        self.alerts[index].description = isAlarmActive ? "Повітряна тривога!" : "Немає тривоги"
+                        // FCM push: update AI threat level ONLY.
+                        // isActive (official alarm) must come from the server — do NOT set it here.
                         if level == "none" {
                             self.alerts[index].threatLevel = nil
                             self.alerts[index].threatType = nil
@@ -164,6 +162,7 @@ final class AlertViewModelV3: ObservableObject {
                         self.updateStats()
                     }
                 }
+                // Always fetch authoritative state from server (populates is_active correctly)
                 await self.fetchThreatState()
             }
         }

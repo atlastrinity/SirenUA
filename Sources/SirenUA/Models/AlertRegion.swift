@@ -13,9 +13,46 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var description: String
     let coordinate: CLLocationCoordinate2D
     var lastChanged: String?
-    var threatLevel: String?   // "none", "low", "medium", "high", "critical"
-    var threatType: String?    // "mig31k", "shahed", "cruise_missile", etc
-    var threatDetail: String?  // Опис загрози українською
+    
+    private var _threatLevel: String? = nil
+    var threatLevel: String? {
+        get {
+            if !isActive && activeThreatsExpired {
+                return nil
+            }
+            return _threatLevel
+        }
+        set {
+            _threatLevel = newValue
+        }
+    }
+    
+    private var _threatType: String? = nil
+    var threatType: String? {
+        get {
+            if !isActive && activeThreatsExpired {
+                return nil
+            }
+            return _threatType
+        }
+        set {
+            _threatType = newValue
+        }
+    }
+    
+    private var _threatDetail: String? = nil
+    var threatDetail: String? {
+        get {
+            if !isActive && activeThreatsExpired {
+                return nil
+            }
+            return _threatDetail
+        }
+        set {
+            _threatDetail = newValue
+        }
+    }
+    
     var threatConfidence: Int? // 0-100% AI confidence score
     var threatETA: String?     // "~20-40 хв" expected arrival time
     var isThreatPredictive: Bool = false // true if AI-predicted route
@@ -25,16 +62,28 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     /// Поточна вибрана загроза для відображення у картці
     var currentThreat: SingleThreatInfo? {
         guard !activeThreats.isEmpty else { return nil }
+        if !isActive && activeThreatsExpired {
+            return nil
+        }
         let idx = min(selectedThreatIndex, activeThreats.count - 1)
         return activeThreats[idx]
     }
 
     /// Динамічне значення ETA з урахуванням поточного часу
     var displayETA: String? {
+        if !isActive && activeThreatsExpired {
+            return nil
+        }
         if let current = currentThreat {
             return current.dynamicETA
         }
         return threatETA
+    }
+
+    private var activeThreatsExpired: Bool {
+        guard !activeThreats.isEmpty else { return false }
+        let idx = activeThreats.count - 1
+        return activeThreats[idx].dynamicETA == "в області"
     }
 
     /// Кількість активних загроз різних типів
@@ -96,9 +145,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         self.description = description
         self.coordinate = coordinate
         self.lastChanged = lastChanged
-        self.threatLevel = threatLevel
-        self.threatType = threatType
-        self.threatDetail = threatDetail
+        self._threatLevel = threatLevel
+        self._threatType = threatType
+        self._threatDetail = threatDetail
     }
 
     // Custom Codable conformance for CLLocationCoordinate2D
