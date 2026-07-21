@@ -16,7 +16,7 @@ extension NetworkManager {
         }
 
         var request = makeRequest(url: url, agent: Self.premiumAgent)
-        request.timeoutInterval = 5.0   // faster timeout for threat server
+        request.timeoutInterval = 15.0   // 15s timeout for reliable connection to threat server
         threatsLogger.info("Fetching threats from \(urlString)")
 
         let data = try await fetch(request: request)
@@ -233,7 +233,7 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         }
 
         if remainingDistance <= 0 {
-            let pattern = "(Відстань\\s+(до\\s+целі:|до\\s+цілі:)?\\s*~?\\\\d+\\s*км|Відстань:\\s*~?\\\\d+\\s*км)"
+            let pattern = "(Відстань\\s+(до\\s+целі:|до\\s+цілі:)?\\s*~?\\d+\\s*км|Відстань:\\s*~?\\d+\\s*км)"
             if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
                 let nsString = originalLine as NSString
                 let updated = regex.stringByReplacingMatches(in: originalLine, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "Ціль в області")
