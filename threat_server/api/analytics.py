@@ -670,11 +670,7 @@ async def get_region_history(region: str, limit: int = 200, date: str = None):
     from datetime import datetime as dt, timedelta
     region = unquote(region)
     
-    db = get_db()
-    if not db:
-        raise HTTPException(status_code=503, detail="Firebase Firestore недоступний")
-    
-    # Determine date range in Europe/Kiev timezone, then convert to UTC for Firestore query comparison
+    # Determine date range in Europe/Kiev timezone, then convert to UTC for query comparison
     try:
         import zoneinfo
     except ImportError:
@@ -684,52 +680,81 @@ async def get_region_history(region: str, limit: int = 200, date: str = None):
     
     if date:
         try:
-            # Parse target date as local date (midnight start) in Kiev timezone
             parsed_date = dt.strptime(date, "%Y-%m-%d")
             local_start = parsed_date.replace(tzinfo=kyiv_tz)
         except ValueError:
             raise HTTPException(status_code=400, detail="Невірний формат дати. Використовуйте YYYY-MM-DD")
     else:
-        # If no date provided, get current time in Kiev timezone
         current_local = dt.now(kyiv_tz)
         local_start = current_local.replace(hour=0, minute=0, second=0, microsecond=0)
     
     local_end = local_start + timedelta(days=1)
     
-    # Convert local start and end of the day in Kiev to UTC
     utc_start = local_start.astimezone(timezone.utc)
     utc_end = local_end.astimezone(timezone.utc)
     
     date_start = utc_start.strftime("%Y-%m-%d %H:%M:%S")
     date_end = utc_end.strftime("%Y-%m-%d %H:%M:%S")
-        
-    try:
-        # Fetch by region only (avoids composite index requirement), then filter by date in Python
-        docs = await asyncio.to_thread(
-            lambda: db.collection('sirenua_history')
-                      .where('region', '==', region)
-                      .get()
-        )
-        
-        events = []
-        for doc in docs:
-            d = doc.to_dict()
-            ts = d.get('timestamp', '')
-            # Filter by date range in Python
-            if date_start <= ts < date_end:
-                events.append(d)
-        
-        # Sort by timestamp descending
-        events.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        
-        # Limit results
-        events = events[:min(limit, 200)]
-        
-        return {
-            "region": region,
-            "date": local_start.strftime("%Y-%m-%d"),
-            "count": len(events),
-            "events": events
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    # Try Firestore first, fallback to local SQLite threat_history if empty or unavailable
+    events = []
+    db = get_db()
+    if db:
+        try:
+            docs = await asyncio.to_thread(
+                lambda: db.collection('sirenua_history')
+                          .where('region', '==', region)
+                          .get()
+            )
+            for doc in docs:
+                d = doc.to_dict()
+                ts = d.get('timestamp', '')
+                if date_start <= ts < date_end:
+                    events.append(d)
+        except Exception as e:
+            print(f"⚠️ [History API] Firestore fetch failed: {e}")
+            
+    # Fallback to local SQLite threat_history if Firestore returned 0 events
+    if not events:
+        try:
+            def _fetch_from_sqlite():
+                conn = sqlite3.connect(DB_PATH)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, timestamp, region, threat_level, threat_type, detail, confidence
+                    FROM threat_history
+                    WHERE region = ? AND timestamp >= ? AND timestamp < ? AND is_test = 0
+                    ORDER BY timestamp DESC
+                """, (region, date_start, date_end))
+                rows = cursor.fetchall()
+                conn.close()
+                res = []
+                for row in rows:
+                    res.append({
+                        "id": str(row["id"]),
+                        "timestamp": row["timestamp"],
+                        "region": row["region"],
+                        "threat_level": row["threat_level"],
+                        "threat_type": row["threat_type"],
+                        "detail": row["detail"],
+                        "confidence": row["confidence"]
+                    })
+                return res
+                
+            events = await asyncio.to_thread(_fetch_from_sqlite)
+        except Exception as e:
+            print(f"⚠️ [History API] SQLite fallback fetch failed: {e}")
+
+    # Sort by timestamp descending
+    events.sort(key=lambda x: str(x.get('timestamp', '')), reverse=True)
+    
+    # Limit results
+    events = events[:min(limit, 200)]
+    
+    return {
+        "region": region,
+        "date": local_start.strftime("%Y-%m-%d"),
+        "count": len(events),
+        "events": events
+    }
