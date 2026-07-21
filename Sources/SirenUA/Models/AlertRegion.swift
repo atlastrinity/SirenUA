@@ -16,41 +16,20 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     
     private var _threatLevel: String? = nil
     var threatLevel: String? {
-        get {
-            if !isActive && activeThreatsExpired {
-                return nil
-            }
-            return _threatLevel
-        }
-        set {
-            _threatLevel = newValue
-        }
+        get { return _threatLevel }
+        set { _threatLevel = newValue }
     }
     
     private var _threatType: String? = nil
     var threatType: String? {
-        get {
-            if !isActive && activeThreatsExpired {
-                return nil
-            }
-            return _threatType
-        }
-        set {
-            _threatType = newValue
-        }
+        get { return _threatType }
+        set { _threatType = newValue }
     }
     
     private var _threatDetail: String? = nil
     var threatDetail: String? {
-        get {
-            if !isActive && activeThreatsExpired {
-                return nil
-            }
-            return _threatDetail
-        }
-        set {
-            _threatDetail = newValue
-        }
+        get { return _threatDetail }
+        set { _threatDetail = newValue }
     }
     
     var threatConfidence: Int? // 0-100% AI confidence score
@@ -62,18 +41,12 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     /// Поточна вибрана загроза для відображення у картці
     var currentThreat: SingleThreatInfo? {
         guard !activeThreats.isEmpty else { return nil }
-        if !isActive && activeThreatsExpired {
-            return nil
-        }
         let idx = min(selectedThreatIndex, activeThreats.count - 1)
         return activeThreats[idx]
     }
 
     /// Динамічне значення ETA з урахуванням поточного часу
     var displayETA: String? {
-        if !isActive && activeThreatsExpired {
-            return nil
-        }
         if let current = currentThreat {
             return current.dynamicETA
         }
@@ -81,9 +54,7 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     }
 
     private var activeThreatsExpired: Bool {
-        guard !activeThreats.isEmpty else { return false }
-        let idx = activeThreats.count - 1
-        return activeThreats[idx].dynamicETA == "в області"
+        return false
     }
 
     /// Кількість активних загроз різних типів

@@ -25,7 +25,10 @@ final class AlertViewModelV3: ObservableObject {
     @Published var errorMessage: String?
     @Published var lastAlertedRegionName: String?
     @Published var lastViewedTimestamp: Date?
-    @Published var isPremium: Bool = UserDefaults.standard.bool(forKey: "premiumEnabled")
+    @Published var isPremium: Bool = {
+        if UserDefaults.standard.bool(forKey: "debugPremiumMuted") { return false }
+        return true
+    }()
 
     let networkManager = NetworkManager()
     var refreshTask: Task<Void, Never>?

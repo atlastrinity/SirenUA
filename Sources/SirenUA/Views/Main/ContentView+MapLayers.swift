@@ -23,7 +23,6 @@ extension ContentView {
     }
 
     var activeThreatRegions: [RegionPolygon] {
-        guard viewModel.isPremium else { return [] }
         return geoManager.regions.filter { region in
             guard let alert = alertsDict[region.nameUK] else { return false }
             return !alert.isActive && alert.threatLevel != nil
@@ -33,7 +32,7 @@ extension ContentView {
     var safeRegions: [RegionPolygon] {
         geoManager.regions.filter { region in
             guard let alert = alertsDict[region.nameUK] else { return true }
-            return !alert.isActive && (alert.threatLevel == nil || !viewModel.isPremium)
+            return !alert.isActive && alert.threatLevel == nil
         }
     }
 }

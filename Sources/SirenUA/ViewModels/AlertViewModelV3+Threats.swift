@@ -15,12 +15,12 @@ extension AlertViewModelV3 {
             updateStats()
             updateLastAlertedRegion()
             isFirstThreatFetch = false
+            isFetching = false
         } catch {
             vmLogger.error("Error fetching threats: \(error.localizedDescription)")
+            isFetching = false
             await fetchLiveAlerts()
         }
-
-        isFetching = false
     }
 
     func applyThreats(_ threatData: [String: ThreatInfo]) {

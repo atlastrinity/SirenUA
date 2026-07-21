@@ -67,7 +67,7 @@ struct ThreatMapContent: MapContent {
         
         // Regional threat level and status badges (All regions, including safe green ones)
         ForEach(alerts) { alert in
-            let isThreatActive = !alert.isActive && alert.threatLevel != nil && isPremium
+            let isThreatActive = !alert.isActive && alert.threatLevel != nil
             let badgeIcon: String = alert.isActive ? "exclamationmark.triangle.fill" : (isThreatActive ? alert.icon : "checkmark.circle.fill")
             let badgeBgColor: Color = alert.isActive ? .red : (isThreatActive ? alert.color : .green)
 
