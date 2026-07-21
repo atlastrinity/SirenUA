@@ -419,22 +419,21 @@ async def get_admin_dashboard_stats():
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        # Total events (7d) excluding official alarms to match accuracy breakdown
-        cursor.execute("SELECT COUNT(*) as c FROM paired_events WHERE created_at >= datetime('now', '-7 days') AND threat_type != 'official_alarm'")
-        total_7d = cursor.fetchone()["c"]
-
-        # Accuracy breakdown (7d)
-        cursor.execute("""
+        # Accuracy breakdown & Total events (7d) matching Chronology aggregation
+        cursor.execute(f"""
             SELECT
-                SUM(CASE WHEN prediction_accuracy = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
-                SUM(CASE WHEN prediction_accuracy = 'mitigated' THEN 1 ELSE 0 END) as mitigated,
-                SUM(CASE WHEN prediction_accuracy = 'overestimated' THEN 1 ELSE 0 END) as overestimated,
-                SUM(CASE WHEN lifecycle_status = 'active' THEN 1 ELSE 0 END) as active,
-                COUNT(*) as total
-            FROM paired_events
-            WHERE created_at >= datetime('now', '-7 days') AND threat_type != 'official_alarm'
+                SUM(CASE WHEN th.threat_type != 'official_alarm' THEN 1 ELSE 0 END) as total,
+                SUM(CASE WHEN pe.prediction_accuracy = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+                SUM(CASE WHEN pe.prediction_accuracy = 'mitigated' THEN 1 ELSE 0 END) as mitigated,
+                SUM(CASE WHEN pe.prediction_accuracy = 'overestimated' THEN 1 ELSE 0 END) as overestimated,
+                SUM(CASE WHEN pe.lifecycle_status = 'active' OR (th.threat_type = 'official_alarm' AND tc.id IS NULL) THEN 1 ELSE 0 END) as active
+            FROM threat_history th
+            LEFT JOIN paired_events pe ON th.id = pe.threat_event_id
+            LEFT JOIN threat_clearings tc ON th.id = tc.original_threat_event_id
+            WHERE th.timestamp >= datetime('now', '-7 days')
         """)
         acc = dict(cursor.fetchone())
+        total_7d = acc["total"] or 0
 
         # AI accuracy percentage
         evaluated = (acc["confirmed"] or 0) + (acc["mitigated"] or 0) + (acc["overestimated"] or 0)
@@ -468,19 +467,19 @@ async def get_admin_dashboard_stats():
 
         # Threats by type (7d)
         cursor.execute("""
-            SELECT threat_type, COUNT(*) as count
-            FROM paired_events
-            WHERE created_at >= datetime('now', '-7 days') AND threat_type != 'official_alarm'
-            GROUP BY threat_type ORDER BY count DESC
+            SELECT th.threat_type, COUNT(*) as count
+            FROM threat_history th
+            WHERE th.timestamp >= datetime('now', '-7 days') AND th.threat_type != 'official_alarm'
+            GROUP BY th.threat_type ORDER BY count DESC
         """)
         by_type = [dict(r) for r in cursor.fetchall()]
 
         # Top regions (7d)
         cursor.execute("""
-            SELECT region, COUNT(*) as count
-            FROM paired_events
-            WHERE created_at >= datetime('now', '-7 days') AND threat_type != 'official_alarm'
-            GROUP BY region ORDER BY count DESC LIMIT 10
+            SELECT th.region, COUNT(*) as count
+            FROM threat_history th
+            WHERE th.timestamp >= datetime('now', '-7 days') AND th.threat_type != 'official_alarm'
+            GROUP BY th.region ORDER BY count DESC LIMIT 10
         """)
         top_regions = [dict(r) for r in cursor.fetchall()]
 
