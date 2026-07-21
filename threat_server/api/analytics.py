@@ -756,5 +756,6 @@ async def get_region_history(region: str, limit: int = 200, date: str = None):
         "region": region,
         "date": local_start.strftime("%Y-%m-%d"),
         "count": len(events),
-        "events": events
+        "events": events,
+        "history": events
     }

@@ -122,19 +122,23 @@ struct RegionHistoryEvent: Identifiable, Codable {
 }
 
 /// Server response for region history
-struct RegionHistoryResponse: Codable {
+struct RegionHistoryResponse: Decodable {
     let region: String?
     let count: Int?
     let events: [RegionHistoryEvent]
     
     enum CodingKeys: String, CodingKey {
-        case region, count, events
+        case region, count, events, history
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.region = try? container.decodeIfPresent(String.self, forKey: .region)
         self.count = try? container.decodeIfPresent(Int.self, forKey: .count)
-        self.events = (try? container.decodeIfPresent([RegionHistoryEvent].self, forKey: .events)) ?? []
+        
+        let eventsFromEvents = try? container.decodeIfPresent([RegionHistoryEvent].self, forKey: .events)
+        let eventsFromHistory = try? container.decodeIfPresent([RegionHistoryEvent].self, forKey: .history)
+        
+        self.events = eventsFromEvents ?? eventsFromHistory ?? []
     }
 }
