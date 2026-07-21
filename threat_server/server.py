@@ -143,7 +143,8 @@ async def poll_aerial_alerts():
                         logger.warning(f"Помилка опитування тривог (URL: {url}): HTTP статус {response.status}")
         except Exception as e:
             logger.error(f"Помилка під час опитування тривог (URL: {url}): {e}")
-            log_error_to_db("server", str(e), endpoint="poll_aerial_alerts", context=f"url={url}")
+            if str(e).strip():
+                log_error_to_db("server", str(e), endpoint="poll_aerial_alerts", context=f"url={url}")
         
         sleep_interval = 15.0 if token else 30.0
         await asyncio.sleep(sleep_interval)
@@ -279,7 +280,8 @@ async def log_requests(request: Request, call_next):
 # Exceptions handlers
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code >= 400:
+    # Do not log 404 Not Found to error_log as normal missing routes are expected HTTP behavior
+    if exc.status_code >= 400 and exc.status_code != 404:
         safe_run_task(asyncio.to_thread(
             log_error_to_db,
             "server",
@@ -340,6 +342,8 @@ app.include_router(admin_router)
 
 # Health-checks
 @app.get("/")
+@app.get("/health")
+@app.get("/api/health")
 async def root():
     """Health-check для Render / моніторингу."""
     telegram_connected = core.globals.telegram_monitor is not None and core.globals.telegram_monitor.is_running
@@ -353,6 +357,8 @@ async def root():
     }
 
 @app.head("/")
+@app.head("/health")
+@app.head("/api/health")
 async def root_health():
     """Health-check для Render / моніторингу."""
     telegram_connected = core.globals.telegram_monitor is not None and core.globals.telegram_monitor.is_running
@@ -364,6 +370,11 @@ async def root_health():
         "telegram_connected": telegram_connected,
         "shelters_loaded": shelter_manager.total_count,
     }
+
+@app.get("/ws")
+async def websocket_http_fallback():
+    """Fallback handler for HTTP GET on /ws."""
+    return {"status": "ok", "message": "WebSocket endpoint is active. Use ws:// protocol for real-time connection."}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8085))
