@@ -18,6 +18,32 @@ struct RegionHistoryEvent: Identifiable, Codable {
         case timestamp, threat_level, threat_type, detail, confidence
     }
     
+    init(serverId: Int, timestamp: String, threat_level: String, threat_type: String? = nil, detail: String? = nil, confidence: Int? = nil) {
+        self.serverId = serverId
+        self.timestamp = timestamp
+        self.threat_level = threat_level
+        self.threat_type = threat_type
+        self.detail = detail
+        self.confidence = confidence
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let idInt = try? container.decode(Int.self, forKey: .serverId) {
+            self.serverId = idInt
+        } else if let idStr = try? container.decode(String.self, forKey: .serverId), let idInt = Int(idStr) {
+            self.serverId = idInt
+        } else {
+            self.serverId = Int.random(in: 100000...999999)
+        }
+        
+        self.timestamp = (try? container.decode(String.self, forKey: .timestamp)) ?? ""
+        self.threat_level = (try? container.decode(String.self, forKey: .threat_level)) ?? "none"
+        self.threat_type = try? container.decodeIfPresent(String.self, forKey: .threat_type)
+        self.detail = try? container.decodeIfPresent(String.self, forKey: .detail)
+        self.confidence = try? container.decodeIfPresent(Int.self, forKey: .confidence)
+    }
+    
     /// Formatted date for display
     var displayDate: String {
         // Server sends ISO format like "2026-07-07 14:23:00" in UTC
@@ -97,7 +123,18 @@ struct RegionHistoryEvent: Identifiable, Codable {
 
 /// Server response for region history
 struct RegionHistoryResponse: Codable {
-    let region: String
-    let count: Int
+    let region: String?
+    let count: Int?
     let events: [RegionHistoryEvent]
+    
+    enum CodingKeys: String, CodingKey {
+        case region, count, events
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.region = try? container.decodeIfPresent(String.self, forKey: .region)
+        self.count = try? container.decodeIfPresent(Int.self, forKey: .count)
+        self.events = (try? container.decodeIfPresent([RegionHistoryEvent].self, forKey: .events)) ?? []
+    }
 }
