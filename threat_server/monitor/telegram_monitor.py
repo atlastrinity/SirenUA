@@ -105,6 +105,8 @@ class TelegramThreatMonitor:
                     print("✅ Юзербот авторизований через StringSession! Отримуємо повідомлення МИТТЄВО.")
                     await self._join_target_channels()
                     self._setup_event_handlers()
+                    self.restore_scheduled_clears()
+                    asyncio.create_task(self._periodic_cleanup_loop())
                     return
                 else:
                     print("⚠️ StringSession надано, але сесія не авторизована.")
@@ -131,6 +133,8 @@ class TelegramThreatMonitor:
                     print("✅ Юзербот авторизований через локальний файл! Отримуємо повідомлення МИТТЄВО.")
                     await self._join_target_channels()
                     self._setup_event_handlers()
+                    self.restore_scheduled_clears()
+                    asyncio.create_task(self._periodic_cleanup_loop())
                     return
                 else:
                     print("⚠️ Файл сесії знайдено, але користувач не авторизований.")
@@ -143,6 +147,10 @@ class TelegramThreatMonitor:
         self.use_mtproto = False
         asyncio.create_task(self._scrape_loop())
         print(f"📥 Автоматичний веб-моніторинг (кожні 20 сек) активний для: {', '.join(TARGET_CHANNELS)}")
+
+        # Restore scheduled timers and start periodic cleanup loop
+        self.restore_scheduled_clears()
+        asyncio.create_task(self._periodic_cleanup_loop())
 
     def _setup_event_handlers(self):
         if not self.client:
@@ -1547,6 +1555,15 @@ class TelegramThreatMonitor:
                             self._schedule_predictive_reevaluation(region, float(delay), t_type, t_gid)
                         else:
                             self._schedule_auto_clear(region, float(delay), threat_type=t_type, group_id=t_gid)
+
+    async def _periodic_cleanup_loop(self):
+        """Періодичний фоновий цикл (кожні 60 сек) для виявлення та переоцінки застарілих предиктивних загроз."""
+        while self.is_running:
+            await asyncio.sleep(60)
+            try:
+                self.restore_scheduled_clears()
+            except Exception as e:
+                print(f"⚠️ [Cleanup Loop] Помилка очищення застарілих загроз: {e}")
 
     def _get_time_of_day_modifier(self, threat_type: str) -> int:
         """Returns a confidence modifier based on current time of day and threat type.

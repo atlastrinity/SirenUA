@@ -236,7 +236,8 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
             let pattern = "(Відстань\\s+(до\\s+целі:|до\\s+цілі:)?\\s*~?\\d+\\s*км|Відстань:\\s*~?\\d+\\s*км)"
             if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
                 let nsString = originalLine as NSString
-                let updated = regex.stringByReplacingMatches(in: originalLine, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "Ціль в області")
+                let replacement = (is_predictive == true) ? "На межі області (очікується офіційна тривога)" : "Ціль в області"
+                let updated = regex.stringByReplacingMatches(in: originalLine, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: replacement)
                 return updated
             }
             return originalLine.replacingOccurrences(of: String(format: "%.0f", originalDistance), with: "0")
