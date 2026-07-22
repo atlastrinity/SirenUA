@@ -139,9 +139,41 @@ struct AdminDashboardTab: View {
                     .cornerRadius(14)
                 }
             } else {
-                Text("Не вдалося завантажити статистику.")
-                    .foregroundColor(.white.opacity(0.4))
-                    .padding(.top, 40)
+                VStack(spacing: 14) {
+                    Image(systemName: "server.rack")
+                        .font(.system(size: 36))
+                        .foregroundColor(.blue.opacity(0.8))
+                    
+                    VStack(spacing: 4) {
+                        Text("Підключення до адмін-сервера...")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Сервер пробуджується або оновлює аналітику ШІ.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.5))
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    Button(action: {
+                        Task { await viewModel.refreshAllData() }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Оновити аналітику")
+                        }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 9)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(14)
+                .padding(.top, 20)
             }
         }
     }
