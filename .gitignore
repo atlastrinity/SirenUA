@@ -18,3 +18,6 @@ build/
 *.db
 *.sqlite
 build_log.txt
+build_sim/
+fastlane/report.xml
+

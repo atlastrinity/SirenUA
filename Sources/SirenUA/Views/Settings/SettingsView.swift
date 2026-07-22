@@ -211,96 +211,28 @@ struct SettingsView: View {
 
     // MARK: - Background
     private var backgroundLayer: some View {
-        ZStack {
-            Color(red: 0.06, green: 0.06, blue: 0.10)
-                .ignoresSafeArea()
-            
-            // Top glow (Blue mixed with Yellow/Gold, transitioning to transparent)
-            VStack {
-                LinearGradient(
-                    colors: [
-                        Color.siBlue.opacity(0.22),
-                        Color.siGold.opacity(0.10),
-                        .clear
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 260)
-                Spacer()
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            
-            // Bottom glow (Blue transitioning to transparent)
-            VStack {
-                Spacer()
-                LinearGradient(
-                    colors: [.clear, Color.siBlue.opacity(0.20)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 260)
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-        }
+        ChartColorTheme.bg.ignoresSafeArea()
     }
 
     // MARK: - Header
     private var settingsHeader: some View {
-        ZStack {
-            // Glassmorphism layer
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    LinearGradient(
-                        colors: [Color.siBlue.opacity(0.18), Color.siGold.opacity(0.12)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .overlay(
-                    // Ukraine flag top stripe (subtle)
-                    VStack(spacing: 0) {
-                        Color(red: 0.0, green: 0.48, blue: 0.87).opacity(0.25)
-                            .frame(height: 2)
-                        Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.25)
-                            .frame(height: 2)
-                        Spacer()
-                    }
-                )
-                .overlay(
-                    Rectangle()
-                        .frame(height: 0.5)
-                        .foregroundColor(Color.white.opacity(0.12)),
-                    alignment: .bottom
-                )
-
-            HStack(alignment: .center, spacing: 12) {
-                // Shield icon
-                Image(systemName: "shield.fill")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.siBlue, Color.siBlue.opacity(0.7)],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: Color.siBlue.opacity(0.5), radius: 8)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Налаштування")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    Text("SirenUA")
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("⚙️ Налаштування")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 6, height: 6)
+                        .shadow(color: .green, radius: 4)
+                    Text("SirenUA · Конфігурація")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(.white.opacity(0.5))
                 }
-
-                Spacer()
-
-
+            }
+            Spacer()
+            HStack(spacing: 10) {
                 if adminAuthenticated {
                     Button(action: {
                         haptic(.medium)
@@ -308,15 +240,15 @@ struct SettingsView: View {
                     }) {
                         HStack(spacing: 5) {
                             Image(systemName: "gauge.with.needle.fill")
-                            Text("Адмінка")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 12))
+                            Text("Консоль")
+                                .font(.system(size: 13, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.siPurple)
+                        .padding(.vertical, 7)
+                        .background(Color.purple.opacity(0.3))
                         .clipShape(Capsule())
-                        .shadow(color: Color.siPurple.opacity(0.4), radius: 8, x: 0, y: 3)
                     }
                 }
 
@@ -324,30 +256,39 @@ struct SettingsView: View {
                     haptic(.medium)
                     dismiss()
                 }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("Готово")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Color.siBlue)
-                    .clipShape(Capsule())
-                    .shadow(color: Color.siBlue.opacity(0.4), radius: 8, x: 0, y: 3)
+                    Text("Готово")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.blue.opacity(0.3))
+                        .clipShape(Capsule())
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
         }
-        .frame(height: 68)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(ChartColorTheme.cardBg)
     }
 
     // MARK: - Cards
 
+    // MARK: - Admin-style card helper
+    private func sectionHeader(_ emoji: String, _ title: String) -> some View {
+        HStack {
+            Text("\(emoji) \(title)")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white.opacity(0.6))
+            Spacer()
+        }
+    }
+
     private var notificationsCard: some View {
-        SettingsCard(title: "Сповіщення", icon: "bell.badge.fill", iconColor: .siBlue) {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("🔔", "Сповіщення")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
             StyledToggleRow(
                 title: "Увімкнути сповіщення",
                 subtitle: "Push-повідомлення про тривоги",
@@ -356,7 +297,7 @@ struct SettingsView: View {
                 isOn: $notificationsEnabled
             )
             
-            StyledDivider()
+            Divider().background(Color.white.opacity(0.06))
             
             StyledToggleRow(
                 title: "Без звуку для загроз",
@@ -366,20 +307,21 @@ struct SettingsView: View {
                 isOn: $muteThreatsSound
             )
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private var mapCard: some View {
-        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .siBlue) {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("🗺️", "Карта та Навігація")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
             VStack(alignment: .leading, spacing: 8) {
-                Label {
-                    Text("Тип карти")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
-                } icon: {
-                    Image(systemName: "square.3.layers.3d")
-                        .foregroundColor(.siBlue)
-                        .font(.system(size: 12))
-                }
+                Text("Тип карти")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.5))
 
                 Picker("Тип карти", selection: $mapType) {
                     Text("Стандартна").tag(0)
@@ -390,12 +332,12 @@ struct SettingsView: View {
                 .onChange(of: mapType) { oldValue, newValue in haptic() }
             }
 
-            StyledDivider()
+            Divider().background(Color.white.opacity(0.06))
 
             radiusRow(
                 title: "Радіус пошуку пішки",
                 icon: "figure.walk",
-                iconColor: .siBlue,
+                iconColor: ChartColorTheme.accent,
                 value: $walkingSearchRadius,
                 range: 0.5...3.0,
                 step: 0.5,
@@ -405,13 +347,16 @@ struct SettingsView: View {
             radiusRow(
                 title: "Радіус пошуку авто",
                 icon: "car.fill",
-                iconColor: .siGold,
+                iconColor: ChartColorTheme.active,
                 value: $drivingSearchRadius,
                 range: 1.0...20.0,
                 step: 1.0,
                 format: "%.0f"
             )
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private func radiusRow(
@@ -446,13 +391,15 @@ struct SettingsView: View {
     }
 
     private var premiumCard: some View {
-        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: .siGold) {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("👑", "SirenUA Premium")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
             if storeManager.isPremium {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.seal.fill")
-                        .foregroundStyle(
-                            LinearGradient(colors: [.siBlue, .siGold], startPoint: .top, endPoint: .bottom)
-                        )
+                        .foregroundColor(ChartColorTheme.confirmed)
                         .font(.title3)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Premium Активовано")
@@ -464,7 +411,7 @@ struct SettingsView: View {
                     }
                     Spacer()
                 }
-                StyledDivider()
+                Divider().background(Color.white.opacity(0.06))
                 Button(action: {
                     storeManager.debugResetPremium()
                 }) {
@@ -473,13 +420,16 @@ struct SettingsView: View {
                         Text("Скинути преміум (для тестування)")
                     }
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.red)
+                    .foregroundColor(ChartColorTheme.overestimated)
                 }
                 .padding(.vertical, 4)
             } else {
                 premiumUpgradeView
             }
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private var premiumUpgradeView: some View {
@@ -489,8 +439,8 @@ struct SettingsView: View {
                 .foregroundColor(.white.opacity(0.6))
 
             VStack(spacing: 8) {
-                premiumFeatureRow(icon: "antenna.radiowaves.left.and.right", text: "Моніторинг загроз (Сервер)", color: .siBlue)
-                premiumFeatureRow(icon: "eye.fill",                          text: "Деталізація загроз",         color: .siGold)
+                premiumFeatureRow(icon: "antenna.radiowaves.left.and.right", text: "Моніторинг загроз (Сервер)", color: ChartColorTheme.accent)
+                premiumFeatureRow(icon: "eye.fill",                          text: "Деталізація загроз",         color: ChartColorTheme.active)
             }
 
             if let product = storeManager.storeProducts.first(where: { $0.id == "com.sirenua.premium.monthly" }) {
@@ -514,16 +464,9 @@ struct SettingsView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(
-                        LinearGradient(
-                            colors: [.siBlue, .siGold],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .foregroundColor(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: Color.siBlue.opacity(0.3), radius: 10, x: 0, y: 4)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
                 }
                 .disabled(isPurchasing)
 
@@ -531,7 +474,7 @@ struct SettingsView: View {
                     Task { await storeManager.restorePurchases() }
                 }
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.siBlue)
+                .foregroundColor(ChartColorTheme.accent)
                 .frame(maxWidth: .infinity)
             } else {
                 ProgressView("Завантаження продуктів...")
@@ -550,7 +493,7 @@ struct SettingsView: View {
                     Text("Активувати Premium (для тестування)")
                 }
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.siGold)
+                .foregroundColor(ChartColorTheme.active)
                 .frame(maxWidth: .infinity)
             }
             .padding(.vertical, 4)
@@ -575,12 +518,16 @@ struct SettingsView: View {
     }
 
     private var regionsCard: some View {
-        SettingsCard(title: "Відслідковувані регіони", icon: "map.circle.fill", iconColor: .siGold) {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("📍", "Відслідковувані регіони")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
             StyledToggleRow(
                 title: "Усі регіони України",
                 subtitle: "Отримувати тривоги по всій країні",
                 icon: "globe.europe.africa.fill",
-                iconColor: .siGold,
+                iconColor: ChartColorTheme.active,
                 isOn: Binding(
                     get: { allRegionsTracked },
                     set: { newVal in
@@ -592,10 +539,13 @@ struct SettingsView: View {
             )
 
             if !allRegionsTracked {
-                StyledDivider()
+                Divider().background(Color.white.opacity(0.06))
                 regionsPickerSection
             }
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private var regionsPickerSection: some View {
@@ -661,336 +611,292 @@ struct SettingsView: View {
     }
 
     private var diagnosticsCard: some View {
-        SettingsCard(title: "Діагностика з'єднання", icon: "wifi.router.fill", iconColor: .siBlue) {
-            VStack(spacing: 12) {
-                ServerStatusRow(
-                    name: "Основний сервер тривог",
-                    url: "ubilling.net.ua",
-                    status: alertsServerStatus
-                )
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("📡", "Діагностика з'єднання")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
+            ServerStatusRow(
+                name: "Основний сервер тривог",
+                url: "ubilling.net.ua",
+                status: alertsServerStatus
+            )
 
-                Divider().background(Color.white.opacity(0.06))
+            Divider().background(Color.white.opacity(0.06))
 
-                ServerStatusRow(
-                    name: "Сервер загроз (Premium)",
-                    url: "sirenua-threatserver.onrender.com",
-                    status: threatsServerStatus
-                )
+            ServerStatusRow(
+                name: "Сервер загроз (Premium)",
+                url: "sirenua-threatserver.onrender.com",
+                status: threatsServerStatus
+            )
 
-                Divider().background(Color.white.opacity(0.06))
+            Divider().background(Color.white.opacity(0.06))
 
-                ServerStatusRow(
-                    name: "Аналізатор ШІ (Gemini)",
-                    url: "gemini-2.5-flash",
-                    status: geminiServerStatus
-                )
+            ServerStatusRow(
+                name: "Аналізатор ШІ (Gemini)",
+                url: "gemini-2.5-flash",
+                status: geminiServerStatus
+            )
 
-
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        haptic(.medium)
-                        alertsServerStatus  = .checking
-                        threatsServerStatus = .checking
-                        geminiServerStatus  = .checking
-                        Task { await checkServerStatus() }
-                    }) {
-                        Label("Оновити статус", systemImage: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.siBlue)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 14)
-                            .background(Color.siBlue.opacity(0.12))
-                            .clipShape(Capsule())
-                            .overlay(
-                                Capsule().stroke(Color.siBlue.opacity(0.3), lineWidth: 1)
-                            )
-                    }
+            HStack {
+                Spacer()
+                Button(action: {
+                    haptic(.medium)
+                    alertsServerStatus  = .checking
+                    threatsServerStatus = .checking
+                    geminiServerStatus  = .checking
+                    Task { await checkServerStatus() }
+                }) {
+                    Label("Оновити статус", systemImage: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(ChartColorTheme.accent)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                        .background(ChartColorTheme.accent.opacity(0.12))
+                        .clipShape(Capsule())
                 }
-                .padding(.top, 4)
             }
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private var adminDashboardCard: some View {
-        SettingsCard(title: "Панель адміністратора", icon: "crown.fill", iconColor: .siPurple) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Повний нативний моніторинг SirenUA: логи помилок, запити до Firebase, ліміти Gemini, правила самонавчання та симулятор загроз.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.6))
-                    .lineSpacing(4)
-                
-                Button(action: {
-                    haptic(.medium)
-                    showingAdminPanel = true
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "gauge.with.needle.fill")
-                        Text("Відкрити консоль управління")
-                    }
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.siPurple)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: Color.siPurple.opacity(0.3), radius: 8, x: 0, y: 3)
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("🚨", "Панель адміністратора")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
+            Text("Повний нативний моніторинг SirenUA: логи помилок, запити до Firebase, ліміти Gemini, правила самонавчання та симулятор загроз.")
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.5))
+                .lineSpacing(4)
+            
+            Button(action: {
+                haptic(.medium)
+                showingAdminPanel = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "gauge.with.needle.fill")
+                    Text("Відкрити консоль управління")
                 }
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.blue)
+                .cornerRadius(8)
             }
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private var mockScenariosCard: some View {
-        SettingsCard(title: "Симуляція загроз (Розробка)", icon: "terminal.fill", iconColor: .siGold) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Запустіть один із тестових сценаріїв для перевірки жовтих областей, телеметрії, відстані та кругових діаграм ймовірностей.")
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.5))
-                    .lineSpacing(4)
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("🧪", "Симуляція загроз (Розробка)")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
+            Text("Запустіть один із тестових сценаріїв для перевірки жовтих областей, телеметрії, відстані та кругових діаграм ймовірностей.")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.4))
+                .lineSpacing(4)
+            
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        haptic(.medium)
+                        triggerScenario("shaheds_south")
+                    }) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("Шахеди з півдня")
+                        }
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(ChartColorTheme.active.opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                    
+                    Button(action: {
+                        haptic(.medium)
+                        triggerScenario("mig_takeoff")
+                    }) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("Зліт МіГ-31К")
+                        }
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(ChartColorTheme.orange.opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                }
                 
-                VStack(spacing: 10) {
-                    HStack(spacing: 10) {
-                        Button(action: {
-                            haptic(.medium)
-                            triggerScenario("shaheds_south")
-                        }) {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                Text("Шахеди з півдня")
-                            }
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.siGold.opacity(0.25))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.siGold.opacity(0.4), lineWidth: 1))
+                HStack(spacing: 8) {
+                    Button(action: {
+                        haptic(.medium)
+                        triggerScenario("cruise_missiles_west")
+                    }) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("Ракети (Захід)")
                         }
-                        
-                        Button(action: {
-                            haptic(.medium)
-                            triggerScenario("mig_takeoff")
-                        }) {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                Text("Зліт МіГ-31К")
-                            }
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.siOrange.opacity(0.25))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.siOrange.opacity(0.4), lineWidth: 1))
-                        }
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(ChartColorTheme.accent.opacity(0.2))
+                        .cornerRadius(8)
                     }
                     
-                    HStack(spacing: 10) {
-                        Button(action: {
-                            haptic(.medium)
-                            triggerScenario("cruise_missiles_west")
-                        }) {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                Text("Ракети (Захід)")
-                            }
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.siBlue.opacity(0.25))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.siBlue.opacity(0.4), lineWidth: 1))
+                    Button(action: {
+                        haptic(.medium)
+                        triggerScenario("clear")
+                    }) {
+                        HStack {
+                            Image(systemName: "xmark.circle.fill")
+                            Text("Очистити все")
                         }
-                        
-                        Button(action: {
-                            haptic(.medium)
-                            triggerScenario("clear")
-                        }) {
-                            HStack {
-                                Image(systemName: "xmark.circle.fill")
-                                Text("Очистити все")
-                            }
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.red.opacity(0.2))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.35), lineWidth: 1))
-                        }
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(ChartColorTheme.overestimated.opacity(0.15))
+                        .cornerRadius(8)
                     }
-                    
-
                 }
             }
         }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private var aboutCard: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.siBlue.opacity(0.3), Color.siGold.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 54, height: 54)
-                    Image(systemName: "shield.lefthalf.filled.badge.checkmark")
-                        .font(.system(size: 26))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.siBlue, .siGold],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-                .shadow(color: Color.siBlue.opacity(0.4), radius: 12)
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("🛡️", "Про додаток")
+            
+            Divider().background(Color.white.opacity(0.06))
+            
+            HStack(spacing: 12) {
+                Image(systemName: "shield.lefthalf.filled.badge.checkmark")
+                    .font(.system(size: 22))
+                    .foregroundColor(ChartColorTheme.accent)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("SirenUA")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     Text("Версія 4.2 · Premium Edition")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.45))
                 }
                 Spacer()
             }
 
             Text("Надійний локальний монітор повітряних тривог, виявлення загроз та швидкий пошук найближчих укриттів.")
-                .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.55))
-                .lineSpacing(5)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.5))
+                .lineSpacing(4)
             
-            StyledDivider()
+            Divider().background(Color.white.opacity(0.06))
             
             if adminAuthenticated {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "person.crop.circle.badge.checkmark")
-                            .font(.system(size: 14))
-                            .foregroundColor(.siGreen)
+                HStack {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(ChartColorTheme.confirmed)
+                            .frame(width: 6, height: 6)
+                            .shadow(color: ChartColorTheme.confirmed, radius: 4)
                         Text("Адміністратор")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
-                        Spacer()
-                        Button(action: {
-                            haptic(.medium)
-                            adminAuthenticated = false
-                            adminViewMode = false
-                        }) {
-                            Text("Вийти")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(6)
-                        }
                     }
-                    Text("Ви успішно авторизовані в системі як адміністратор додатка.")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.4))
+                    Spacer()
+                    Button(action: {
+                        haptic(.medium)
+                        adminAuthenticated = false
+                        adminViewMode = false
+                    }) {
+                        Text("Вийти")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(ChartColorTheme.overestimated)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(ChartColorTheme.overestimated.opacity(0.1))
+                            .cornerRadius(6)
+                    }
                 }
             } else {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "envelope.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.4))
+                    HStack(spacing: 8) {
                         Text("Адмін Email:")
-                            .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.4))
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.5))
                         Spacer()
                         TextField("Введіть email", text: $inputEmail)
-                            .font(.system(size: 13, design: .monospaced))
+                            .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.trailing)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .keyboardType(.emailAddress)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.03))
+                    .cornerRadius(8)
                     
                     if !inputEmail.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.4))
+                        HStack(spacing: 8) {
                             Text("Пароль:")
-                                .font(.system(size: 13))
-                                .foregroundColor(.white.opacity(0.4))
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.5))
                             Spacer()
                             SecureField("Введіть пароль", text: $inputPassword)
-                                .font(.system(size: 13, design: .monospaced))
+                                .font(.system(size: 12, design: .monospaced))
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.trailing)
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(8)
                         
                         if let error = loginErrorMessage {
                             Text(error)
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.red)
+                                .foregroundColor(ChartColorTheme.overestimated)
                                 .padding(.top, 2)
                         }
                         
                         Button(action: {
                             checkCredentials()
                         }) {
-                            HStack {
-                                Spacer()
-                                Text("Увійти як Адмін")
-                                    .font(.system(size: 13, weight: .bold))
-                                Spacer()
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .background(Color.siBlue)
-                            .cornerRadius(8)
+                            Text("Увійти як Адмін")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.blue)
+                                .cornerRadius(8)
                         }
                         .padding(.top, 4)
                     }
                 }
             }
         }
-        .padding(18)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(.ultraThinMaterial)
-                
-                LinearGradient(
-                    colors: [
-                        Color.siBlue.opacity(0.06),
-                        Color.siGold.opacity(0.03)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.siBlue.opacity(0.18),
-                            Color.siGold.opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-        .padding(.bottom, 8)
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
 
     private func checkCredentials() {
