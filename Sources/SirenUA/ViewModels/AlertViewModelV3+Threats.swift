@@ -30,6 +30,7 @@ extension AlertViewModelV3 {
 
             let oldThreatLevel = alerts[index].threatLevel
             let newThreatLevel = threat.level == "none" ? nil : threat.level
+            let wasActive = alerts[index].isActive
 
             alerts[index].threatLevel = newThreatLevel
             alerts[index].threatType = threat.type
@@ -50,6 +51,15 @@ extension AlertViewModelV3 {
                 alerts[index].isActive = isActive
                 alerts[index].level = isActive ? 3 : 0
                 alerts[index].description = isActive ? "Повітряна тривога!" : "Немає тривоги"
+
+                // Fire official siren sound (siren.wav) on transition to active state
+                if !isFirstThreatFetch && !isFirstFetch {
+                    if !wasActive && isActive {
+                        NotificationManager.shared.sendAlertNotification(for: regionName)
+                    } else if wasActive && !isActive {
+                        NotificationManager.shared.sendClearNotification(for: regionName)
+                    }
+                }
             }
 
             if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
@@ -78,6 +88,7 @@ extension AlertViewModelV3 {
         guard let index = alerts.firstIndex(where: { $0.name == region }) else { return }
         let oldThreatLevel = alerts[index].threatLevel
         let newThreatLevel = threat.level == "none" ? nil : threat.level
+        let wasActive = alerts[index].isActive
 
         alerts[index].threatLevel = newThreatLevel
         alerts[index].threatType = threat.type
@@ -98,6 +109,14 @@ extension AlertViewModelV3 {
             alerts[index].isActive = isActive
             alerts[index].level = isActive ? 3 : 0
             alerts[index].description = isActive ? "Повітряна тривога!" : "Немає тривоги"
+
+            if !isFirstThreatFetch && !isFirstFetch {
+                if !wasActive && isActive {
+                    NotificationManager.shared.sendAlertNotification(for: region)
+                } else if wasActive && !isActive {
+                    NotificationManager.shared.sendClearNotification(for: region)
+                }
+            }
         }
 
         if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
