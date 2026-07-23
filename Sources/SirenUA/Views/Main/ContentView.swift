@@ -130,51 +130,14 @@ struct ContentView: View {
                 }
             }
             
-            // 2. ВЕРХНІЙ БАНЕР ТА КНОПКИ КЕРУВАННЯ КАМЕРОЮ
-            VStack(spacing: 12) {
-                HStack(alignment: .center) {
-                    Button(action: {
-                        mapViewModel.centerMapOnAlerts(
-                            alerts: viewModel.alerts,
-                            isPremium: viewModel.isPremium,
-                            lastAlertedRegionName: viewModel.lastAlertedRegionName,
-                            regions: geoManager.regions
-                        )
-                    }) {
-                        Image(systemName: "map.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(themeColor)
-                            .padding(10)
-                            .background(themeColor.opacity(0.15))
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
-                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                    }
-                    .simultaneousGesture(TapGesture().onEnded {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    })
-                    .padding(.leading, 16)
-                    
-                    Spacer()
-                    
-                    TopAlertBannerV4(
-                        statusColor: themeColor,
-                        statusText: themeStatusText,
-                        activeCount: themeActiveCount,
-                        isLoading: viewModel.isLoading
-                    )
-                    .onTapGesture {
-                        if themeActiveCount > 0 {
-                            mapViewModel.showActiveAlerts = true
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    locationButton
-                }
-                .padding(.top, 10)
+            // 2. ВЕРХНІЙ БАНЕР ТА ШІ-РАДАР (ПІКСЕЛЬ В ПІКСЕЛЬ ЯК НА МАКЕТІ)
+            VStack(spacing: 8) {
+                AIRadarHeroCardView(
+                    primaryRegion: viewModel.alerts.first(where: { $0.isActive })?.name ?? "Київ",
+                    activeThreatCount: themeActiveCount,
+                    isAlarmActive: hasAlerts
+                )
+                .padding(.top, 6)
                 
                 if let displayMessage = mapViewModel.routeErrorMessage ?? mapViewModel.shelterInfoMessage {
                     HStack(spacing: 12) {
@@ -218,8 +181,8 @@ struct ContentView: View {
                 }
             }
             
-            // 3. НИЖНЯ ПАНЕЛЬ АБО НАВІГАЦІЯ
-            VStack {
+            // 3. НИЖНЯ ПАНЕЛЬ МОНІТОРИНГУ, ЛЕГЕНДА ТА ТАББАР
+            VStack(spacing: 10) {
                 if let errorMessage = viewModel.errorMessage {
                     ErrorView(message: errorMessage)
                         .padding(.horizontal, 20)
@@ -227,6 +190,10 @@ struct ContentView: View {
                 }
 
                 Spacer()
+                
+                // Легенда статусу мапи (Поточний статус)
+                MapLegendPillView()
+                
                 if mapViewModel.isNavigating {
                     NavigationOverlay(route: mapViewModel.route) {
                         mapViewModel.isNavigating = false
@@ -234,34 +201,25 @@ struct ContentView: View {
                         mapViewModel.selectedShelter = nil
                     }
                 } else {
-                    BottomDashboardV4(
-                        activeAlerts: viewModel.activeAlerts,
-                        primaryRegionName: viewModel.alerts.first(where: { $0.isActive })?.name,
-                        isSearchingShelter: mapViewModel.isRoutingToShelter,
-                        transportType: $mapViewModel.transportType,
-                        onFindShelter: {
-                            mapViewModel.findNearestShelter(
-                                userLoc: centerCoordinate,
-                                walkingSearchRadius: walkingSearchRadius,
-                                drivingSearchRadius: drivingSearchRadius,
-                                serverURL: viewModel.threatServerURL
-                            )
-                        },
-                        onShare: { mapViewModel.activeSheet = .share },
-                        onSettings: { mapViewModel.activeSheet = .settings },
-                        onHistory: {
-                            mapViewModel.showHistory = true
-                            viewModel.markLastAlertAsViewed()
-                        },
-                        onStatusTap: {
-                            if viewModel.activeAlerts > 0 {
-                                mapViewModel.showActiveAlerts = true
-                            }
-                        }
+                    // Картка оперативного моніторингу
+                    OperationalMonitoringCardView(
+                        regionName: viewModel.alerts.first(where: { $0.isActive || $0.threatLevel != nil })?.name ?? "Київська область",
+                        threatDetail: viewModel.alerts.first(where: { $0.threatDetail != nil })?.threatDetail,
+                        confidence: viewModel.alerts.first(where: { $0.threatConfidence != nil })?.threatConfidence ?? 92,
+                        updatedAt: "2хв тому",
+                        isAlarm: hasAlerts
                     )
+                    .onTapGesture {
+                        if themeActiveCount > 0 {
+                            mapViewModel.showActiveAlerts = true
+                        }
+                    }
+                    
+                    // Нижній таббар як на макеті
+                    MainTabBarView(selectedTab: $mapViewModel.selectedTab)
                 }
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 12)
             
             if mapViewModel.showHistory {
                 AlertListOverlayView(

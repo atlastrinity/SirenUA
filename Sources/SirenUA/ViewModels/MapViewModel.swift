@@ -7,6 +7,7 @@ private let mapVMLogger = Logger(subsystem: "com.sirenua", category: "MapViewMod
 
 @MainActor
 final class MapViewModel: ObservableObject {
+    @Published var selectedTab = 0
     @Published var transportType: MKDirectionsTransportType = .walking
     @Published var activeSheet: ActiveSheet? = nil
     @Published var showHistory = false
