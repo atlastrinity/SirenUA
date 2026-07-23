@@ -68,7 +68,12 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .top) {
             // 1. ШАР КАРТИ
-            Map(position: $mapViewModel.cameraPosition, selection: $mapViewModel.selectedShelter) {
+            Map(
+                position: $mapViewModel.cameraPosition,
+                bounds: MapCameraBounds(minimumDistance: 1_000, maximumDistance: 4_500_000),
+                interactionModes: .all,
+                selection: $mapViewModel.selectedShelter
+            ) {
                 ThreatMapContent(
                     safeRegions: safeRegions,
                     activeThreatRegions: activeThreatRegions,
