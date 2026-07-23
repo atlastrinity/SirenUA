@@ -11,6 +11,7 @@ private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Setting
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("notificationsEnabled")      private var notificationsEnabled      = true
+    @AppStorage("criticalAlertsEnabled")     private var criticalAlertsEnabled     = true
     @AppStorage("mapType")                   private var mapType                   = 0
     @AppStorage("walkingSearchRadius")       private var walkingSearchRadius       = 1.5
     @AppStorage("drivingSearchRadius")       private var drivingSearchRadius       = 5.0
@@ -295,6 +296,16 @@ struct SettingsView: View {
                 icon: "bell.fill",
                 iconColor: .siBlue,
                 isOn: $notificationsEnabled
+            )
+            
+            Divider().background(Color.white.opacity(0.06))
+            
+            StyledToggleRow(
+                title: "Критичні сповіщення",
+                subtitle: "Пробивати режим «Не турбувати»",
+                icon: "exclamationmark.triangle.fill",
+                iconColor: .red,
+                isOn: $criticalAlertsEnabled
             )
             
             Divider().background(Color.white.opacity(0.06))
