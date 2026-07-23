@@ -200,6 +200,10 @@ struct SettingsView: View {
                 isInitialized = true
             }
         }
+        .onChange(of: notificationsEnabled) { oldValue, newValue in
+            guard isInitialized else { return }
+            NotificationManager.shared.syncTopicSubscriptions()
+        }
         .onChange(of: trackedRegionsString) { oldValue, newValue in
             guard isInitialized else { return }
             NotificationManager.shared.syncTopicSubscriptions()

@@ -14,8 +14,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
         // Встановлюємо делегат для повідомлень Firebase
         Messaging.messaging().delegate = self
         
-        // Встановлюємо делегат для обробки пушів у foreground
-        UNUserNotificationCenter.current().delegate = self
+        // Встановлюємо делегат для обробки пушів у foreground (NotificationManager)
+        UNUserNotificationCenter.current().delegate = NotificationManager.shared
         
         // Реєстрація для віддалених пушів
         application.registerForRemoteNotifications()
@@ -50,13 +50,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
         print("FCM Registration Token: \(String(describing: fcmToken))")
         // Синхронізуємо підписки при отриманні токена
         NotificationManager.shared.syncTopicSubscriptions()
-    }
-    
-    // Показувати пуш-сповіщення навіть коли додаток на екрані (foreground)
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .sound, .badge])
     }
 }
 #endif
