@@ -203,7 +203,15 @@ extension AlertViewModelV3 {
     }
 
     func buildThreatTitle(type: String?, confidence: Int, region: String) -> String {
-        let threatName = type == "mig31k" ? "Авіаційна загроза" : "Виявлено цілі"
+        let threatName: String
+        switch type {
+        case "ballistic":      threatName = "Балістична загроза"
+        case "shahed":         threatName = "Загроза БпЛА Shahed"
+        case "cruise_missile": threatName = "Загроза крилатих ракет"
+        case "kab":            threatName = "Загроза КАБ"
+        case "mig31k":         threatName = "Зліт МіГ-31К (Кинджал)"
+        default:               threatName = "Повітряна загроза"
+        }
         let indicator: String
         if confidence >= 85 {
             indicator = "🔴 Висока ймовірність"
