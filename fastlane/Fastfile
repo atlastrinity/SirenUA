@@ -33,4 +33,20 @@ platform :ios do
       groups: ["Internal Testers Group", "External Testers"]
     )
   end
+
+  desc "Upload metadata to App Store Connect"
+  lane :upload_metadata do
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_PRIVATE_KEY_PATH"],
+      in_house: false
+    )
+
+    upload_to_app_store(
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true
+    )
+  end
 end
