@@ -544,7 +544,7 @@ struct ContentView: View {
     private var bottomDashboardSection: some View {
         BottomDashboardV4(
             activeAlerts: trackedAlerts.filter { $0.isActive }.count,
-            primaryRegionName: activeThreatTrackedRegion?.name ?? (trackedAlerts.first(where: { $0.isActive })?.name ?? "м. Київ"),
+            primaryRegionName: primaryThreatRegion?.name ?? (trackedAlerts.first(where: { $0.isActive })?.name ?? "м. Київ"),
             isSearchingShelter: mapViewModel.isRoutingToShelter,
             transportType: $mapViewModel.transportType,
             onFindShelter: {
