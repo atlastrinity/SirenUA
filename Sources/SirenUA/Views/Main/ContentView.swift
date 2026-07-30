@@ -79,12 +79,18 @@ struct ContentView: View {
         return viewModel.alerts.filter { isRegionTracked($0.name) }
     }
 
-    private var activeThreatTrackedRegion: AlertRegion? {
-        return trackedAlerts.first(where: { !($0.activeThreats.isEmpty) || ($0.threatLevel != nil) }) ?? trackedAlerts.first(where: { $0.isActive })
+    @State private var currentHeroEventIndex = 0
+
+    private var activeThreatTrackedRegions: [AlertRegion] {
+        let list = trackedAlerts.filter { !($0.activeThreats.isEmpty) || ($0.threatLevel != nil) || $0.isActive }
+        return list.isEmpty ? trackedAlerts : list
     }
 
     private var primaryThreatRegion: AlertRegion? {
-        activeThreatTrackedRegion
+        let regions = activeThreatTrackedRegions
+        guard !regions.isEmpty else { return nil }
+        let index = currentHeroEventIndex % regions.count
+        return regions[index]
     }
 
     private let allRegionsList = [
@@ -452,6 +458,11 @@ struct ContentView: View {
         }
         .onReceive(refreshTimer) { _ in
             timeRefreshTrigger = Date()
+            if activeThreatTrackedRegions.count > 1 {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    currentHeroEventIndex = (currentHeroEventIndex + 1) % activeThreatTrackedRegions.count
+                }
+            }
         }
     }
 
