@@ -539,12 +539,22 @@ struct ContentView: View {
         }
     }
 
+    private var dashboardPrimaryRegionName: String {
+        if let regName = primaryThreatRegion?.name {
+            return regName
+        }
+        if let activeName = trackedAlerts.first(where: { $0.isActive })?.name {
+            return activeName
+        }
+        return "м. Київ"
+    }
+
     // MARK: Bottom Dashboard Section
     @ViewBuilder
     private var bottomDashboardSection: some View {
         BottomDashboardV4(
             activeAlerts: trackedAlerts.filter { $0.isActive }.count,
-            primaryRegionName: primaryThreatRegion?.name ?? (trackedAlerts.first(where: { $0.isActive })?.name ?? "м. Київ"),
+            primaryRegionName: dashboardPrimaryRegionName,
             isSearchingShelter: mapViewModel.isRoutingToShelter,
             transportType: $mapViewModel.transportType,
             onFindShelter: {
