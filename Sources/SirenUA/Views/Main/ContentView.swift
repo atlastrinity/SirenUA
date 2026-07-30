@@ -560,7 +560,7 @@ struct ContentView: View {
             onSettings: { mapViewModel.activeSheet = .settings },
             onHistory: { mapViewModel.showHistory = true },
             onStatusTap: { mapViewModel.showActiveAlerts = true },
-            threatConfidence: activeThreatTrackedRegion?.currentThreat?.confidence ?? activeThreatTrackedRegion?.threatConfidence
+            threatConfidence: primaryThreatRegion?.currentThreat?.confidence ?? primaryThreatRegion?.threatConfidence
         )
     }
 }
