@@ -46,7 +46,7 @@ struct ContentView: View {
     }
 
     var alertFocusCoordinate: CLLocationCoordinate2D {
-        trackedAlerts.first(where: { $0.isActive })?.coordinate ?? activeThreatTrackedRegion?.coordinate ?? centerCoordinate
+        trackedAlerts.first(where: { $0.isActive })?.coordinate ?? primaryThreatRegion?.coordinate ?? centerCoordinate
     }
 
     static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
@@ -147,14 +147,14 @@ struct ContentView: View {
 
     private var primaryHeaderRegionLabel: String {
         if allRegionsTracked || !isTrackedOnlyFilter {
-            let activeOrLast = activeThreatTrackedRegion?.name ?? viewModel.lastAlertedRegionName ?? "м. Київ"
+            let activeOrLast = primaryThreatRegion?.name ?? viewModel.lastAlertedRegionName ?? "м. Київ"
             return "УСІ ОБЛАСТІ • \(activeOrLast)"
         } else {
             let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
             if list.count == 1 {
                 return "ОБРАНА: \(list[0])"
             } else if list.count > 1 {
-                if let threatReg = activeThreatTrackedRegion?.name {
+                if let threatReg = primaryThreatRegion?.name {
                     return "ОБРАНІ (\(list.count)) • \(threatReg)"
                 } else {
                     return "ОБРАНІ ОБЛАСТІ (\(list.count))"
