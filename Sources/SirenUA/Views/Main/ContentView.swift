@@ -240,33 +240,7 @@ struct ContentView: View {
             .allowsHitTesting(false)
             
             // Динамічна верхня та нижня підсвітка екрану
-            Group {
-                if hasAlerts || hasThreats {
-                    ZStack {
-                        VStack {
-                            LinearGradient(
-                                colors: [themeColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 160)
-                            Spacer()
-                        }
-                        
-                        VStack {
-                            Spacer()
-                            LinearGradient(
-                                colors: [.clear, themeColor.opacity(hasAlerts ? 0.40 : 0.25)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 180)
-                        }
-                    }
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-                }
-            }
+            ambientGlowOverlay
             
             // 2. ВЕРХНІЙ БАНЕР ТА ШІ-РАДАР (З ОПЕРАТИВНИМ МОНІТОРИНГОМ)
             topBannerSection
@@ -290,7 +264,7 @@ struct ContentView: View {
                     }
                 } else {
                     // Каскадне нижнє оперативне сповіщення (динамічно з'являється та зникає)
-                    if showBottomOperationalToast, let alert = activeThreatTrackedRegion {
+                    if showBottomOperationalToast, let alert = primaryThreatRegion {
                         OperationalMonitoringCardView(
                             regionName: alert.name,
                             threatDetail: alert.currentThreat?.detail ?? alert.threatDetail,
@@ -469,6 +443,35 @@ struct ContentView: View {
                     currentHeroEventIndex = (currentHeroEventIndex + 1) % activeThreatTrackedRegions.count
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var ambientGlowOverlay: some View {
+        if hasAlerts || hasThreats {
+            ZStack {
+                VStack {
+                    LinearGradient(
+                        colors: [themeColor.opacity(hasAlerts ? 0.30 : 0.20), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 160)
+                    Spacer()
+                }
+                
+                VStack {
+                    Spacer()
+                    LinearGradient(
+                        colors: [.clear, themeColor.opacity(hasAlerts ? 0.40 : 0.25)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 180)
+                }
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
         }
     }
 
