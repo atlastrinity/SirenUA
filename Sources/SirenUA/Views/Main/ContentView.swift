@@ -182,7 +182,8 @@ struct ContentView: View {
     }
 
     private func getShortThreatDesc(_ type: String?) -> String {
-        viewModel.getThreatTypeDescriptionShort(type)
+        guard let type = type else { return "Загроза" }
+        return viewModel.getThreatTypeDescriptionShort(type)
     }
 
     private func handleRegionSelection(_ region: AlertRegion) {
