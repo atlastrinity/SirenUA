@@ -87,8 +87,76 @@ struct ContentView: View {
         activeThreatTrackedRegion
     }
 
-    private var primaryThreatName: String {
-        primaryThreatRegion?.name ?? (trackedAlerts.first(where: { $0.isActive })?.name ?? "м. Київ")
+    private let allRegionsList = [
+        "Вінницька область",    "Волинська область",       "Дніпропетровська область",
+        "Донецька область",     "Житомирська область",     "Закарпатська область",
+        "Запорізька область",   "Івано-Франківська область","Київська область",
+        "м. Київ",              "Кіровоградська область",  "Луганська область",
+        "Львівська область",    "Миколаївська область",    "Одеська область",
+        "Полтавська область",   "Рівненська область",      "Сумська область",
+        "Тернопільська область","Харківська область",      "Херсонська область",
+        "Хмельницька область",  "Черкаська область",       "Чернівецька область",
+        "Чернігівська область"
+    ]
+
+    private var trackedRegionsSet: Set<String> {
+        Set(trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
+    }
+
+    private func selectAllRegions() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            allRegionsTracked = true
+            isTrackedOnlyFilter = false
+        }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    private func toggleTrackedRegion(_ name: String) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            var currentList = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+            
+            if allRegionsTracked {
+                allRegionsTracked = false
+                currentList = [name]
+            } else {
+                if currentList.contains(name) {
+                    currentList.removeAll { $0 == name }
+                } else {
+                    currentList.append(name)
+                }
+            }
+            
+            if currentList.isEmpty {
+                allRegionsTracked = true
+                isTrackedOnlyFilter = false
+            } else {
+                allRegionsTracked = false
+                isTrackedOnlyFilter = true
+            }
+            
+            trackedRegionsString = currentList.joined(separator: ";")
+        }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    private var primaryHeaderRegionLabel: String {
+        if allRegionsTracked || !isTrackedOnlyFilter {
+            let activeOrLast = activeThreatTrackedRegion?.name ?? viewModel.lastAlertedRegionName ?? "м. Київ"
+            return "УСІ ОБЛАСТІ • \(activeOrLast)"
+        } else {
+            let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+            if list.count == 1 {
+                return "ОБРАНА: \(list[0])"
+            } else if list.count > 1 {
+                if let threatReg = activeThreatTrackedRegion?.name {
+                    return "ОБРАНІ (\(list.count)) • \(threatReg)"
+                } else {
+                    return "ОБРАНІ ОБЛАСТІ (\(list.count))"
+                }
+            } else {
+                return "УСІ ОБЛАСТІ"
+            }
+        }
     }
 
     private var primaryThreatDetail: String? {
@@ -392,7 +460,7 @@ struct ContentView: View {
     private var topBannerSection: some View {
         VStack(spacing: 8) {
             AIRadarHeroCardView(
-                primaryRegion: primaryThreatName,
+                primaryRegionLabel: primaryHeaderRegionLabel,
                 activeThreatCount: trackedAlerts.filter({ $0.isActive || $0.threatLevel != nil }).count,
                 isAlarmActive: trackedAlerts.contains(where: { $0.isActive }),
                 threatDetail: primaryThreatDetail,
@@ -400,12 +468,11 @@ struct ContentView: View {
                 confidence: primaryThreatConfidence,
                 eta: primaryThreatETA,
                 isTrackedOnly: isTrackedOnlyFilter,
-                onToggleTrackedFilter: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                        isTrackedOnlyFilter.toggle()
-                    }
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                }
+                allRegionsList: allRegionsList,
+                trackedRegionsSet: trackedRegionsSet,
+                allRegionsTracked: allRegionsTracked,
+                onSelectAllRegions: { selectAllRegions() },
+                onToggleRegion: { regionName in toggleTrackedRegion(regionName) }
             )
             .padding(.top, 6)
             

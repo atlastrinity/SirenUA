@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AIRadarHeroCardView: View {
-    let primaryRegion: String
+    let primaryRegionLabel: String
     let activeThreatCount: Int
     let isAlarmActive: Bool
     let threatDetail: String?
@@ -9,11 +9,15 @@ struct AIRadarHeroCardView: View {
     let confidence: Int?
     let eta: String?
     let isTrackedOnly: Bool
-    let onToggleTrackedFilter: () -> Void
+    let allRegionsList: [String]
+    let trackedRegionsSet: Set<String>
+    let allRegionsTracked: Bool
+    let onSelectAllRegions: () -> Void
+    let onToggleRegion: (String) -> Void
     
     var body: some View {
         VStack(spacing: 8) {
-            // Top Bar: Brand, Logo, Location & Filter Pill
+            // Top Bar: Brand, Logo & Interactive Region Selection Dropdown Menu
             HStack {
                 HStack(spacing: 5) {
                     Image(systemName: "dot.radiowaves.up.forward")
@@ -26,19 +30,46 @@ struct AIRadarHeroCardView: View {
                 
                 Spacer()
                 
-                // Tracked Filter Toggle Button
-                Button(action: onToggleTrackedFilter) {
+                // Interactive Region Selection Dropdown Menu
+                Menu {
+                    Button(action: onSelectAllRegions) {
+                        HStack {
+                            Text("🌐 Усі області України")
+                            if allRegionsTracked {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    ForEach(allRegionsList, id: \.self) { regionName in
+                        Button(action: { onToggleRegion(regionName) }) {
+                            HStack {
+                                Text(regionName)
+                                if !allRegionsTracked && trackedRegionsSet.contains(regionName) {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: isTrackedOnly ? "line.3.horizontal.decrease.circle.fill" : "globe.europe.africa.fill")
+                        Image(systemName: isTrackedOnly ? "mappin.circle.fill" : "globe.europe.africa.fill")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(isTrackedOnly ? .cyan : .yellow)
                         
-                        Text(isTrackedOnly ? "ОБРАНІ ОБЛАСТІ" : "УСІ ОБЛАСТІ")
+                        Text(primaryRegionLabel.uppercased())
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.white.opacity(0.8))
                     }
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .background(
                         LinearGradient(
                             colors: [
@@ -50,23 +81,10 @@ struct AIRadarHeroCardView: View {
                         )
                     )
                     .clipShape(Capsule())
-                    .overlay(Capsule().stroke(isTrackedOnly ? Color.cyan.opacity(0.6) : Color.yellow.opacity(0.5), lineWidth: 1))
+                    .overlay(
+                        Capsule().stroke(isTrackedOnly ? Color.cyan.opacity(0.6) : Color.yellow.opacity(0.5), lineWidth: 1)
+                    )
                 }
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Text(primaryRegion.uppercased())
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(.white.opacity(0.9))
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.cyan)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.12))
-                .clipShape(Capsule())
             }
             .padding(.horizontal, 16)
             
