@@ -252,50 +252,10 @@ func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
     return hasThreatData
 }
 
-// MARK: - Aerodynamic Trajectory Flow Arrow View
-
-struct TrajectoryFlowArrowView: View {
-    let angle: Double
-    let opacity: Double
-    
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.orange.opacity(opacity * 0.35))
-                .frame(width: 14, height: 14)
-            
-            Image(systemName: "chevron.up")
-                .font(.system(size: 8, weight: .black))
-                .foregroundColor(.yellow.opacity(opacity))
-                .rotationEffect(.degrees(angle))
-                .shadow(color: .yellow, radius: 2)
-        }
-    }
-}
-
-// MARK: - Trajectory Calculator (Proportional Aerodynamic Comet Tail & Flow)
-
-struct CometTrajectorySegment: Identifiable {
-    let id: Int
-    let coordinates: [CLLocationCoordinate2D]
-    let outerWidth: CGFloat
-    let outerOpacity: Double
-    let innerWidth: CGFloat
-    let innerOpacity: Double
-    let isHead: Bool
-}
-
-struct TrajectoryFlowArrow: Identifiable {
-    let id: Int
-    let coordinate: CLLocationCoordinate2D
-    let angle: Double
-    let opacity: Double
-}
+// MARK: - Trajectory Calculator (Proportional Aerodynamic Comet Tail)
 
 struct TrajectoryPath {
     let fullPoints: [CLLocationCoordinate2D]
-    let segments: [CometTrajectorySegment]
-    let flowArrows: [TrajectoryFlowArrow]
     let lastCheckpointCoordinate: CLLocationCoordinate2D
     let lastCheckpointAngle: Double
 }
@@ -355,7 +315,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let controlLon = midLon + normalLon * (distance * curvature)
     
     var fullPoints: [CLLocationCoordinate2D] = []
-    let steps = 24
+    let steps = 24 // Bezier curve resolution (25 points total: indices 0...24)
     for i in 0...steps {
         let t = Double(i) / Double(steps)
         let invT = 1.0 - t
@@ -366,71 +326,10 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         fullPoints.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
     }
     
-    // Create 24 continuous micro-segments with fluffy expanded dissolving comet tail (52px wide nebula mist at origin)
-    let segmentCount = 24
-    var segments: [CometTrajectorySegment] = []
-    
-    for i in 0..<segmentCount {
-        let startIdx = i * (steps / segmentCount)
-        let endIdx = min((i + 1) * (steps / segmentCount) + 1, steps)
-        
-        let subPoints = Array(fullPoints[startIdx...endIdx])
-        let progress = Double(i) / Double(segmentCount - 1) // 0.0 at tail origin -> 1.0 at target head
-        
-        // Fluffy Dissolving Mist Taper:
-        // Tail (progress = 0.0): Ultra-wide (52px), soft, heavily blurred atmospheric mist fading out into the distance
-        // Head (progress = 1.0): Sharp, focused, solid laser beam
-        let tailMistFactor = pow(1.0 - progress, 1.2)
-        let headBeamFactor = pow(progress, 1.6)
-        
-        let outerWidth: CGFloat = 34.0 * CGFloat(tailMistFactor) + 4.0
-        let outerOpacity: Double = 0.03 * tailMistFactor + 0.94 * headBeamFactor
-        
-        let innerWidth: CGFloat = 1.0 + CGFloat(progress * 3.8)
-        let innerOpacity: Double = 0.10 + (pow(progress, 1.2) * 0.90)
-        let isHead = (i >= segmentCount - 5)
-        
-        segments.append(
-            CometTrajectorySegment(
-                id: i,
-                coordinates: subPoints,
-                outerWidth: outerWidth,
-                outerOpacity: outerOpacity,
-                innerWidth: innerWidth,
-                innerOpacity: innerOpacity,
-                isHead: isHead
-            )
-        )
-    }
-    
-    // Aerodynamic directional flow chevrons along orbit (at ~30% and ~60% progress)
-    var flowArrows: [TrajectoryFlowArrow] = []
-    let arrowStepIndices = [14, 28]
-    
-    for (idx, stepIdx) in arrowStepIndices.enumerated() {
-        let p1 = fullPoints[stepIdx]
-        let p2 = fullPoints[min(stepIdx + 1, steps)]
-        
-        let deltaLat = p2.latitude - p1.latitude
-        let deltaLon = p2.longitude - p1.longitude
-        let angleRad = atan2(deltaLon, deltaLat)
-        let angleDeg = angleRad * 180.0 / .pi
-        let progress = Double(stepIdx) / Double(steps)
-        let opacity = 0.30 + (progress * 0.55)
-        
-        flowArrows.append(
-            TrajectoryFlowArrow(
-                id: idx,
-                coordinate: p1,
-                angle: angleDeg,
-                opacity: opacity
-            )
-        )
-    }
-    
-    let checkpointIdx = 36 // ~75% along 48 steps
+    // Last telemetry checkpoint at ~75% along the trajectory (index 18 of 0...24)
+    let checkpointIdx = 18
     let p1 = fullPoints[checkpointIdx]
-    let p2 = fullPoints[min(checkpointIdx + 1, steps)]
+    let p2 = fullPoints[checkpointIdx + 1]
     
     let deltaLat = p2.latitude - p1.latitude
     let deltaLon = p2.longitude - p1.longitude
@@ -439,8 +338,6 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     
     return TrajectoryPath(
         fullPoints: fullPoints,
-        segments: segments,
-        flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
         lastCheckpointAngle: angleDeg
     )
