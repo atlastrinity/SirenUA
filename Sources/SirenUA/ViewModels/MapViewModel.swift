@@ -15,6 +15,7 @@ final class MapViewModel: ObservableObject {
     @Published var isNavigating = false
     @Published var isRoutingToShelter = false
     @Published var selectedRegionForDetail: AlertRegion? = nil
+    @Published var selectedRegionForHistory: AlertRegion? = nil
     
     // States for found shelter and routing
     @Published var foundShelter: MKMapItem? = nil

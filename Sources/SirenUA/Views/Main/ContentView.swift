@@ -301,7 +301,7 @@ struct ContentView: View {
                     filterActiveOnly: false,
                     isPremium: viewModel.isPremium,
                     onSelect: { region in
-                        mapViewModel.selectedRegionForDetail = region
+                        mapViewModel.selectedRegionForHistory = region
                         mapViewModel.showHistory = false
                     },
                     onClose: { mapViewModel.showHistory = false }
@@ -331,6 +331,12 @@ struct ContentView: View {
         .sheet(item: $mapViewModel.selectedRegionForDetail) { region in
             AlertRegionDetailView(region: region)
                 .environmentObject(viewModel)
+        }
+        .sheet(item: $mapViewModel.selectedRegionForHistory) { region in
+            NavigationStack {
+                RegionHistoryView(regionName: region.name, themeColor: region.color)
+                    .environmentObject(viewModel)
+            }
         }
         .tabHandlers(mapViewModel: mapViewModel)
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
