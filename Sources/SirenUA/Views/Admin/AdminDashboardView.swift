@@ -25,6 +25,25 @@ struct AdminDashboardView: View {
                     headerView
                     tabSelectorView
                     Divider().background(Color.white.opacity(0.1))
+
+                    if let err = viewModel.lastFetchError {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.yellow)
+                            Text(err)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Button("Повторити") {
+                                Task { await viewModel.refreshAllData() }
+                            }
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.cyan)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.25))
+                    }
                     
                     if viewModel.isLoading {
                         Spacer()

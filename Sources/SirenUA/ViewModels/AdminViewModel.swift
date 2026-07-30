@@ -45,6 +45,8 @@ class AdminViewModel: ObservableObject {
     @Published var errTypeFilter = ""
     @Published var expandedErrorId: Int? = nil
     
+    @AppStorage("customServerURL") var customServerURLSetting: String = ""
+
     // Manual Threat Simulation Form
     @Published var simRegion = "Київська область"
     @Published var simLevel = "high"
@@ -56,6 +58,7 @@ class AdminViewModel: ObservableObject {
     // Data Loading states
     @Published var isLoading = false
     @Published var showRebuildSuccess = false
+    @Published var lastFetchError: String? = nil
     
     // Tab Data Stores
     @Published var dashboardStats: AdminDashboardStatsResponse? = nil
@@ -70,6 +73,15 @@ class AdminViewModel: ObservableObject {
     
     var serverURL: String {
         NetworkManager.serverURL
+    }
+
+    func setServerURL(_ newURL: String) {
+        let trimmed = newURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        UserDefaults.standard.set(trimmed, forKey: "customServerURL")
+        objectWillChange.send()
+        Task {
+            await refreshAllData()
+        }
     }
     
     // MARK: - Computeds
@@ -117,6 +129,7 @@ class AdminViewModel: ObservableObject {
     
     func refreshAllData() async {
         isLoading = true
+        lastFetchError = nil
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.fetchDashboardStats() }
             group.addTask { await self.fetchCorrelationV2() }
@@ -129,13 +142,25 @@ class AdminViewModel: ObservableObject {
     }
     
     func fetchDashboardStats() async {
-        let url = URL(string: "\(serverURL)/api/admin/dashboard/stats")!
+        guard let url = URL(string: "\(serverURL)/api/admin/dashboard/stats") else { return }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            if let decoded = try? JSONDecoder().decode(AdminDashboardStatsResponse.self, from: data) {
-                self.dashboardStats = decoded
+            let (data, response) = try await URLSession.shared.data(from: url)
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                self.lastFetchError = "Сервер повернув HTTP \(http.statusCode)"
+                adminLogger.error("HTTP \(http.statusCode) from fetchDashboardStats")
+                return
             }
-        } catch {}
+            do {
+                let decoded = try JSONDecoder().decode(AdminDashboardStatsResponse.self, from: data)
+                self.dashboardStats = decoded
+            } catch {
+                adminLogger.error("Failed to decode AdminDashboardStatsResponse: \(error)")
+                self.lastFetchError = "Помилка декодування статистики: \(error.localizedDescription)"
+            }
+        } catch {
+            adminLogger.error("Network error in fetchDashboardStats: \(error)")
+            self.lastFetchError = "Помилка мережі: \(error.localizedDescription)"
+        }
     }
     
     func fetchCorrelationV2() async {
@@ -368,6 +393,24 @@ class AdminViewModel: ObservableObject {
         } catch {
             simSuccessText = "⚠️ Помилка мережі: \(error.localizedDescription)"
             showSimSuccessMessage = true
+        }
+    }
+
+    func seedHistory() async {
+        guard let url = URL(string: "\(serverURL)/api/admin/seed_history") else { return }
+        do {
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            let (_, res) = try await URLSession.shared.data(for: req)
+            if let http = res as? HTTPURLResponse, http.statusCode == 200 {
+                simSuccessText = "Успішно додано початкові демо-дані!"
+                showSimSuccessMessage = true
+                await refreshAllData()
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                showSimSuccessMessage = false
+            }
+        } catch {
+            lastFetchError = "Помилка генерації демо-даних: \(error.localizedDescription)"
         }
     }
     

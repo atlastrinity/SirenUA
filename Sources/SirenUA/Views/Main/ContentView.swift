@@ -46,7 +46,7 @@ struct ContentView: View {
     }
 
     var alertFocusCoordinate: CLLocationCoordinate2D {
-        viewModel.alerts.first(where: { $0.isActive })?.coordinate ?? centerCoordinate
+        trackedAlerts.first(where: { $0.isActive })?.coordinate ?? activeThreatTrackedRegion?.coordinate ?? centerCoordinate
     }
 
     static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
@@ -63,11 +63,55 @@ struct ContentView: View {
         return Date().timeIntervalSince(timestamp) < 60
     }
     
+    @AppStorage("allRegionsTracked") private var allRegionsTracked = true
+    @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
+    @State private var isTrackedOnlyFilter = false
+    @State private var showBottomOperationalToast = false
+
+    private func isRegionTracked(_ name: String) -> Bool {
+        if !isTrackedOnlyFilter || allRegionsTracked { return true }
+        let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        if list.isEmpty { return true }
+        return list.contains(name)
+    }
+
+    private var trackedAlerts: [AlertRegion] {
+        return viewModel.alerts.filter { isRegionTracked($0.name) }
+    }
+
+    private var activeThreatTrackedRegion: AlertRegion? {
+        return trackedAlerts.first(where: { !($0.activeThreats.isEmpty) || ($0.threatLevel != nil) }) ?? trackedAlerts.first(where: { $0.isActive })
+    }
+
+    private var primaryThreatRegion: AlertRegion? {
+        activeThreatTrackedRegion
+    }
+
+    private var primaryThreatName: String {
+        primaryThreatRegion?.name ?? (trackedAlerts.first(where: { $0.isActive })?.name ?? "м. Київ")
+    }
+
+    private var primaryThreatDetail: String? {
+        primaryThreatRegion?.currentThreat?.detail ?? primaryThreatRegion?.threatDetail
+    }
+
+    private var primaryThreatType: String? {
+        primaryThreatRegion?.currentThreat?.type ?? primaryThreatRegion?.threatType
+    }
+
+    private var primaryThreatConfidence: Int? {
+        primaryThreatRegion?.currentThreat?.confidence ?? primaryThreatRegion?.threatConfidence
+    }
+
+    private var primaryThreatETA: String? {
+        primaryThreatRegion?.displayETA
+    }
+    
     // MARK: - Body
     
     var body: some View {
         ZStack(alignment: .top) {
-            // 1. ШАР КАРТИ
+            // 1. ШАР КАРТИ (Повне відображення загроз по всій Україні)
             Map(
                 position: $mapViewModel.cameraPosition,
                 bounds: MapCameraBounds(minimumDistance: 1_000, maximumDistance: 4_500_000),
@@ -79,7 +123,7 @@ struct ContentView: View {
                     activeThreatRegions: activeThreatRegions,
                     activeAlertRegions: activeAlertRegions,
                     alertsDict: alertsDict,
-                    alerts: viewModel.alerts,
+                    alerts: viewModel.alerts, // Всі загрози на карті України
                     isPremium: viewModel.isPremium,
                     lastAlertedRegionName: viewModel.lastAlertedRegionName,
                     allFoundShelters: mapViewModel.allFoundShelters,
@@ -96,10 +140,24 @@ struct ContentView: View {
             .mapStyle(selectedMapStyle)
             .colorScheme(.dark)
             .ignoresSafeArea()
-            .sheet(item: $mapViewModel.selectedRegionForDetail) { region in
-                AlertRegionDetailView(region: region)
-                    .environmentObject(viewModel)
+            
+            // Синій атмосферний фон карти (Balanced Deep Blue Ambient Glow Overlay)
+            ZStack {
+                Color(red: 0.01, green: 0.06, blue: 0.22)
+                    .opacity(0.22)
+                
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.03, green: 0.12, blue: 0.35).opacity(0.30),
+                        Color.clear,
+                        Color(red: 0.01, green: 0.08, blue: 0.28).opacity(0.35)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
             
             // Динамічна верхня та нижня підсвітка екрану
             Group {
@@ -122,7 +180,7 @@ struct ContentView: View {
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                            .frame(height: 200)
+                            .frame(height: 180)
                         }
                     }
                     .ignoresSafeArea()
@@ -130,58 +188,10 @@ struct ContentView: View {
                 }
             }
             
-            // 2. ВЕРХНІЙ БАНЕР ТА ШІ-РАДАР (ПІКСЕЛЬ В ПІКСЕЛЬ ЯК НА МАКЕТІ)
-            VStack(spacing: 8) {
-                AIRadarHeroCardView(
-                    primaryRegion: viewModel.alerts.first(where: { $0.isActive })?.name ?? "Київ",
-                    activeThreatCount: themeActiveCount,
-                    isAlarmActive: hasAlerts
-                )
-                .padding(.top, 6)
-                
-                if let displayMessage = mapViewModel.routeErrorMessage ?? mapViewModel.shelterInfoMessage {
-                    HStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.yellow)
-                            .font(.title3)
-                        
-                        Text(displayMessage)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(3)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            withAnimation {
-                                mapViewModel.routeErrorMessage = nil
-                                mapViewModel.shelterInfoMessage = nil
-                            }
-                        }) {
-                            Image(systemName: "xmark")
-                                .foregroundColor(.white.opacity(0.6))
-                                .font(.system(size: 10, weight: .bold))
-                                .padding(6)
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal, 16)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
+            // 2. ВЕРХНІЙ БАНЕР ТА ШІ-РАДАР (З ОПЕРАТИВНИМ МОНІТОРИНГОМ)
+            topBannerSection
             
-            // 3. НИЖНЯ ПАНЕЛЬ МОНІТОРИНГУ, ЛЕГЕНДА ТА ТАББАР
+            // 3. НИЖНЯ ПАНЕЛЬ, КАСКАДНІ СПОВІЩЕННЯ ТА ТАББАР
             VStack(spacing: 10) {
                 if let errorMessage = viewModel.errorMessage {
                     ErrorView(message: errorMessage)
@@ -189,10 +199,8 @@ struct ContentView: View {
                         .padding(.top, 90)
                 }
 
+                // Spacer for map navigation
                 Spacer()
-                
-                // Легенда статусу мапи (Поточний статус)
-                MapLegendPillView()
                 
                 if mapViewModel.isNavigating {
                     NavigationOverlay(route: mapViewModel.route) {
@@ -201,21 +209,30 @@ struct ContentView: View {
                         mapViewModel.selectedShelter = nil
                     }
                 } else {
-                    // Картка оперативного моніторингу
-                    OperationalMonitoringCardView(
-                        regionName: viewModel.alerts.first(where: { $0.isActive || $0.threatLevel != nil })?.name ?? "Київська область",
-                        threatDetail: viewModel.alerts.first(where: { $0.threatDetail != nil })?.threatDetail,
-                        confidence: viewModel.alerts.first(where: { $0.threatConfidence != nil })?.threatConfidence ?? 92,
-                        updatedAt: "2хв тому",
-                        isAlarm: hasAlerts
-                    )
-                    .onTapGesture {
-                        if themeActiveCount > 0 {
+                    // Каскадне нижнє оперативне сповіщення (динамічно з'являється та зникає)
+                    if showBottomOperationalToast, let alert = activeThreatTrackedRegion {
+                        OperationalMonitoringCardView(
+                            regionName: alert.name,
+                            threatDetail: alert.currentThreat?.detail ?? alert.threatDetail,
+                            confidence: alert.currentThreat?.confidence ?? alert.threatConfidence ?? 92,
+                            updatedAt: "щойно",
+                            isAlarm: alert.isActive,
+                            onClose: {
+                                withAnimation(.easeOut(duration: 0.35)) {
+                                    showBottomOperationalToast = false
+                                }
+                            }
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .onTapGesture {
                             mapViewModel.showActiveAlerts = true
                         }
                     }
                     
-                    // Нижній таббар як на макеті
+                    // Нижній полупрозорий дашборд з локацією, ШІ-концентрацією та пошуком бомбосховища
+                    bottomDashboardSection
+
+                    // Нижній таббар
                     MainTabBarView(selectedTab: $mapViewModel.selectedTab)
                 }
             }
@@ -256,6 +273,11 @@ struct ContentView: View {
         .sheet(item: $mapViewModel.activeSheet) { item in
             sheetContent(for: item)
         }
+        .sheet(item: $mapViewModel.selectedRegionForDetail) { region in
+            AlertRegionDetailView(region: region)
+                .environmentObject(viewModel)
+        }
+        .tabHandlers(mapViewModel: mapViewModel)
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
         }
@@ -363,6 +385,146 @@ struct ContentView: View {
         .onReceive(refreshTimer) { _ in
             timeRefreshTrigger = Date()
         }
+    }
+
+    // MARK: Top Banner Section
+    @ViewBuilder
+    private var topBannerSection: some View {
+        VStack(spacing: 8) {
+            AIRadarHeroCardView(
+                primaryRegion: primaryThreatName,
+                activeThreatCount: trackedAlerts.filter({ $0.isActive || $0.threatLevel != nil }).count,
+                isAlarmActive: trackedAlerts.contains(where: { $0.isActive }),
+                threatDetail: primaryThreatDetail,
+                threatType: primaryThreatType,
+                confidence: primaryThreatConfidence,
+                eta: primaryThreatETA,
+                isTrackedOnly: isTrackedOnlyFilter,
+                onToggleTrackedFilter: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        isTrackedOnlyFilter.toggle()
+                    }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+            )
+            .padding(.top, 6)
+            
+            if let displayMessage = mapViewModel.routeErrorMessage ?? mapViewModel.shelterInfoMessage {
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.yellow)
+                        .font(.title3)
+                    
+                    Text(displayMessage)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(3)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation {
+                            mapViewModel.routeErrorMessage = nil
+                            mapViewModel.shelterInfoMessage = nil
+                        }
+                    }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.white.opacity(0.6))
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(6)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+    }
+
+    // MARK: Bottom Dashboard Section
+    @ViewBuilder
+    private var bottomDashboardSection: some View {
+        BottomDashboardV4(
+            activeAlerts: trackedAlerts.filter { $0.isActive }.count,
+            primaryRegionName: activeThreatTrackedRegion?.name ?? (trackedAlerts.first(where: { $0.isActive })?.name ?? "м. Київ"),
+            isSearchingShelter: mapViewModel.isRoutingToShelter,
+            transportType: $mapViewModel.transportType,
+            onFindShelter: {
+                mapViewModel.findNearestShelter(
+                    userLoc: currentUserCoordinate,
+                    walkingSearchRadius: 1.5,
+                    drivingSearchRadius: 10.0,
+                    serverURL: NetworkManager.serverURL,
+                    presentSheet: true
+                )
+            },
+            onShare: { mapViewModel.activeSheet = .share },
+            onSettings: { mapViewModel.activeSheet = .settings },
+            onHistory: { mapViewModel.showHistory = true },
+            onStatusTap: { mapViewModel.showActiveAlerts = true },
+            threatConfidence: activeThreatTrackedRegion?.currentThreat?.confidence ?? activeThreatTrackedRegion?.threatConfidence
+        )
+    }
+}
+
+// MARK: - Tab Handlers ViewModifier
+
+struct ContentViewTabHandlers: ViewModifier {
+    @ObservedObject var mapViewModel: MapViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: mapViewModel.selectedTab) { oldValue, newValue in
+                switch newValue {
+                case 0:
+                    mapViewModel.showHistory = false
+                    mapViewModel.showActiveAlerts = false
+                case 1:
+                    mapViewModel.showActiveAlerts = false
+                    mapViewModel.showHistory = true
+                case 2:
+                    mapViewModel.showHistory = false
+                    mapViewModel.showActiveAlerts = true
+                case 3:
+                    mapViewModel.showHistory = false
+                    mapViewModel.showActiveAlerts = false
+                    mapViewModel.activeSheet = .settings
+                default:
+                    break
+                }
+            }
+            .onChange(of: mapViewModel.showHistory) { _, isShowing in
+                if !isShowing && mapViewModel.selectedTab == 1 {
+                    mapViewModel.selectedTab = 0
+                }
+            }
+            .onChange(of: mapViewModel.showActiveAlerts) { _, isShowing in
+                if !isShowing && mapViewModel.selectedTab == 2 {
+                    mapViewModel.selectedTab = 0
+                }
+            }
+            .onChange(of: mapViewModel.activeSheet) { _, activeSheet in
+                if activeSheet == nil && mapViewModel.selectedTab == 3 {
+                    mapViewModel.selectedTab = 0
+                }
+            }
+    }
+}
+
+extension View {
+    func tabHandlers(mapViewModel: MapViewModel) -> some View {
+        modifier(ContentViewTabHandlers(mapViewModel: mapViewModel))
     }
 }
 

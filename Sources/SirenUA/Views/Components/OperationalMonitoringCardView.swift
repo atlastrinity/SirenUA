@@ -6,64 +6,102 @@ struct OperationalMonitoringCardView: View {
     let confidence: Int?
     let updatedAt: String
     let isAlarm: Bool
+    let onClose: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("ОПЕРАТИВНИЙ МОНІТОРИНГ")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white.opacity(0.5))
-                    .tracking(1.2)
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(isAlarm ? Color.red : Color.yellow)
+                        .frame(width: 6, height: 6)
+                    
+                    Text("НОВЕ ОПЕРАТИВНЕ СПОВІЩЕННЯ")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.cyan)
+                        .tracking(1.1)
+                }
+                
                 Spacer()
-                Image(systemName: "chevron.compact.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.4))
+                
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.5))
+                }
             }
             
-            HStack(alignment: .top, spacing: 12) {
-                // Trajectory Badge Icon
+            HStack(alignment: .center, spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(isAlarm ? Color.red.opacity(0.2) : Color.yellow.opacity(0.2))
-                        .frame(width: 44, height: 44)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    (isAlarm ? Color.red : Color.orange).opacity(0.3),
+                                    Color.blue.opacity(0.2)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(isAlarm ? Color.red.opacity(0.5) : Color.yellow.opacity(0.5), lineWidth: 1)
+                                .stroke((isAlarm ? Color.red : Color.yellow).opacity(0.6), lineWidth: 1)
                         )
                     
-                    Image(systemName: isAlarm ? "exclamationmark.triangle.fill" : "arrow.up.right.circle.fill")
-                        .font(.system(size: 20, weight: .bold))
+                    Image(systemName: isAlarm ? "exclamationmark.triangle.fill" : "bolt.horizontal.fill")
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(isAlarm ? .red : .yellow)
                 }
                 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(regionName)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(regionName)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        if let conf = confidence {
+                            Text("\(conf)%")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(.yellow)
+                        }
+                    }
                     
-                    Text(threatDetail ?? "Загроза БпЛА (Прогноз): Напрямок Зх/Пд-Зх. Ймовірність \(confidence ?? 92)%.")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                    Text(threatDetail ?? "Загроза БпЛА (Прогноз): Напрямок Зх/Пд-Зх.")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
                         .lineLimit(2)
-                    
-                    Text("Останнє оновлення: \(updatedAt)")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.white.opacity(0.4))
-                        .padding(.top, 2)
                 }
             }
         }
-        .padding(14)
+        .padding(12)
         .background(
-            Color(red: 0.08, green: 0.11, blue: 0.16).opacity(0.88)
+            LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.16, blue: 0.35).opacity(0.92),
+                    Color(red: 0.02, green: 0.08, blue: 0.22).opacity(0.96)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
         .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(
+                        colors: [.cyan.opacity(0.5), .blue.opacity(0.25)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
-        .shadow(color: .black.opacity(0.4), radius: 12, x: 0, y: 6)
+        .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 5)
         .padding(.horizontal, 16)
     }
 }

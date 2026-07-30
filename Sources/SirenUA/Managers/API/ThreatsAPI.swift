@@ -1,4 +1,5 @@
 import Foundation
+import MapKit
 import OSLog
 
 private let threatsLogger = Logger(subsystem: "com.sirenua", category: "ThreatsAPI")
@@ -64,8 +65,15 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     let is_predictive: Bool?
     let is_test: Bool?
     let group_id: String?
+    let origin_latitude: Double?
+    let origin_longitude: Double?
 
     var id: String { threat_id }
+
+    var originCoordinate: CLLocationCoordinate2D? {
+        guard let lat = origin_latitude, let lon = origin_longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
 
     /// Іконка типу загрози для міні-картки
     var threatIcon: String {

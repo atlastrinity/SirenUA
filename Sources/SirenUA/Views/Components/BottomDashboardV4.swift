@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import UIKit
 
 struct BottomDashboardV4: View {
     let activeAlerts: Int
@@ -13,6 +14,8 @@ struct BottomDashboardV4: View {
     var onHistory: () -> Void
     var onStatusTap: () -> Void
 
+    let threatConfidence: Int?
+
     private var hasActiveAlert: Bool {
         activeAlerts > 0
     }
@@ -25,116 +28,161 @@ struct BottomDashboardV4: View {
         hasActiveAlert && isPulsating ? 0.3 : 1.0
     }
     
-    private var statusText: String {
-        hasActiveAlert ? "ПОВІТРЯНА\nТРИВОГА" : "ТРИВОГ\nНЕМАЄ"
+    private var statusTitle: String {
+        hasActiveAlert ? "ПОВІТРЯНА ТРИВОГА" : "ТРИВОГ НЕМАЄ"
     }
     
     private var detailText: String {
-        hasActiveAlert ? "Активних областей: \(activeAlerts)" : "Останні дані оновлено"
-    }
-    
-    private var detailColor: Color {
-        hasActiveAlert ? Color.red.opacity(0.8) : Color.green.opacity(0.8)
+        hasActiveAlert ? "Активно: \(activeAlerts)" : "Актуально"
     }
     
     var body: some View {
-        HStack(alignment: .top) {
-            // Ліва частина: Статус
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
+        HStack(alignment: .center, spacing: 8) {
+            // Ліва частина: Статус, Локація та ШІ-Концентрація
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
                     Circle()
                         .fill(statusColor)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 8, height: 8)
                         .opacity(circleOpacity)
                     
-                    Text(statusText)
-                        .font(.system(size: 20, weight: .heavy, design: .default))
+                    Text(statusTitle)
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    
+                    if let conf = threatConfidence {
+                        HStack(spacing: 2) {
+                            Image(systemName: "cpu")
+                                .font(.system(size: 8, weight: .bold))
+                            Text("\(conf)%")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.25))
+                        .clipShape(Capsule())
+                    }
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(primaryRegionName ?? "Україна")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
+                HStack(spacing: 5) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.cyan)
+                        Text(primaryRegionName ?? "Україна")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.9))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                    }
+                    
+                    Text("•")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.4))
+                    
                     Text(detailText)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(detailColor)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(hasActiveAlert ? Color.red.opacity(0.9) : Color.green.opacity(0.9))
+                        .lineLimit(1)
                 }
-                .padding(.top, 4)
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 onStatusTap()
             }
             
-            Spacer()
+            Spacer(minLength: 2)
             
-            // Права частина: Кнопки
-            VStack(alignment: .trailing, spacing: 12) {
-                // Транспорт
+            // Права частина: Перемикач транспорту, Поділитися та Кнопка Укриття
+            HStack(spacing: 6) {
+                // Перемикач транспорту (компактний сегмент)
                 Picker("Транспорт", selection: $transportType) {
                     Image(systemName: "figure.walk").tag(MKDirectionsTransportType.walking)
                     Image(systemName: "car").tag(MKDirectionsTransportType.automobile)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 120)
-                
-                // Маленькі іконки дій
-                HStack(spacing: 20) {
-                    SmallIconButtonV4(iconName: "clock.fill") {
-                        onHistory()
-                    }
-                    SmallIconButtonV4(iconName: "square.and.arrow.up") {
-                        onShare()
-                    }
-                    SmallIconButtonV4(iconName: "gearshape.fill") {
-                        onSettings()
-                    }
+                .frame(width: 72)
+                .scaleEffect(0.82)
+
+                // Кнопка Поділитися
+                Button(action: onShare) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(width: 26, height: 26)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
-                
-                // Головна кнопка "Знайти укриття"
+
+                // Кнопка Укриття (скло-пілл з чітким текстом)
                 Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .heavy)
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
                     generator.impactOccurred()
                     onFindShelter()
                 }) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         if isSearchingShelter {
                             ProgressView()
-                                .tint(.white)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.65)
+                        } else {
+                            Image(systemName: "shield.checkered")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.cyan)
                         }
-                        Text(isSearchingShelter ? "ШУКАЮ\nУКРИТТЯ" : "ЗНАЙТИ НАЙБЛИЖЧЕ\nУКРИТТЯ")
-                            .font(.system(size: 12, weight: .bold))
-                            .multilineTextAlignment(.center)
+                        
+                        Text(isSearchingShelter ? "ШУКАЮ..." : "УКРИТТЯ")
+                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 9)
                     .background(
                         LinearGradient(
-                            colors: [Color(red: 0.18, green: 0.5, blue: 0.95), Color(red: 0.5, green: 0.3, blue: 0.9)],
+                            colors: [
+                                Color.cyan.opacity(0.35),
+                                Color.blue.opacity(0.25)
+                            ],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(12)
-                    .shadow(color: Color(red: 0.18, green: 0.5, blue: 0.95).opacity(isPulsating ? 0.6 : 0.2), radius: isPulsating ? 8 : 4)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.cyan.opacity(0.6), lineWidth: 1)
+                    )
                 }
                 .disabled(isSearchingShelter)
             }
         }
-        .padding(20)
-        // Ефект надпрозорого преміального скла (Glassmorphism)
-        .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.04))
-        .cornerRadius(28)
-        .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(Color.white.opacity(0.18), lineWidth: 0.8)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(
+            ZStack {
+                Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.40)
+                Rectangle().fill(.ultraThinMaterial)
+            }
         )
-        .padding(.horizontal, 16)
-        .shadow(color: .black.opacity(0.25), radius: 15, x: 0, y: 8)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.25), Color.white.opacity(0.08)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.8
+                )
+        )
+        .padding(.horizontal, 10)
+        .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 4)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 isPulsating = true

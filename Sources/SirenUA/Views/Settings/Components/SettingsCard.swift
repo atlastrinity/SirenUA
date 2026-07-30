@@ -47,41 +47,36 @@ struct SettingsCard<Content: View>: View {
             .padding(16)
         }
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(.ultraThinMaterial)
-                
-                LinearGradient(
-                    colors: [
-                        Color.siBlue.opacity(0.06),
-                        Color.siGold.opacity(0.03)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-            }
+            LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.16, blue: 0.35).opacity(0.92),
+                    Color(red: 0.02, green: 0.08, blue: 0.22).opacity(0.96)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .stroke(
                     LinearGradient(
-                        colors: [
-                            Color.siBlue.opacity(0.18),
-                            Color.siGold.opacity(0.08)
-                        ],
+                        colors: [Color.cyan.opacity(0.5), Color.blue.opacity(0.25)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1
+                    lineWidth: 1.2
                 )
+                .allowsHitTesting(false)
         )
         // Accent left bar
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .fill(iconColor)
                 .frame(width: 3)
-                .padding(.vertical, 10),
+                .padding(.vertical, 10)
+                .allowsHitTesting(false),
             alignment: .leading
         )
     }

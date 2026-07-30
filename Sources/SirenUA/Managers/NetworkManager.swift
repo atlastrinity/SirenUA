@@ -14,6 +14,11 @@ private let networkLogger = Logger(subsystem: "com.sirenua", category: "Network"
 final class NetworkManager: Sendable {
 
     static var serverURL: String {
+        if let custom = UserDefaults.standard.string(forKey: "customServerURL"),
+           !custom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+        }
         return "https://sirenua-threatserver.onrender.com"
     }
     static let alertsBaseURL  = "https://ubilling.net.ua/aerialalerts/"

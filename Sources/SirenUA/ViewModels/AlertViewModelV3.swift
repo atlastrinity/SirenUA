@@ -129,6 +129,18 @@ final class AlertViewModelV3: ObservableObject {
                 coordinate: CLLocationCoordinate2D(latitude: region.1, longitude: region.2)
             )
         }
+
+        // Крим — тимчасово окупована територія, завжди червона
+        let crimeaIndex = alerts.count
+        alerts.append(AlertRegion(
+            id: crimeaIndex,
+            name: "Автономна Республіка Крим",
+            isActive: true,
+            level: 3,
+            description: "Тимчасово окупована територія",
+            coordinate: CLLocationCoordinate2D(latitude: 44.9521, longitude: 34.1024)
+        ))
+
         updateStats()
     }
 

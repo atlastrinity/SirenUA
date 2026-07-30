@@ -17,7 +17,14 @@ build/
 
 *.db
 *.sqlite
+*.log
 build_log.txt
 build_sim/
 fastlane/report.xml
+
+# Xcode Build & Test Artifacts
+*.xcarchive/
+*.xcresult/
+ExportOptions.plist
+threat_server/
 

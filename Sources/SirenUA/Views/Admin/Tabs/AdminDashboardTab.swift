@@ -10,17 +10,17 @@ struct AdminDashboardTab: View {
                 VStack(spacing: 14) {
                     // Stat grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        statBox(title: "📈 Подій (7д)", value: "\(d.total_events_7d)", color: ChartColorTheme.accent)
-                        statBox(title: "🎯 Точність AI", value: "\(Int(d.accuracy_pct))%", color: ChartColorTheme.confirmed)
-                        statBox(title: "⚡ Активних зараз", value: "\(d.active_now)", color: ChartColorTheme.active)
+                        statBox(title: "📈 Подій (7д)", value: "\(d.total_events_7d ?? 0)", color: ChartColorTheme.accent)
+                        statBox(title: "🎯 Точність AI", value: "\(Int(d.accuracy_pct ?? 0.0))%", color: ChartColorTheme.confirmed)
+                        statBox(title: "⚡ Активних зараз", value: "\(d.active_now ?? 0)", color: ChartColorTheme.active)
                         statBox(title: "⏱️ Випередження AI", value: d.avg_early_seconds != nil ? viewModel.formatDuration(d.avg_early_seconds!) : "—", color: ChartColorTheme.cyan)
                     }
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        statBox(title: "✅ Підтверджено", value: "\(d.accuracy.confirmed ?? 0)", color: ChartColorTheme.confirmed)
-                        statBox(title: "🛡️ Збито/РЕБ", value: "\(d.accuracy.mitigated ?? 0)", color: ChartColorTheme.mitigated)
-                        statBox(title: "❌ Помилкові", value: "\(d.accuracy.overestimated ?? 0)", color: ChartColorTheme.overestimated)
-                        statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h)", color: ChartColorTheme.orange)
+                        statBox(title: "✅ Підтверджено", value: "\(d.accuracy?.confirmed ?? 0)", color: ChartColorTheme.confirmed)
+                        statBox(title: "🛡️ Збито/РЕБ", value: "\(d.accuracy?.mitigated ?? 0)", color: ChartColorTheme.mitigated)
+                        statBox(title: "❌ Помилкові", value: "\(d.accuracy?.overestimated ?? 0)", color: ChartColorTheme.overestimated)
+                        statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h ?? 0)", color: ChartColorTheme.orange)
                     }
                     
                     // Accuracy sector map
@@ -30,22 +30,22 @@ struct AdminDashboardTab: View {
                             .foregroundColor(.white.opacity(0.6))
                         
                         Chart {
-                            SectorMark(angle: .value("Count", d.accuracy.confirmed ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            SectorMark(angle: .value("Count", d.accuracy?.confirmed ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.confirmed)
                                 .annotation(position: .overlay) {
-                                    Text("\(d.accuracy.confirmed ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    Text("\(d.accuracy?.confirmed ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
                                 }
-                            SectorMark(angle: .value("Count", d.accuracy.mitigated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            SectorMark(angle: .value("Count", d.accuracy?.mitigated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.mitigated)
                                 .annotation(position: .overlay) {
-                                    Text("\(d.accuracy.mitigated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    Text("\(d.accuracy?.mitigated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
                                 }
-                            SectorMark(angle: .value("Count", d.accuracy.overestimated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            SectorMark(angle: .value("Count", d.accuracy?.overestimated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.overestimated)
                                 .annotation(position: .overlay) {
-                                    Text("\(d.accuracy.overestimated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    Text("\(d.accuracy?.overestimated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
                                 }
-                            SectorMark(angle: .value("Count", d.accuracy.active ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
+                            SectorMark(angle: .value("Count", d.accuracy?.active ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.active)
                         }
                         .frame(height: 140)
@@ -70,7 +70,7 @@ struct AdminDashboardTab: View {
                             .foregroundColor(.white.opacity(0.6))
                         
                         Chart {
-                            ForEach(d.by_type) { item in
+                            ForEach(d.by_type ?? []) { item in
                                 BarMark(
                                     x: .value("Кількість", item.count),
                                     y: .value("Тип", item.threat_type)
@@ -79,7 +79,7 @@ struct AdminDashboardTab: View {
                                 .cornerRadius(4)
                             }
                         }
-                        .frame(height: CGFloat(max(80, d.by_type.count * 25)))
+                        .frame(height: CGFloat(max(80, (d.by_type?.count ?? 0) * 25)))
                     }
                     .padding(14)
                     .background(ChartColorTheme.cardBg)
@@ -92,7 +92,7 @@ struct AdminDashboardTab: View {
                             .foregroundColor(.white.opacity(0.6))
                         
                         Chart {
-                            ForEach(d.top_regions) { item in
+                            ForEach(d.top_regions ?? []) { item in
                                 BarMark(
                                     x: .value("Кількість", item.count),
                                     y: .value("Область", String(item.region.prefix(12)))
@@ -114,7 +114,7 @@ struct AdminDashboardTab: View {
                             .foregroundColor(.white.opacity(0.6))
                         
                         Chart {
-                            ForEach(d.hourly) { item in
+                            ForEach(d.hourly ?? []) { item in
                                 AreaMark(
                                     x: .value("Година", item.hour),
                                     y: .value("Кількість", item.count)

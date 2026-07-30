@@ -35,7 +35,13 @@ final class MapViewModel: ObservableObject {
 
     private static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
 
-    func findNearestShelter(userLoc: CLLocationCoordinate2D, walkingSearchRadius: Double, drivingSearchRadius: Double, serverURL: String) {
+    func findNearestShelter(
+        userLoc: CLLocationCoordinate2D,
+        walkingSearchRadius: Double,
+        drivingSearchRadius: Double,
+        serverURL: String,
+        presentSheet: Bool = false
+    ) {
         guard !isRoutingToShelter else {
             mapVMLogger.debug("Shelter search already in progress — ignoring duplicate request")
             return
@@ -108,7 +114,9 @@ final class MapViewModel: ObservableObject {
                     self.shelterInfoMessage = warningMsg
 
                     self.foundShelter = closestMapItem
-                    self.selectedShelter = closestMapItem
+                    if presentSheet {
+                        self.selectedShelter = closestMapItem
+                    }
                     self.route = nil
                     self.routeErrorMessage = nil
                     self.isCalculatingRoute = false
@@ -126,13 +134,14 @@ final class MapViewModel: ObservableObject {
                 return
             }
 
-            // 2. Priority 2: Fallback to Apple MKLocalSearch
-            mapVMLogger.info("Falling back to MKLocalSearch...")
+            // 2. Priority 2: Fallback to Apple MKLocalSearch (Civil defense bomb shelters & subway stations only)
+            mapVMLogger.info("Falling back to MKLocalSearch for civil defense bomb shelters...")
             let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: maxSearchRadiusMeters, longitudinalMeters: maxSearchRadiusMeters)
 
+            // Strictly target civil defense bomb shelters, subway stations & underground parkings (excluding rain shelters/bus stops)
             let queries = [
-                "укриття", "бомбосховище", "shelter", "bomb shelter",
-                "метро", "subway", "підземний перехід", "підвал", "паркінг"
+                "бомбосховище", "укриття цивільного захисту", "станція метро",
+                "підземний паркінг", "протирадіаційне укриття", "підземне укриття"
             ]
 
             var allItems: [MKMapItem] = []
@@ -160,8 +169,15 @@ final class MapViewModel: ObservableObject {
                 }
             }
 
+            // Exclude rain shelters, bus stops, gazebo awnings
+            let excludedKeywords = ["дощ", "зупинка", "навіс", "альтанка", "павільйон", "rain", "bus stop", "gazebo", "awning"]
+            
             var uniqueItems: [MKMapItem] = []
             for item in allItems {
+                let nameLower = (item.name ?? "").lowercased()
+                let isRainShelter = excludedKeywords.contains { nameLower.contains($0) }
+                if isRainShelter { continue }
+
                 let coord = item.placemark.coordinate
                 let isDuplicate = uniqueItems.contains { existing in
                     let extCoord = existing.placemark.coordinate
@@ -222,7 +238,9 @@ final class MapViewModel: ObservableObject {
 
                 self.allFoundShelters = displayedItems
                 self.foundShelter = closestItem
-                self.selectedShelter = closestItem
+                if presentSheet {
+                    self.selectedShelter = closestItem
+                }
                 self.route = nil
                 self.routeErrorMessage = nil
                 self.shelterInfoMessage = warningMsg

@@ -81,8 +81,17 @@ struct AlertListOverlayView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.05, green: 0.14, blue: 0.32).opacity(0.96),
+                    Color(red: 0.02, green: 0.07, blue: 0.22).opacity(0.98)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .background(.ultraThinMaterial)
-        .background(Color.black.opacity(0.55).ignoresSafeArea())
     }
 
     private func alertRow(_ alert: AlertRegion) -> some View {
@@ -198,15 +207,24 @@ struct AlertListOverlayView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 11)
             .background(
-                alert.isActive
-                    ? color.opacity(0.05)
-                    : (isThreat ? rowColor.opacity(0.03) : Color.white.opacity(0.02))
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.07, green: 0.17, blue: 0.36).opacity(0.70),
+                        Color(red: 0.03, green: 0.09, blue: 0.24).opacity(0.80)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             )
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
-                        alert.isActive ? color.opacity(0.2) : (isThreat ? rowColor.opacity(0.15) : Color.white.opacity(0.05)),
+                        LinearGradient(
+                            colors: [Color.cyan.opacity(0.35), Color.blue.opacity(0.18)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
                         lineWidth: 1
                     )
             )

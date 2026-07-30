@@ -181,6 +181,11 @@ struct SettingsView: View {
                         mapCard
                         premiumCard
                         regionsCard
+                        diagnosticsCard
+                        if adminAuthenticated {
+                            adminDashboardCard
+                            mockScenariosCard
+                        }
                         aboutCard
                     }
                     .padding(.horizontal, 16)
@@ -216,7 +221,20 @@ struct SettingsView: View {
 
     // MARK: - Background
     private var backgroundLayer: some View {
-        ChartColorTheme.bg.ignoresSafeArea()
+        ZStack {
+            ChartColorTheme.bg.ignoresSafeArea()
+            Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.85).ignoresSafeArea()
+            LinearGradient(
+                colors: [
+                    Color(red: 0.02, green: 0.05, blue: 0.15).opacity(0.9),
+                    Color(red: 0.05, green: 0.10, blue: 0.25).opacity(0.8),
+                    Color(red: 0.02, green: 0.04, blue: 0.12).opacity(0.95)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        }
     }
 
     // MARK: - Header
@@ -278,22 +296,8 @@ struct SettingsView: View {
 
     // MARK: - Cards
 
-    // MARK: - Admin-style card helper
-    private func sectionHeader(_ emoji: String, _ title: String) -> some View {
-        HStack {
-            Text("\(emoji) \(title)")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white.opacity(0.6))
-            Spacer()
-        }
-    }
-
     private var notificationsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("🔔", "Сповіщення")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Сповіщення", icon: "bell.fill", iconColor: .siBlue) {
             StyledToggleRow(
                 title: "Увімкнути сповіщення",
                 subtitle: "Push-повідомлення про тривоги",
@@ -302,7 +306,7 @@ struct SettingsView: View {
                 isOn: $notificationsEnabled
             )
             
-            Divider().background(Color.white.opacity(0.06))
+            StyledDivider()
             
             StyledToggleRow(
                 title: "Критичні сповіщення",
@@ -312,7 +316,7 @@ struct SettingsView: View {
                 isOn: $criticalAlertsEnabled
             )
             
-            Divider().background(Color.white.opacity(0.06))
+            StyledDivider()
             
             StyledToggleRow(
                 title: "Без звуку для загроз",
@@ -322,17 +326,10 @@ struct SettingsView: View {
                 isOn: $muteThreatsSound
             )
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private var mapCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("🗺️", "Карта та Навігація")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .siGold) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Тип карти")
                     .font(.system(size: 12))
@@ -347,7 +344,7 @@ struct SettingsView: View {
                 .onChange(of: mapType) { oldValue, newValue in haptic() }
             }
 
-            Divider().background(Color.white.opacity(0.06))
+            StyledDivider()
 
             radiusRow(
                 title: "Радіус пошуку пішки",
@@ -359,6 +356,8 @@ struct SettingsView: View {
                 format: "%.1f"
             )
 
+            StyledDivider()
+
             radiusRow(
                 title: "Радіус пошуку авто",
                 icon: "car.fill",
@@ -369,9 +368,6 @@ struct SettingsView: View {
                 format: "%.0f"
             )
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private func radiusRow(
@@ -406,11 +402,7 @@ struct SettingsView: View {
     }
 
     private var premiumCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("👑", "SirenUA Premium")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: Color.yellow) {
             if storeManager.isPremium {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.seal.fill")
@@ -426,7 +418,7 @@ struct SettingsView: View {
                     }
                     Spacer()
                 }
-                Divider().background(Color.white.opacity(0.06))
+                StyledDivider()
                 Button(action: {
                     storeManager.debugResetPremium()
                 }) {
@@ -442,9 +434,6 @@ struct SettingsView: View {
                 premiumUpgradeView
             }
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private var premiumUpgradeView: some View {
@@ -497,7 +486,7 @@ struct SettingsView: View {
                     .foregroundColor(.white.opacity(0.4))
             }
             
-            Divider().background(Color.white.opacity(0.08))
+            StyledDivider()
             
             Button(action: {
                 haptic(.medium)
@@ -533,11 +522,7 @@ struct SettingsView: View {
     }
 
     private var regionsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("📍", "Відслідковувані регіони")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Відслідковувані регіони", icon: "mappin.and.ellipse", iconColor: ChartColorTheme.active) {
             StyledToggleRow(
                 title: "Усі регіони України",
                 subtitle: "Отримувати тривоги по всій країні",
@@ -554,13 +539,10 @@ struct SettingsView: View {
             )
 
             if !allRegionsTracked {
-                Divider().background(Color.white.opacity(0.06))
+                StyledDivider()
                 regionsPickerSection
             }
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private var regionsPickerSection: some View {
@@ -626,18 +608,14 @@ struct SettingsView: View {
     }
 
     private var diagnosticsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("📡", "Діагностика з'єднання")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Діагностика з'єднання", icon: "network", iconColor: .purple) {
             ServerStatusRow(
                 name: "Основний сервер тривог",
                 url: "ubilling.net.ua",
                 status: alertsServerStatus
             )
 
-            Divider().background(Color.white.opacity(0.06))
+            StyledDivider()
 
             ServerStatusRow(
                 name: "Сервер загроз (Premium)",
@@ -645,7 +623,7 @@ struct SettingsView: View {
                 status: threatsServerStatus
             )
 
-            Divider().background(Color.white.opacity(0.06))
+            StyledDivider()
 
             ServerStatusRow(
                 name: "Аналізатор ШІ (Gemini)",
@@ -672,17 +650,10 @@ struct SettingsView: View {
                 }
             }
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private var adminDashboardCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("🚨", "Панель адміністратора")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Панель адміністратора", icon: "gauge.with.needle.fill", iconColor: .red) {
             Text("Повний нативний моніторинг SirenUA: логи помилок, запити до Firebase, ліміти Gemini, правила самонавчання та симулятор загроз.")
                 .font(.system(size: 12))
                 .foregroundColor(.white.opacity(0.5))
@@ -704,17 +675,10 @@ struct SettingsView: View {
                 .cornerRadius(8)
             }
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private var mockScenariosCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("🧪", "Симуляція загроз (Розробка)")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Симуляція загроз (Розробка)", icon: "flask.fill", iconColor: .orange) {
             Text("Запустіть один із тестових сценаріїв для перевірки жовтих областей, телеметрії, відстані та кругових діаграм ймовірностей.")
                 .font(.system(size: 11))
                 .foregroundColor(.white.opacity(0.4))
@@ -790,17 +754,10 @@ struct SettingsView: View {
                 }
             }
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private var aboutCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("🛡️", "Про додаток")
-            
-            Divider().background(Color.white.opacity(0.06))
-            
+        SettingsCard(title: "Про додаток", icon: "shield.lefthalf.filled.badge.checkmark", iconColor: ChartColorTheme.accent) {
             HStack(spacing: 12) {
                 Image(systemName: "shield.lefthalf.filled.badge.checkmark")
                     .font(.system(size: 22))
@@ -822,7 +779,7 @@ struct SettingsView: View {
                 .foregroundColor(.white.opacity(0.5))
                 .lineSpacing(4)
             
-            Divider().background(Color.white.opacity(0.06))
+            StyledDivider()
             
             if adminAuthenticated {
                 HStack {
@@ -909,9 +866,6 @@ struct SettingsView: View {
                 }
             }
         }
-        .padding(14)
-        .background(ChartColorTheme.cardBg)
-        .cornerRadius(12)
     }
 
     private func checkCredentials() {

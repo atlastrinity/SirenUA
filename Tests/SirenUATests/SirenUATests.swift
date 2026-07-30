@@ -274,7 +274,9 @@ final class SirenUATests: XCTestCase {
             eta: "~25 хв",
             is_predictive: false,
             is_test: false,
-            group_id: nil
+            group_id: nil,
+            origin_latitude: 50.0,
+            origin_longitude: 30.0
         )
         
         XCTAssertEqual(threat.elapsedMinutes, 10)
@@ -298,7 +300,9 @@ final class SirenUATests: XCTestCase {
             eta: "~45 хв",
             is_predictive: false,
             is_test: false,
-            group_id: nil
+            group_id: nil,
+            origin_latitude: 50.0,
+            origin_longitude: 30.0
         )
         
         XCTAssertEqual(threat.elapsedMinutes, 15)

@@ -103,6 +103,99 @@ struct AdminControlTab: View {
                     
                 }
             }
+            // Server URL & Environment Config Card
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "network")
+                        .foregroundColor(ChartColorTheme.accent)
+                    Text("Конфігурація сервера")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                VStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Поточна URL-адреса backend:")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.5))
+                        HStack {
+                            TextField("https://...", text: $viewModel.customServerURLSetting)
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.white.opacity(0.03))
+                                .cornerRadius(8)
+                            Button("Зберегти") {
+                                viewModel.setServerURL(viewModel.customServerURLSetting)
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.blue)
+                            .cornerRadius(8)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        Button("127.0.0.1:8000 (Локальний)") {
+                            viewModel.customServerURLSetting = "http://127.0.0.1:8000"
+                            viewModel.setServerURL("http://127.0.0.1:8000")
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(6)
+
+                        Button("Render Хмара") {
+                            viewModel.customServerURLSetting = "https://sirenua-threatserver.onrender.com"
+                            viewModel.setServerURL("https://sirenua-threatserver.onrender.com")
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(6)
+                    }
+                }
+            }
+            .padding(14)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+
+            // Seed Demo History Panel
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "tray.and.arrow.down.fill")
+                        .foregroundColor(ChartColorTheme.confirmed)
+                    Text("Генерація тестових даних (Seed History)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                Text("Заповнює базу даних початковою історією подій для відображення графіків та аналітики.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+
+                Button(action: {
+                    viewModel.triggerHaptic()
+                    Task { await viewModel.seedHistory() }
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("Заповнити систему демо-історією")
+                    }
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.green.opacity(0.8))
+                    .cornerRadius(8)
+                }
+            }
             .padding(14)
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)

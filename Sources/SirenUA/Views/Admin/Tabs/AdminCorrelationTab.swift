@@ -78,24 +78,24 @@ struct AdminCorrelationTab: View {
         VStack(spacing: 14) {
             // Dynamic stats counters
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                statBox(title: "Всього", value: "\(corr.total)", color: .white)
-                statBox(title: "✅ Підтверджено", value: "\(corr.stats["confirmed"] ?? 0)", color: ChartColorTheme.confirmed)
-                statBox(title: "🛡️ Збито", value: "\(corr.stats["mitigated"] ?? 0)", color: ChartColorTheme.mitigated)
+                statBox(title: "Всього", value: "\(corr.total ?? 0)", color: .white)
+                statBox(title: "✅ Підтверджено", value: "\(corr.stats?["confirmed"] ?? 0)", color: ChartColorTheme.confirmed)
+                statBox(title: "🛡️ Збито", value: "\(corr.stats?["mitigated"] ?? 0)", color: ChartColorTheme.mitigated)
             }
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                statBox(title: "❌ Помилкові", value: "\(corr.stats["overestimated"] ?? 0)", color: ChartColorTheme.overestimated)
-                statBox(title: "⏱️ Активні", value: "\(corr.stats["active"] ?? 0)", color: ChartColorTheme.active)
+                statBox(title: "❌ Помилкові", value: "\(corr.stats?["overestimated"] ?? 0)", color: ChartColorTheme.overestimated)
+                statBox(title: "⏱️ Активні", value: "\(corr.stats?["active"] ?? 0)", color: ChartColorTheme.active)
             }
             
             dailyAccuracyChart(corr: corr)
             
-            let buckets = getSortedBuckets(corr.delta_distribution)
+            let buckets = getSortedBuckets(corr.delta_distribution ?? [:])
             if !buckets.isEmpty {
                 deltaDistributionChart(buckets: buckets)
             }
             
-            if !corr.type_breakdown.isEmpty {
+            if !(corr.type_breakdown ?? []).isEmpty {
                 typeBreakdownChart(corr: corr)
             }
             
@@ -111,7 +111,7 @@ struct AdminCorrelationTab: View {
                 .foregroundColor(.white.opacity(0.6))
             
             Chart {
-                ForEach(corr.daily_stats) { item in
+                ForEach(corr.daily_stats ?? []) { item in
                     BarMark(
                         x: .value("Day", viewModel.formatShortDate(item.day)),
                         y: .value("Confirmed", item.confirmed)
@@ -170,7 +170,7 @@ struct AdminCorrelationTab: View {
                 .foregroundColor(.white.opacity(0.6))
             
             Chart {
-                ForEach(corr.type_breakdown) { item in
+                ForEach(corr.type_breakdown ?? []) { item in
                     BarMark(
                         x: .value("Тип", item.threat_type),
                         y: .value("Кількість", item.count)
@@ -195,7 +195,7 @@ struct AdminCorrelationTab: View {
     private func correlationList(corr: AdminChronologyV2Response) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Детальна кореляція (\(corr.events.count))")
+                Text("Детальна кореляція (\(corr.events?.count ?? 0))")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
                 Spacer()
@@ -340,26 +340,26 @@ struct CorrelationEventRow: View {
         VStack(alignment: .leading, spacing: 8) {
             // Title line
             HStack {
-                Text(ev.match_type == "confirmed" ? "✅" :
-                     ev.match_type == "mitigated" ? "🛡️" :
-                     ev.match_type == "overestimated" ? "❌" :
-                     ev.match_type == "active" ? "⏱️" : "🔄")
+                Text(ev.match_type ?? "" == "confirmed" ? "✅" :
+                     ev.match_type ?? "" == "mitigated" ? "🛡️" :
+                     ev.match_type ?? "" == "overestimated" ? "❌" :
+                     ev.match_type ?? "" == "active" ? "⏱️" : "🔄")
                 
-                Text(ev.region)
+                Text(ev.region ?? "Невідома область")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
                 
                 Spacer()
                 
-                Text(ev.threat_level)
+                Text(ev.threat_level ?? "none")
                     .font(.system(size: 9, weight: .bold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
-                        ev.threat_level == "high" ? Color.red.opacity(0.2) : Color.yellow.opacity(0.2)
+                        (ev.threat_level ?? "none") == "high" ? Color.red.opacity(0.2) : Color.yellow.opacity(0.2)
                     )
                     .foregroundColor(
-                        ev.threat_level == "high" ? Color.red : Color.yellow
+                        (ev.threat_level ?? "none") == "high" ? Color.red : Color.yellow
                     )
                     .cornerRadius(4)
                 

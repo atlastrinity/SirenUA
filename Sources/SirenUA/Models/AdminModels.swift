@@ -177,29 +177,29 @@ struct DashboardHourlyStat: Codable, Identifiable {
 }
 
 struct AdminDashboardStatsResponse: Codable {
-    let total_events_7d: Int
-    let accuracy: DashboardAccuracyStats
-    let accuracy_pct: Double
-    let active_now: Int
+    let total_events_7d: Int?
+    let accuracy: DashboardAccuracyStats?
+    let accuracy_pct: Double?
+    let active_now: Int?
     let avg_early_seconds: Int?
-    let by_type: [DashboardThreatTypeStat]
-    let top_regions: [DashboardRegionStat]
-    let hourly: [DashboardHourlyStat]
-    let errors_24h: Int
+    let by_type: [DashboardThreatTypeStat]?
+    let top_regions: [DashboardRegionStat]?
+    let hourly: [DashboardHourlyStat]?
+    let errors_24h: Int?
 }
 
 // MARK: - Redesigned Correlation v2 Decodables
 
 struct AdminChronologyV2Entry: Codable, Identifiable {
     let id: Int
-    let region: String
-    let threat_level: String
-    let threat_type: String
+    let region: String?
+    let threat_level: String?
+    let threat_type: String?
     let confidence_at_set: Int?
     let confidence_at_clear: Int?
-    let was_predictive: Int
+    let was_predictive: Int?
     let prediction_accuracy: String?
-    let lifecycle_status: String
+    let lifecycle_status: String?
     let duration_seconds: Int?
     let gemini_group_id: String?
     let ai_timestamp: String?
@@ -218,7 +218,7 @@ struct AdminChronologyV2Entry: Codable, Identifiable {
     let resolution_type: String?
     let alarm_timestamp: String?
     let time_delta_seconds: Int?
-    let match_type: String // confirmed, mitigated, overestimated, active, cleared
+    let match_type: String? // confirmed, mitigated, overestimated, active, cleared
     let match_reason: String?
     let telemetry_summary: String?
 }
@@ -255,12 +255,12 @@ struct DeltaDistributionBucket: Identifiable {
 }
 
 struct AdminChronologyV2Response: Codable {
-    let total: Int
-    let stats: [String: Int]
-    let events: [AdminChronologyV2Entry]
-    let daily_stats: [DailyStatEntryV2]
-    let delta_distribution: [String: Int]
-    let type_breakdown: [TypeBreakdownEntry]
+    let total: Int?
+    let stats: [String: Int]?
+    let events: [AdminChronologyV2Entry]?
+    let daily_stats: [DailyStatEntryV2]?
+    let delta_distribution: [String: Int]?
+    let type_breakdown: [TypeBreakdownEntry]?
 }
 
 // MARK: - UI Constants
