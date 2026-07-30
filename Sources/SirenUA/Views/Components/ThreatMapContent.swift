@@ -195,7 +195,22 @@ struct ThreatMapContent: MapContent {
                 )
                 .mapOverlayLevel(level: .aboveLabels)
 
-            // 2. Single "Point of Last Coordinate Clarification" (📍 УТОЧНЕННЯ КООРДИНАТ)
+            // Flow direction chevrons along trajectory (~30% and ~60%)
+            ForEach(0..<trajectory.flowArrows.count, id: \.self) { arrowIdx in
+                let arrow = trajectory.flowArrows[arrowIdx]
+                Annotation(coordinate: arrow.coordinate) {
+                    TrajectoryFlowChevronView(
+                        angle: arrow.angle,
+                        threatIcon: alert.currentThreat?.threatIcon ?? "exclamationmark.triangle.fill",
+                        threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
+                        opacity: arrow.opacity
+                    )
+                } label: {
+                    EmptyView()
+                }
+            }
+
+            // Single "Point of Last Coordinate Clarification" (📍 УТОЧНЕННЯ КООРДИНАТ)
             Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
                 LastTelemetryCheckpointView(
                     angle: trajectory.lastCheckpointAngle,
@@ -252,10 +267,72 @@ func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
     return hasThreatData
 }
 
+// MARK: - Trajectory Flow Arrow Data
+
+struct TrajectoryFlowArrow {
+    let coordinate: CLLocationCoordinate2D
+    let angle: Double
+    let opacity: Double
+}
+
+// MARK: - Trajectory Flow Chevron View (Directional Pulsing Arrow + Threat Icon)
+
+struct TrajectoryFlowChevronView: View {
+    let angle: Double
+    let threatIcon: String
+    let threatLabel: String
+    let opacity: Double
+    
+    @State private var isPulsing = false
+    
+    var body: some View {
+        VStack(spacing: 2) {
+            ZStack {
+                // Pulse ring
+                Circle()
+                    .stroke(Color.yellow.opacity(isPulsing ? 0.0 : 0.7), lineWidth: 1.5)
+                    .frame(width: 28, height: 28)
+                    .scaleEffect(isPulsing ? 1.8 : 0.9)
+                    .animation(.easeOut(duration: 1.6).repeatForever(autoreverses: false), value: isPulsing)
+                
+                // Icon background
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.orange, Color.red.opacity(0.85)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 22, height: 22)
+                    .shadow(color: .orange.opacity(0.6), radius: 4)
+                
+                // Direction chevron + threat icon
+                Image(systemName: threatIcon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+                    .rotationEffect(.degrees(angle - 90))
+            }
+            
+            // Mini threat label
+            Text(threatLabel)
+                .font(.system(size: 7, weight: .black, design: .rounded))
+                .foregroundColor(.yellow)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .background(Color.black.opacity(0.75))
+                .cornerRadius(4)
+        }
+        .opacity(opacity)
+        .onAppear { isPulsing = true }
+    }
+}
+
 // MARK: - Trajectory Calculator (Proportional Aerodynamic Comet Tail)
 
 struct TrajectoryPath {
     let fullPoints: [CLLocationCoordinate2D]
+    let flowArrows: [TrajectoryFlowArrow]
     let lastCheckpointCoordinate: CLLocationCoordinate2D
     let lastCheckpointAngle: Double
 }
@@ -326,6 +403,21 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         fullPoints.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
     }
     
+    // Directional flow arrows at ~30% and ~60% along trajectory (indices 7 and 14 of 0...24)
+    var flowArrows: [TrajectoryFlowArrow] = []
+    let arrowStepIndices = [7, 14]
+    for stepIdx in arrowStepIndices {
+        let ap1 = fullPoints[stepIdx]
+        let ap2 = fullPoints[stepIdx + 1]
+        let aDeltaLat = ap2.latitude - ap1.latitude
+        let aDeltaLon = ap2.longitude - ap1.longitude
+        let aAngleRad = atan2(aDeltaLon, aDeltaLat)
+        let aAngleDeg = aAngleRad * 180.0 / .pi
+        let progress = Double(stepIdx) / Double(steps)
+        let arrowOpacity = 0.50 + (progress * 0.50)
+        flowArrows.append(TrajectoryFlowArrow(coordinate: ap1, angle: aAngleDeg, opacity: arrowOpacity))
+    }
+
     // Last telemetry checkpoint at ~75% along the trajectory (index 18 of 0...24)
     let checkpointIdx = 18
     let p1 = fullPoints[checkpointIdx]
@@ -338,6 +430,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     
     return TrajectoryPath(
         fullPoints: fullPoints,
+        flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
         lastCheckpointAngle: angleDeg
     )
