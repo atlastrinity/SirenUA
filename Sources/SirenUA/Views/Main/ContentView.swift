@@ -180,6 +180,14 @@ struct ContentView: View {
     private var primaryThreatETA: String? {
         primaryThreatRegion?.displayETA
     }
+
+    private func getShortThreatDesc(_ type: String?) -> String {
+        viewModel.getThreatTypeDescriptionShort(type)
+    }
+
+    private func handleRegionSelection(_ region: AlertRegion) {
+        mapViewModel.selectedRegionForDetail = region
+    }
     
     // MARK: - Body
     
@@ -205,10 +213,8 @@ struct ContentView: View {
                     route: mapViewModel.route,
                     timeRefreshTrigger: timeRefreshTrigger,
                     currentUserCoordinate: currentUserCoordinate,
-                    getThreatTypeDescriptionShort: { viewModel.getThreatTypeDescriptionShort($0) },
-                    onRegionSelected: { region in
-                        mapViewModel.selectedRegionForDetail = region
-                    }
+                    getThreatTypeDescriptionShort: getShortThreatDesc,
+                    onRegionSelected: handleRegionSelection
                 )
             }
             .mapStyle(selectedMapStyle)
