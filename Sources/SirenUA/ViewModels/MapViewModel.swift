@@ -408,6 +408,40 @@ final class MapViewModel: ObservableObject {
             self.cameraPosition = .region(defaultRegion)
         }
     }
+
+    func focusOnSingleRegion(regionName: String, geoManager: GeoJSONManager, alerts: [AlertRegion]) {
+        if let alertReg = alerts.first(where: { $0.name == regionName }) {
+            selectedRegionForDetail = alertReg
+        }
+        
+        if let geoRegion = geoManager.regions.first(where: { $0.nameUK == regionName }),
+           let polygon = geoRegion.polygons.first, !polygon.isEmpty {
+            let lats = polygon.map { $0.latitude }
+            let lons = polygon.map { $0.longitude }
+            if let minLat = lats.min(), let maxLat = lats.max(),
+               let minLon = lons.min(), let maxLon = lons.max() {
+                let center = CLLocationCoordinate2D(
+                    latitude: (minLat + maxLat) / 2.0,
+                    longitude: (minLon + maxLon) / 2.0
+                )
+                let span = MKCoordinateSpan(
+                    latitudeDelta: max((maxLat - minLat) * 1.5, 0.8),
+                    longitudeDelta: max((maxLon - minLon) * 1.5, 1.2)
+                )
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    self.cameraPosition = .region(MKCoordinateRegion(center: center, span: span))
+                }
+            }
+        } else if let alertReg = alerts.first(where: { $0.name == regionName }) {
+            let region = MKCoordinateRegion(
+                center: alertReg.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 1.2, longitudeDelta: 1.8)
+            )
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                self.cameraPosition = .region(region)
+            }
+        }
+    }
 }
 
 private extension MKCoordinateRegion {

@@ -472,7 +472,16 @@ struct ContentView: View {
                 trackedRegionsSet: trackedRegionsSet,
                 allRegionsTracked: allRegionsTracked,
                 onSelectAllRegions: { selectAllRegions() },
-                onToggleRegion: { regionName in toggleTrackedRegion(regionName) }
+                onToggleRegion: { regionName in
+                    toggleTrackedRegion(regionName)
+                    mapViewModel.focusOnSingleRegion(regionName: regionName, geoManager: geoManager, alerts: viewModel.alerts)
+                },
+                onCardTap: {
+                    if let targetRegion = primaryThreatRegion?.name {
+                        mapViewModel.focusOnSingleRegion(regionName: targetRegion, geoManager: geoManager, alerts: viewModel.alerts)
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    }
+                }
             )
             .padding(.top, 6)
             
