@@ -107,8 +107,10 @@ struct ThreatMapContent: MapContent {
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.white)
                         
-                        if isThreatActive, let type = alert.threatType {
-                            Text(getThreatTypeDescriptionShort(type))
+                        if isThreatActive {
+                            let type = alert.currentThreat?.type ?? alert.threatType
+                            let desc = getThreatTypeDescriptionShort(type ?? "")
+                            Text(desc.isEmpty || desc == "Загроза" ? "Загроза підльоту" : desc)
                                 .font(.system(size: 8, weight: .semibold))
                                 .foregroundColor(.yellow)
                                 .lineLimit(1)
@@ -164,22 +166,20 @@ struct ThreatMapContent: MapContent {
             let customOrigin = alert.currentThreat?.originCoordinate
             let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
 
-            // 0. Continuous 100% Solid Black Isolation Base (Completely masks red/yellow region polygons underneath!)
+            // 0. Continuous Solid Black Isolation Base (Masks region polygons underneath)
             MapPolyline(coordinates: trajectory.fullPoints)
                 .stroke(Color.black, style: StrokeStyle(lineWidth: 10.0, lineCap: .round, lineJoin: .round))
                 .mapOverlayLevel(level: .aboveLabels)
 
-            // 1. Continuous Dissolving Comet Nebula Glow (Vivid Electric Neon Yellow Mist ON TOP over ALL regions!)
-            ForEach(trajectory.segments) { seg in
-                MapPolyline(coordinates: seg.coordinates)
-                    .stroke(
-                        Color(red: 1.0, green: 0.95, blue: 0.0).opacity(seg.outerOpacity * 1.25),
-                        style: StrokeStyle(lineWidth: seg.outerWidth, lineCap: .round, lineJoin: .round)
-                    )
-                    .mapOverlayLevel(level: .aboveLabels)
-            }
+            // 1. Continuous Dissolving Comet Nebula Glow (Electric Neon Yellow Mist)
+            MapPolyline(coordinates: trajectory.fullPoints)
+                .stroke(
+                    Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.35),
+                    style: StrokeStyle(lineWidth: 12.0, lineCap: .round, lineJoin: .round)
+                )
+                .mapOverlayLevel(level: .aboveLabels)
 
-            // 2. Continuous 100% SOLID OPAQUE Pure Neon Yellow Comet Core Stripe (Laid 100% ON TOP, 0% color bleed!)
+            // 2. Continuous Solid Pure Neon Yellow Comet Core Stripe
             MapPolyline(coordinates: trajectory.fullPoints)
                 .stroke(
                     Color(red: 1.0, green: 0.95, blue: 0.0),
@@ -188,14 +188,12 @@ struct ThreatMapContent: MapContent {
                 .mapOverlayLevel(level: .aboveLabels)
 
             // 3. Razor-Sharp Opaque White Laser Core near Target Head
-            ForEach(trajectory.segments.filter { $0.isHead }) { seg in
-                MapPolyline(coordinates: seg.coordinates)
-                    .stroke(
-                        Color.white,
-                        style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
-                    )
-                    .mapOverlayLevel(level: .aboveLabels)
-            }
+            MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(12)))
+                .stroke(
+                    Color.white,
+                    style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
+                )
+                .mapOverlayLevel(level: .aboveLabels)
 
             // 2. Single "Point of Last Coordinate Clarification" (📍 УТОЧНЕННЯ КООРДИНАТ)
             Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
@@ -357,7 +355,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let controlLon = midLon + normalLon * (distance * curvature)
     
     var fullPoints: [CLLocationCoordinate2D] = []
-    let steps = 48
+    let steps = 24
     for i in 0...steps {
         let t = Double(i) / Double(steps)
         let invT = 1.0 - t
