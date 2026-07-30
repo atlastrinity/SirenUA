@@ -244,11 +244,14 @@ struct ThreatMapContent: MapContent {
 // MARK: - Flying Threat Visibility Logic
 
 /// Визначає, чи слід показувати літаючі маркери загроз (БПЛА, ракети, траєкторії).
-/// ФУНДАМЕНТАЛЬНЕ ПРАВИЛО: БПЛА та ракети у просторі області відображаються ТІЛЬКИ коли
-/// оголошена повітряна тривога (alert.isActive == true).
-/// Якщо тривоги немає — літаючі маркери БПЛА НЕ рендеряться, щоб не створювати фальшивих загроз.
+/// БПЛА та ракети у просторі області відображаються коли:
+/// 1. Оголошена тривога (alert.isActive == true) ТА
+/// 2. Наявні актуальні дані про загрозу (activeThreats, threatType або threatDetail не пустий).
+/// Якщо відбувся відбій загрози (відбій/чисто) — траєкторія негайно знімається!
 func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
-    return alert.isActive
+    guard alert.isActive else { return false }
+    let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
+    return hasThreatData
 }
 
 // MARK: - Aerodynamic Trajectory Flow Arrow View

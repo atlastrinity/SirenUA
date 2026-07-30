@@ -20,8 +20,13 @@ struct AlertRegionDetailView: View {
     private var isPremium: Bool {
         storeManager.isPremium
     }
+
+    private var hasAnyThreat: Bool {
+        return liveRegion.threatLevel != nil || !liveRegion.activeThreats.isEmpty || liveRegion.isThreatPredictive || (liveRegion.threatDetail != nil && !liveRegion.threatDetail!.isEmpty)
+    }
+
     private var isThreatActive: Bool {
-        !liveRegion.isActive && liveRegion.threatLevel != nil
+        !liveRegion.isActive && hasAnyThreat
     }
     
     private var selectedThreat: SingleThreatInfo? {
@@ -30,11 +35,49 @@ struct AlertRegionDetailView: View {
         return liveRegion.activeThreats[idx]
     }
     
+    private func getThreatDescription(_ type: String?) -> String {
+        switch type {
+        case "shahed": return "БпЛА «Шахед»"
+        case "cruise_missile": return "Крилата ракета"
+        case "ballistic": return "Балістична ракета"
+        case "mig31k": return "МіГ-31К (Кинжал)"
+        case "kab": return "КАБ / ФАБ"
+        case "iskander": return "Іскандер-М"
+        case "tu95": return "Стратегічна авіація Ту-95"
+        default: return "Загроза обстрілу / БпЛА"
+        }
+    }
+
+    private var effectiveThreatDetail: String? {
+        if let d = selectedThreat?.detail, !d.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return d
+        }
+        if let d = liveRegion.threatDetail, !d.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return d
+        }
+        if let t = selectedThreat?.type ?? liveRegion.threatType {
+            let desc = getThreatDescription(t)
+            var msg = "⚠️ Фіксується загроза (\(desc))."
+            if let eta = selectedThreat?.eta ?? liveRegion.displayETA, !eta.isEmpty {
+                msg += " Час підльоту: \(eta)."
+            }
+            return msg
+        }
+        if liveRegion.isThreatPredictive {
+            var msg = "⚠️ Зафіксовано потенційний рух цілі в напрямку області."
+            if let eta = liveRegion.displayETA, !eta.isEmpty {
+                msg += " Час підльоту: \(eta)."
+            }
+            return msg
+        }
+        return nil
+    }
+
     private var statusTitle: String {
         if liveRegion.isActive {
             return "АКТИВНА ТРИВОГА"
-        } else if isThreatActive {
-            return "Є ЗАГРОЗА (PREMIUM)"
+        } else if hasAnyThreat {
+            return "Є ЗАГРОЗА (ПІДЛІТ / ТРАНЗИТ)"
         } else {
             return "ТРИВОГУ СКАСОВАНО"
         }
@@ -256,18 +299,14 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Card 1: Що відомо (Premium-only) or Purchase CTA or Fallback Card
-                    if let detail = selectedThreat?.detail ?? liveRegion.threatDetail, !detail.isEmpty {
-                        if isPremium {
-                            ThreatDetailCard(
-                                detail: detail,
-                                threat: selectedThreat,
-                                themeColor: themeColor,
-                                timeRefreshTrigger: timeRefreshTrigger
-                            )
-                        } else {
-                            PremiumPurchaseCTA(storeManager: storeManager)
-                        }
+                    // Card 1: Що відомо про загрозу (Завжди доступно для безпеки користувача)
+                    if let detail = effectiveThreatDetail, !detail.isEmpty {
+                        ThreatDetailCard(
+                            detail: detail,
+                            threat: selectedThreat,
+                            themeColor: themeColor,
+                            timeRefreshTrigger: timeRefreshTrigger
+                        )
                     } else if liveRegion.isActive {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
@@ -506,9 +545,9 @@ struct AlertRegionDetailView: View {
             .preferredColorScheme(.dark)
         }
         .onAppear {
-            selectedThreatIndex = max(0, region.activeThreats.count - 1)
+            selectedThreatIndex = max(0, liveRegion.activeThreats.count - 1)
         }
-        .onChange(of: region.activeThreats) { oldValue, newValue in
+        .onChange(of: liveRegion.activeThreats) { oldValue, newValue in
             selectedThreatIndex = max(0, newValue.count - 1)
         }
         .onReceive(refreshTimer) { _ in

@@ -142,8 +142,8 @@ struct AlertListOverlayView: View {
                         }
                     }
                     
-                    // Display details for premium users
-                    if isPremium, let type = alert.threatType, let detail = alert.threatDetail {
+                    // Display threat details
+                    if let type = alert.threatType, let detail = alert.threatDetail {
                         Text("⚠️ \(type.uppercased()): \(detail)")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(rowColor.opacity(0.8))
@@ -151,8 +151,8 @@ struct AlertListOverlayView: View {
                             .padding(.top, 2)
                     }
                     
-                    // AI confidence & ETA badge for premium users
-                    if isPremium, isThreat {
+                    // AI confidence & ETA badge
+                    if isThreat || alert.isActive {
                         HStack(spacing: 8) {
                             if let conf = alert.threatConfidence {
                                 HStack(spacing: 3) {
