@@ -299,19 +299,11 @@ struct FlyingThreatMapOverlay: MapContent {
 // MARK: - Flying Threat Visibility Logic
 
 /// Визначає, чи слід показувати літаючі маркери загроз (БПЛА, ракети, траєкторії).
-/// БПЛА та ракети у просторі області відображаються коли:
-/// 1. Оголошена тривога (alert.isActive == true) АБО
-/// 2. Оголошено прогнозний коридор/розрив засікання (alert.isThreatPredictive == true).
-/// Якщо відбувся відбій загрози (відбій/чисто) — траєкторія негайно знімається!
+/// Значок БПЛА/ракети всередині області відображається ВИКЛЮЧНО коли оголошена офіційна тривога (alert.isActive == true).
+/// Якщо в області немає тривоги (жовта область) — значок БПЛА всередині області НЕ показується!
 func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
-    if alert.isActive {
-        let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
-        return hasThreatData
-    }
-    if alert.threatLevel != nil && alert.isThreatPredictive {
-        return alert.threatType != nil || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
-    }
-    return false
+    guard alert.isActive else { return false }
+    return alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
 }
 
 // MARK: - Trajectory Flow Arrow Data
