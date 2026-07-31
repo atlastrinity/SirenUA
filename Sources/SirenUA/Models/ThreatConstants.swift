@@ -11,6 +11,9 @@ public enum ThreatConstants {
     public static let tu95 = "tu95"
     public static let iskander = "iskander"
     public static let artillery = "artillery"
+    public static let zircon = "zircon"
+    public static let mlrs = "mlrs"
+    public static let fpv = "fpv"
     public static let recon = "recon"
     public static let reconUav = "recon_uav"
     public static let unknown = "unknown"
@@ -27,6 +30,9 @@ public enum ThreatConstants {
         case tu95: return "Ту-95МС"
         case iskander: return "Іскандер-М"
         case artillery: return "Артилерійський обстріл"
+        case zircon: return "Гіперзвукова ракета Циркон"
+        case mlrs: return "РСЗВ (Торнадо-С / Град)"
+        case fpv: return "FPV дрон / Ланцет"
         case recon, reconUav: return "Розвідувальний БпЛА"
         default: return "Повітряна загроза"
         }
@@ -38,12 +44,13 @@ public enum ThreatConstants {
         switch threatType {
         case shahed: return "🛩"
         case cruiseMissile: return "🚀"
-        case ballistic: return "💥"
+        case ballistic, zircon: return "💥"
         case mig31k: return "🛫"
         case kab: return "💣"
         case tu95: return "✈️"
         case iskander: return "🎯"
-        case artillery: return "💥"
+        case artillery, mlrs: return "💥"
+        case fpv: return "🛸"
         default: return "⚠️"
         }
     }
@@ -54,12 +61,13 @@ public enum ThreatConstants {
         switch threatType {
         case shahed: return "airplane"
         case cruiseMissile: return "bolt.fill"
-        case ballistic: return "arrow.up.right"
+        case ballistic, zircon: return "arrow.up.right"
         case mig31k: return "airplane"
         case kab: return "flame.fill"
         case tu95: return "airplane.circle.fill"
         case iskander: return "scope"
-        case artillery: return "burst.fill"
+        case artillery, mlrs: return "burst.fill"
+        case fpv: return "viewfinder"
         default: return "exclamationmark.triangle.fill"
         }
     }
@@ -70,9 +78,10 @@ public enum ThreatConstants {
         switch threatType {
         case shahed: return .yellow
         case cruiseMissile: return .red
-        case ballistic, iskander, mig31k: return .purple
-        case kab: return .orange
+        case ballistic, iskander, mig31k, zircon: return .purple
+        case kab, mlrs: return .orange
         case tu95: return .red
+        case fpv: return .yellow
         default: return .orange
         }
     }
@@ -87,6 +96,9 @@ public enum ThreatConstants {
         case mig31k: return 2500.0
         case kab: return 350.0
         case tu95: return 800.0
+        case zircon: return 11000.0
+        case mlrs: return 2200.0
+        case fpv: return 140.0
         case artillery: return 1200.0
         case recon, reconUav: return 120.0
         default: return 300.0
