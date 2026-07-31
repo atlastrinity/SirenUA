@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import AVFoundation
+import AudioToolbox
 import UIKit
 import FirebaseMessaging
 import OSLog
@@ -337,9 +338,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         guard vibrationEnabled else { return }
         DispatchQueue.main.async {
+            #if os(iOS)
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
             let generator = UINotificationFeedbackGenerator()
             generator.prepare()
             generator.notificationOccurred(type)
+            #endif
         }
     }
 
