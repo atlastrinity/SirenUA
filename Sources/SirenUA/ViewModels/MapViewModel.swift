@@ -55,7 +55,10 @@ final class MapViewModel: ObservableObject {
     }
 
     func updateCameraDistance(_ distance: Double) {
-        guard distance > 0, abs(cameraDistance - distance) > 100 else { return }
+        guard distance > 0 else { return }
+        // Require at least 15% relative change to prevent rapid map re-renders & flickering
+        let ratio = abs(cameraDistance - distance) / cameraDistance
+        guard ratio > 0.15 else { return }
         cameraDistance = distance
     }
 
