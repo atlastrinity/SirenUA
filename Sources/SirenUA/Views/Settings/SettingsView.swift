@@ -22,6 +22,7 @@ struct SettingsView: View {
     @AppStorage("muteAlarmsSound")          private var muteAlarmsSound           = false
     @AppStorage("muteThreatsSound")         private var muteThreatsSound          = false
     @AppStorage("muteClearSound")           private var muteClearSound            = false
+    @AppStorage("vibrationEnabled")          private var vibrationEnabled          = true
 
     @State private var inputEmail = ""
     @State private var inputPassword = ""
@@ -346,6 +347,16 @@ struct SettingsView: View {
                 icon: "speaker.slash.fill",
                 iconColor: .green,
                 isOn: $muteClearSound
+            )
+
+            StyledDivider()
+
+            StyledToggleRow(
+                title: "Вібрація",
+                subtitle: "Вібрувати при тривозі, загрозах та відбої",
+                icon: "iphone.radiowaves.left.and.right",
+                iconColor: .purple,
+                isOn: $vibrationEnabled
             )
         }
     }

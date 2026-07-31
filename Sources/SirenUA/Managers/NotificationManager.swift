@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import AVFoundation
+import UIKit
 import FirebaseMessaging
 import OSLog
 
@@ -252,7 +253,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: level, relevanceScore: 1.0, isCritical: isCrit)
 
-        // Also fire through CriticalAlertManager for redundant lock-screen delivery if enabled
+        // Haptic feedback for official alarm
+        triggerHaptic(.warning)
         if isCrit, #available(iOS 16.0, *) {
             CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
         }
@@ -284,6 +286,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: level, relevanceScore: relevance, isCritical: effectiveIsCritical)
+
+        // Haptic feedback for threat detection (stronger for high confidence)
+        triggerHaptic(confidence >= 85 ? .error : .warning)
     }
 
     func sendClearNotification(for regionName: String) {
@@ -293,6 +298,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
         enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
+
+        // Haptic feedback for alert clearance
+        triggerHaptic(.success)
     }
 
     // MARK: - Private helpers
@@ -315,6 +323,21 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
 
     private var muteClearSound: Bool {
         UserDefaults.standard.bool(forKey: "muteClearSound")
+    }
+
+    private var vibrationEnabled: Bool {
+        UserDefaults.standard.object(forKey: "vibrationEnabled") as? Bool ?? true
+    }
+
+    /// Triggers haptic feedback for alert events based on severity.
+    /// - Parameter style: .warning for alarms, .success for clears, .error for critical threats
+    private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard vibrationEnabled else { return }
+        DispatchQueue.main.async {
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(type)
+        }
     }
 
     private func shouldNotify(for regionName: String) -> Bool {
