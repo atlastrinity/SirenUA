@@ -6,19 +6,27 @@ private let geoLogger = Logger(subsystem: "com.sirenua", category: "GeoJSON")
 
 // MARK: - Models
 
-struct IdentifiableMKPolygon: Identifiable {
-    let id = UUID()
+struct IdentifiableMKPolygon: Identifiable, Equatable {
+    let id: String
     let polygon: MKPolygon
+
+    static func == (lhs: IdentifiableMKPolygon, rhs: IdentifiableMKPolygon) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
-struct RegionPolygon: Identifiable {
-    let id = UUID()
+struct RegionPolygon: Identifiable, Equatable {
+    let id: String
     let name: String
     let nameUK: String
     let polygons: [[CLLocationCoordinate2D]]
     let mkPolygons: [MKPolygon]
     let identifiablePolygons: [IdentifiableMKPolygon]
     let center: CLLocationCoordinate2D
+
+    static func == (lhs: RegionPolygon, rhs: RegionPolygon) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 // MARK: - GeoJSONManager
@@ -74,8 +82,11 @@ final class GeoJSONManager: ObservableObject {
             let (polygons, mkPolygons) = extractPolygons(from: feature)
             let center = computeCenter(from: polygons) ?? fallbackCenter
 
-            let identifiable = mkPolygons.map { IdentifiableMKPolygon(polygon: $0) }
+            let identifiable = mkPolygons.enumerated().map { idx, poly in
+                IdentifiableMKPolygon(id: "\(nameUk)_\(idx)", polygon: poly)
+            }
             let region = RegionPolygon(
+                id: nameUk,
                 name: nameEn,
                 nameUK: nameUk,
                 polygons: polygons,
