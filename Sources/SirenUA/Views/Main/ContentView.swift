@@ -276,6 +276,10 @@ struct ContentView: View {
                         mapViewModel.selectedShelter = nil
                     }
                 } else {
+                    // Плаваючі прозорі кнопки зліва (Локація) та справа (Концентрація областей в рамки екрана)
+                    mapFloatingControls
+                        .padding(.bottom, 2)
+
                     // Каскадне нижнє оперативне сповіщення (динамічно з'являється та зникає)
                     if showBottomOperationalToast, let alert = primaryThreatRegion {
                         OperationalMonitoringCardView(

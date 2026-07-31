@@ -82,33 +82,64 @@ extension ContentView {
         }
     }
 
-    // MARK: Location button
+    // MARK: Map Floating Controls (Локація та Концентрація Областей)
 
-    var locationButton: some View {
-        Button(action: {
-            let coord = currentUserCoordinate
-            withAnimation(.easeInOut(duration: 1.0)) {
-                mapViewModel.cameraPosition = .region(
-                    MKCoordinateRegion(
-                        center: coord,
-                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+    var mapFloatingControls: some View {
+        HStack {
+            // Ліва прозора кнопка: Наведення на власну локацію
+            Button(action: {
+                let coord = currentUserCoordinate
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    mapViewModel.cameraPosition = .region(
+                        MKCoordinateRegion(
+                            center: coord,
+                            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+                        )
                     )
-                )
+                }
+            }) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.cyan)
+                    .padding(12)
+                    .background(.ultraThinMaterial)
+                    .background(Color.cyan.opacity(0.15))
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.cyan.opacity(0.4), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.35), radius: 5, x: 0, y: 2)
             }
-        }) {
-            Image(systemName: "location.fill")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(themeColor)
-                .padding(10)
-                .background(themeColor.opacity(0.15))
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(themeColor.opacity(0.4), lineWidth: 1))
-                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+            .simultaneousGesture(TapGesture().onEnded {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            })
+
+            Spacer()
+
+            // Права прозора кнопка: Концентрація обраних/активних областей в рамки екрану
+            Button(action: {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    mapViewModel.centerMapOnAlerts(
+                        alerts: viewModel.alerts,
+                        isPremium: viewModel.isPremium,
+                        lastAlertedRegionName: viewModel.lastAlertedRegionName,
+                        regions: geoManager.regions,
+                        animated: true
+                    )
+                }
+            }) {
+                Image(systemName: "scope")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.yellow)
+                    .padding(12)
+                    .background(.ultraThinMaterial)
+                    .background(Color.yellow.opacity(0.15))
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.yellow.opacity(0.4), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.35), radius: 5, x: 0, y: 2)
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            })
         }
-        .simultaneousGesture(TapGesture().onEnded {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        })
-        .padding(.trailing, 16)
+        .padding(.horizontal, 18)
     }
 }
