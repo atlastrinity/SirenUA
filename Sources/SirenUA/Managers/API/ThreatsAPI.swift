@@ -78,14 +78,17 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     /// Іконка типу загрози для міні-картки
     var threatIcon: String {
         switch type {
-        case "shahed":          return "airplane"
-        case "cruise_missile":  return "bolt.fill"
-        case "ballistic":       return "arrow.up.right"
-        case "mig31k":          return "jet.fill"
+        case "shahed":          return "paperplane.fill"
+        case "cruise_missile":  return "bolt.horizontal.fill"
+        case "ballistic":       return "arrow.up.right.circle.fill"
+        case "mig31k":          return "airplane"
         case "kab":             return "flame.fill"
-        case "tu95":            return "airplane.circle.fill"
-        case "iskander":        return "arrow.up.right.circle.fill"
-        case "artillery":       return "burst.fill"
+        case "tu95", "tu22m3":  return "airplane.circle.fill"
+        case "su35_su57":       return "airplane"
+        case "iskander":        return "cross.circle.fill"
+        case "zircon":          return "bolt.fill"
+        case "artillery", "mlrs": return "burst.fill"
+        case "recon", "recon_uav": return "eye.fill"
         default:                return "exclamationmark.triangle.fill"
         }
     }
