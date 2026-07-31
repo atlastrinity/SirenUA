@@ -258,7 +258,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 interruptionLevel: level, relevanceScore: 1.0, isCritical: isCrit)
 
         // Haptic feedback for official alarm
-        triggerHaptic(.warning)
+        triggerHaptic(.warning, pulses: 4)
         if isCrit, #available(iOS 16.0, *) {
             CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
         }
@@ -291,8 +291,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: level, relevanceScore: relevance, isCritical: effectiveIsCritical)
 
-        // Haptic feedback for threat detection (stronger for high confidence)
-        triggerHaptic(confidence >= 85 ? .error : .warning)
+        // Haptic feedback for threat detection (stronger multi-pulse for high confidence)
+        triggerHaptic(confidence >= 85 ? .error : .warning, pulses: 3)
     }
 
     func sendClearNotification(for regionName: String) {
@@ -304,7 +304,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
 
         // Haptic feedback for alert clearance
-        triggerHaptic(.success)
+        triggerHaptic(.success, pulses: 2)
     }
 
     // MARK: - Private helpers
@@ -333,16 +333,22 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         UserDefaults.standard.object(forKey: "vibrationEnabled") as? Bool ?? true
     }
 
-    /// Triggers haptic feedback for alert events based on severity.
-    /// - Parameter style: .warning for alarms, .success for clears, .error for critical threats
-    private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+    /// Triggers distinct multi-pulse haptic feedback for alert events based on severity.
+    /// - Parameters:
+    ///   - type: .warning for alarms, .success for clears, .error for critical threats
+    ///   - pulses: Number of distinct vibration pulses (default 3)
+    private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType, pulses: Int = 3) {
         guard vibrationEnabled else { return }
         DispatchQueue.main.async {
             #if os(iOS)
-            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
-            let generator = UINotificationFeedbackGenerator()
-            generator.prepare()
-            generator.notificationOccurred(type)
+            for i in 0..<pulses {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.35) {
+                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.prepare()
+                    generator.notificationOccurred(type)
+                }
+            }
             #endif
         }
     }
@@ -404,7 +410,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         content.interruptionLevel = item.interruptionLevel
         content.relevanceScore = item.relevanceScore
         
-        // Sound configuration: use defaultCritical for critical alerts
+        // Sound & Vibration configuration: assign sound or defaultSound so iOS triggers vibration motor
         if !item.soundName.isEmpty {
             if item.isCritical {
                 content.sound = UNNotificationSound.defaultCritical
