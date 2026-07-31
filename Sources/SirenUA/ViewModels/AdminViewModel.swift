@@ -78,6 +78,8 @@ class AdminViewModel: ObservableObject {
     @Published var palantirDaysFilter: Int = 30
     @Published var isSynthesizingPalantir: Bool = false
     
+    @Published var regionsList: [String] = []
+    
     var serverURL: String {
         NetworkManager.serverURL
     }

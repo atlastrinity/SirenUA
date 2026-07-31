@@ -385,40 +385,28 @@ struct TrajectoryPath {
 }
 
 func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, customOrigin: CLLocationCoordinate2D? = nil) -> TrajectoryPath {
-    let latOffset: Double
-    let lonOffset: Double
     let curvature: Double
     let cycles: Double
     let waveAmplitude: Double
     
     switch threatType {
     case "shahed":
-        latOffset = -3.2  // Coming from Black Sea / Crimea / South-East
-        lonOffset = 3.6
         curvature = -0.22 // Base aerodynamic arc
         cycles = 3.5      // 3.5 weaving S-curves (змійка)
         waveAmplitude = 0.055 // Realistic lateral evasion amplitude
     case "cruise_missile", "tu95":
-        latOffset = 1.4   // Coming from Caspian Sea / East
-        lonOffset = 4.8
         curvature = 0.20
         cycles = 2.5      // 2.5 tactical waypoint weaves
         waveAmplitude = 0.045
     case "ballistic", "iskander":
-        latOffset = 3.2   // Coming from North / Belgorod / Kursk
-        lonOffset = 2.2
         curvature = -0.15
         cycles = 1.5      // Minor terminal trajectory wobble
         waveAmplitude = 0.025
     case "kab":
-        latOffset = 0.9   // Coming from Frontline / Border
-        lonOffset = 1.6
         curvature = 0.15
         cycles = 2.0      // Wind drift glide weaving
         waveAmplitude = 0.035
     default:
-        latOffset = -2.4
-        lonOffset = 3.0
         curvature = 0.20
         cycles = 3.0
         waveAmplitude = 0.040
