@@ -124,28 +124,50 @@ struct AdminRulesTab: View {
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
             
-            // Active rules list
+            // Active rules list grouped by region
             VStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 10) {
-                        Text("Активні правила навчання (\(viewModel.activeRules.count))")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                        
-                        if viewModel.activeRules.isEmpty {
-                            Text("Немає активних правил самонавчання.")
-                                .font(.system(size: 13))
-                                .foregroundColor(.gray)
-                                .padding(.vertical, 20)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        } else {
-                            ForEach(viewModel.activeRules) { rule in
-                                GeminiRuleRow(rule: rule, viewModel: viewModel)
+                    Text("Активні правила за областю (\(viewModel.activeRules.count))")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    if viewModel.activeRules.isEmpty {
+                        Text("Немає активних правил самонавчання.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                            .padding(.vertical, 20)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
+                        ForEach(viewModel.rulesGroupedByRegion, id: \.0) { regionGroup in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("📍 \(regionGroup.0)")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.cyan)
+                                    Spacer()
+                                    Text("\(regionGroup.1.count) правил(а)")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                                .padding(.top, 4)
+                                
+                                ForEach(regionGroup.1) { rule in
+                                    GeminiRuleRow(rule: rule, viewModel: viewModel)
+                                }
                             }
+                            .padding(10)
+                            .background(Color.white.opacity(0.02))
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.cyan.opacity(0.15), lineWidth: 1)
+                            )
                         }
                     }
-                    .padding(14)
-                    .background(ChartColorTheme.cardBg)
-                    .cornerRadius(12)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(12)
                     
                     // Rules history audit log
                     VStack(alignment: .leading, spacing: 10) {

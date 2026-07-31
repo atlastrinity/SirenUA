@@ -117,6 +117,19 @@ class AdminViewModel: ObservableObject {
         return grouped.sorted { $0.key > $1.key }
     }
     
+    var rulesGroupedByRegion: [(String, [GeminiRule])] {
+        let grouped = Dictionary(grouping: activeRules) { rule in
+            if let target = rule.target_region, !target.isEmpty {
+                return target
+            }
+            if let source = rule.source_region, !source.isEmpty {
+                return source
+            }
+            return "Загальні правила"
+        }
+        return grouped.sorted { $0.key < $1.key }
+    }
+    
     // MARK: - API Calls & Actions
     
     func refreshCurrentTab(selectedTab: Int) async {
