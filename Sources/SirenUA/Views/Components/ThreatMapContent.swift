@@ -215,7 +215,7 @@ struct FlyingThreatMapOverlay: MapContent {
         let confidence = alert.currentThreat?.confidence ?? alert.threatConfidence
         let eta = alert.currentThreat?.dynamicETA ?? alert.displayETA
         let color = alert.color
-        let customOrigin = alert.currentThreat?.originCoordinate
+        let customOrigin = alert.currentThreat?.originCoordinate ?? alert.originCoordinate
         let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
 
         // 0. Continuous Solid Black Isolation Base (Masks region polygons underneath)
