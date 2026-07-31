@@ -231,11 +231,11 @@ struct FlyingThreatMapOverlay: MapContent {
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 2. Continuous Solid Pure Neon Yellow Comet Core Stripe
+        // 2. Continuous Solid/Dashed Neon Yellow Comet Core Stripe
         MapPolyline(coordinates: trajectory.fullPoints)
             .stroke(
                 Color(red: 1.0, green: 0.95, blue: 0.0),
-                style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round)
+                style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round, dash: alert.isThreatPredictive ? [12, 7] : [])
             )
             .mapOverlayLevel(level: .aboveLabels)
 
@@ -300,13 +300,18 @@ struct FlyingThreatMapOverlay: MapContent {
 
 /// Визначає, чи слід показувати літаючі маркери загроз (БПЛА, ракети, траєкторії).
 /// БПЛА та ракети у просторі області відображаються коли:
-/// 1. Оголошена тривога (alert.isActive == true) ТА
-/// 2. Наявні актуальні дані про загрозу (activeThreats, threatType або threatDetail не пустий).
+/// 1. Оголошена тривога (alert.isActive == true) АБО
+/// 2. Оголошено прогнозний коридор/розрив засікання (alert.isThreatPredictive == true).
 /// Якщо відбувся відбій загрози (відбій/чисто) — траєкторія негайно знімається!
 func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
-    guard alert.isActive else { return false }
-    let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
-    return hasThreatData
+    if alert.isActive {
+        let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
+        return hasThreatData
+    }
+    if alert.threatLevel != nil && alert.isThreatPredictive {
+        return alert.threatType != nil || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
+    }
+    return false
 }
 
 // MARK: - Trajectory Flow Arrow Data
