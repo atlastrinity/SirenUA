@@ -218,32 +218,32 @@ struct FlyingThreatMapOverlay: MapContent {
         let customOrigin = alert.currentThreat?.originCoordinate
         let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
 
-        // 0. Continuous Solid Black Isolation Base (Masks region polygons underneath)
+        // 0. Sleek Dark Isolation Base
         MapPolyline(coordinates: trajectory.fullPoints)
-            .stroke(Color.black, style: StrokeStyle(lineWidth: 10.0, lineCap: .round, lineJoin: .round))
+            .stroke(Color.black.opacity(0.8), style: StrokeStyle(lineWidth: 5.0, lineCap: .round, lineJoin: .round))
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 1. Continuous Dissolving Comet Nebula Glow (Electric Neon Yellow Mist)
-        MapPolyline(coordinates: trajectory.fullPoints)
+        // 1. Diffuse Soft Blur Glow at Origin (Launch section - wide & transparent)
+        MapPolyline(coordinates: Array(trajectory.fullPoints.prefix(max(2, trajectory.fullPoints.count * 3 / 5))))
             .stroke(
-                Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.35),
-                style: StrokeStyle(lineWidth: 12.0, lineCap: .round, lineJoin: .round)
+                Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.20),
+                style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round)
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 2. Continuous Solid/Dashed Neon Yellow Comet Core Stripe
+        // 2. Sleek Continuous Solid Neon Core (No dashes, perfectly smooth & refined)
         MapPolyline(coordinates: trajectory.fullPoints)
             .stroke(
-                Color(red: 1.0, green: 0.95, blue: 0.0),
-                style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round, dash: alert.isThreatPredictive ? [12, 7] : [])
+                Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.90),
+                style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 3. Razor-Sharp Opaque White Laser Core near Target Head
-        MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(12)))
+        // 3. Razor-Sharp Concentrated White Laser Focus near Target Destination
+        MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(max(2, trajectory.fullPoints.count / 3))))
             .stroke(
                 Color.white,
-                style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
+                style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
             )
             .mapOverlayLevel(level: .aboveLabels)
 
