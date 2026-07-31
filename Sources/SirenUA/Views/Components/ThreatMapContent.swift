@@ -14,6 +14,7 @@ struct ThreatMapContent: MapContent {
     let route: MKRoute?
     let timeRefreshTrigger: Date
     let currentUserCoordinate: CLLocationCoordinate2D
+    var zoomScale: CGFloat = 1.0
     let getThreatTypeDescriptionShort: (String) -> String
     let onRegionSelected: (AlertRegion) -> Void
 
@@ -72,15 +73,17 @@ struct ThreatMapContent: MapContent {
             }
         }
         
-        // User current location marker
-        Annotation("Ви", coordinate: currentUserCoordinate) {
-            Image(systemName: "location.north.fill")
+        // User Location Marker
+        Annotation("Моє місцезнаходження", coordinate: currentUserCoordinate) {
+            Image(systemName: "location.fill")
+                .font(.system(size: 14))
                 .foregroundColor(.white)
-                .padding(8)
+                .padding(6)
                 .background(Color.green)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white, lineWidth: 2))
                 .shadow(radius: 5)
+                .scaleEffect(zoomScale)
         }
         
         // Regional threat level, status badges, and flying threat overlays
@@ -88,6 +91,7 @@ struct ThreatMapContent: MapContent {
             if shouldShowFlyingThreat(for: alert) {
                 FlyingThreatMapOverlay(
                     alert: alert,
+                    zoomScale: zoomScale,
                     getThreatTypeDescriptionShort: getThreatTypeDescriptionShort,
                     onRegionSelected: onRegionSelected
                 )
@@ -95,6 +99,7 @@ struct ThreatMapContent: MapContent {
                 RegionStatusBadgeAnnotation(
                     alert: alert,
                     timeRefreshTrigger: timeRefreshTrigger,
+                    zoomScale: zoomScale,
                     getThreatTypeDescriptionShort: getThreatTypeDescriptionShort,
                     onRegionSelected: onRegionSelected
                 )
@@ -121,6 +126,7 @@ struct ThreatMapContent: MapContent {
 struct RegionStatusBadgeAnnotation: MapContent {
     let alert: AlertRegion
     let timeRefreshTrigger: Date
+    var zoomScale: CGFloat = 1.0
     let getThreatTypeDescriptionShort: (String) -> String
     let onRegionSelected: (AlertRegion) -> Void
 
@@ -188,6 +194,7 @@ struct RegionStatusBadgeAnnotation: MapContent {
                         .stroke(badgeBgColor.opacity(0.3), lineWidth: 0.5)
                 )
             }
+            .scaleEffect(zoomScale)
         } label: {
             EmptyView()
         }
@@ -198,6 +205,7 @@ struct RegionStatusBadgeAnnotation: MapContent {
 
 struct FlyingThreatMapOverlay: MapContent {
     let alert: AlertRegion
+    var zoomScale: CGFloat = 1.0
     let getThreatTypeDescriptionShort: (String) -> String
     let onRegionSelected: (AlertRegion) -> Void
 
@@ -239,7 +247,7 @@ struct FlyingThreatMapOverlay: MapContent {
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // Flow direction chevrons along trajectory (~30% and ~60%)
+        // Flow direction chevrons along trajectory (~25%, ~50%, ~75%)
         ForEach(0..<trajectory.flowArrows.count, id: \.self) { arrowIdx in
             let arrow = trajectory.flowArrows[arrowIdx]
             Annotation(coordinate: arrow.coordinate) {
@@ -249,6 +257,7 @@ struct FlyingThreatMapOverlay: MapContent {
                     threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
                     opacity: arrow.opacity
                 )
+                .scaleEffect(zoomScale)
             } label: {
                 EmptyView()
             }
@@ -260,6 +269,7 @@ struct FlyingThreatMapOverlay: MapContent {
                 angle: trajectory.lastCheckpointAngle,
                 color: color
             )
+            .scaleEffect(zoomScale)
         } label: {
             EmptyView()
         }
@@ -278,6 +288,7 @@ struct FlyingThreatMapOverlay: MapContent {
                     color: color,
                     isPredictive: alert.isThreatPredictive
                 )
+                .scaleEffect(zoomScale)
             }
         } label: {
             EmptyView()

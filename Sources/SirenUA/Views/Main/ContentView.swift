@@ -204,7 +204,7 @@ struct ContentView: View {
             // 1. ШАР КАРТИ (Повне відображення загроз по всій Україні)
             Map(
                 position: $mapViewModel.cameraPosition,
-                bounds: MapCameraBounds(minimumDistance: 1_000, maximumDistance: 4_500_000),
+                bounds: MapCameraBounds(minimumDistance: 100, maximumDistance: 3_000_000),
                 interactionModes: .all,
                 selection: $mapViewModel.selectedShelter
             ) {
@@ -221,9 +221,13 @@ struct ContentView: View {
                     route: mapViewModel.route,
                     timeRefreshTrigger: timeRefreshTrigger,
                     currentUserCoordinate: currentUserCoordinate,
+                    zoomScale: mapViewModel.elementZoomScale,
                     getThreatTypeDescriptionShort: getShortThreatDesc,
                     onRegionSelected: handleRegionSelection
                 )
+            }
+            .onMapCameraChange(frequency: .continuous) { context in
+                mapViewModel.updateCameraDistance(context.camera.distance)
             }
             .mapStyle(selectedMapStyle)
             .colorScheme(.dark)

@@ -34,6 +34,31 @@ final class MapViewModel: ObservableObject {
         )
     )
 
+    // Dynamic Camera Scale & Distance Tracking for iPhone Map Responsiveness
+    @Published var cameraDistance: Double = 600_000.0
+
+    /// Sub-linear scale factor for UI elements (badges, chevrons, icons).
+    /// Scales up gracefully when zoomed in, shrinks slightly when zoomed out to prevent map clutter.
+    var elementZoomScale: CGFloat {
+        let minDist = 3_000.0     // ~3km (zoomed in to city)
+        let maxDist = 1_800_000.0 // ~1800km (zoomed out overview)
+        let clamped = max(minDist, min(maxDist, cameraDistance))
+        
+        let minLog = log10(minDist)
+        let maxLog = log10(maxDist)
+        let curLog = log10(clamped)
+        
+        let t = (curLog - minLog) / (maxLog - minLog) // 0.0 (zoomed in) ... 1.0 (zoomed out)
+        
+        // Sub-linear scale curve: 1.30x zoomed in -> 0.82x zoomed out
+        return CGFloat(1.30 - (t * 0.48))
+    }
+
+    func updateCameraDistance(_ distance: Double) {
+        guard distance > 0, abs(cameraDistance - distance) > 100 else { return }
+        cameraDistance = distance
+    }
+
     private static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
 
     func findNearestShelter(
