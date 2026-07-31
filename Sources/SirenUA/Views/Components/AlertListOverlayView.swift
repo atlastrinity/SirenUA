@@ -1,21 +1,83 @@
 import SwiftUI
 
+enum OverlayFilterMode {
+    case activeOnly
+    case last24Hours
+    case all
+}
+
 struct AlertListOverlayView: View {
     let title: String
     let color: Color
     let alerts: [AlertRegion]
-    let filterActiveOnly: Bool
+    var filterMode: OverlayFilterMode = .last24Hours
+    var filterActiveOnly: Bool = false
     let isPremium: Bool
     var onSelect: ((AlertRegion) -> Void)? = nil
     var onClose: () -> Void
 
+    private var effectiveFilterMode: OverlayFilterMode {
+        if filterActiveOnly {
+            return .activeOnly
+        }
+        return filterMode
+    }
+
     private var sortedAlerts: [AlertRegion] {
-        let filtered = filterActiveOnly ? alerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) } : alerts
+        let filtered: [AlertRegion]
+        switch effectiveFilterMode {
+        case .activeOnly:
+            filtered = alerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) }
+        case .last24Hours:
+            filtered = alerts.filter { region in
+                // 1. Currently active alert or threat zone
+                if region.isActive || (isPremium && region.threatLevel != nil) {
+                    return true
+                }
+                // 2. Has active threats registered
+                if !region.activeThreats.isEmpty {
+                    return true
+                }
+                // 3. Changed within last 24 hours
+                if isWithinLast24Hours(region.lastChanged) {
+                    return true
+                }
+                return false
+            }
+        case .all:
+            filtered = alerts
+        }
+
         return filtered.sorted { a, b in
             if a.isActive != b.isActive { return a.isActive }
             if (a.threatLevel != nil) != (b.threatLevel != nil) { return a.threatLevel != nil }
             return (a.lastChanged ?? "") > (b.lastChanged ?? "")
         }
+    }
+
+    private func isWithinLast24Hours(_ dateString: String?) -> Bool {
+        guard let str = dateString, !str.isEmpty else { return false }
+        
+        let formatters = [
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "HH:mm"
+        ]
+        
+        for format in formatters {
+            let f = DateFormatter()
+            f.dateFormat = format
+            f.timeZone = TimeZone(identifier: "Europe/Kiev")
+            if format == "HH:mm" {
+                if f.date(from: str) != nil {
+                    return true // HH:mm is today's time
+                }
+            } else if let date = f.date(from: str) {
+                return Date().timeIntervalSince(date) <= 86400
+            }
+        }
+        
+        return false
     }
 
     var body: some View {
@@ -31,7 +93,7 @@ struct AlertListOverlayView: View {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 24, weight: .black))
+                        .font(.system(size: 22, weight: .black))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [color, color.opacity(0.7)],
@@ -40,7 +102,7 @@ struct AlertListOverlayView: View {
                             )
                         )
                         .shadow(color: color.opacity(0.4), radius: 8)
-                    Text("\(sortedAlerts.count) регіонів")
+                    Text(effectiveFilterMode == .last24Hours ? "\(sortedAlerts.count) подій за сутку (24 год)" : "\(sortedAlerts.count) регіонів")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.45))
                 }
@@ -69,15 +131,33 @@ struct AlertListOverlayView: View {
                 .frame(height: 1)
                 .padding(.horizontal, 22)
 
-            // List
-            ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    ForEach(sortedAlerts) { alert in
-                        alertRow(alert)
-                    }
+            // List or Empty View
+            if sortedAlerts.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.green)
+                    Text("Немає подій за останню сутку")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("За останні 24 години повітряних тривог чи загроз не зафіксовано.")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    Spacer()
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(sortedAlerts) { alert in
+                            alertRow(alert)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

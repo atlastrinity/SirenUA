@@ -318,10 +318,11 @@ struct ContentView: View {
             
             if mapViewModel.showActiveAlerts {
                 AlertListOverlayView(
-                    title: hasAlerts ? "АКТИВНІ ТРИВОГИ" : "АКТИВНІ ЗАГРОЗИ",
+                    title: "ПОДІЇ ЗА СУТКУ (24 ГОД)",
                     color: themeColor,
                     alerts: viewModel.alerts,
-                    filterActiveOnly: true,
+                    filterMode: .last24Hours,
+                    filterActiveOnly: false,
                     isPremium: viewModel.isPremium,
                     onSelect: { region in
                         mapViewModel.selectedRegionForDetail = region
