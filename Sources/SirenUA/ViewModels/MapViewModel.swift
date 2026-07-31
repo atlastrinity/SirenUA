@@ -195,12 +195,24 @@ final class MapViewModel: ObservableObject {
                 }
             }
 
-            // Exclude rain shelters, bus stops, gazebo awnings
-            let excludedKeywords = ["дощ", "зупинка", "навіс", "альтанка", "павільйон", "rain", "bus stop", "gazebo", "awning"]
+            // Exclude rain shelters, bus stops, gazebo awnings, public transport platforms
+            let excludedKeywords = [
+                "дощ", "зупинка", "навіс", "альтанка", "павільйон", "тент",
+                "палатка", "павіліон", "сквер", "пляж", "кафе", "ресторан", "маф",
+                "rain", "bus stop", "gazebo", "awning", "tent", "transit", "stop", "platform"
+            ]
             
             var uniqueItems: [MKMapItem] = []
             for item in allItems {
                 let nameLower = (item.name ?? "").lowercased()
+
+                // Filter out public transport stops, parks, and beaches
+                if let category = item.pointOfInterestCategory {
+                    if category == .publicTransport || category == .park || category == .beach {
+                        continue
+                    }
+                }
+
                 let isRainShelter = excludedKeywords.contains { nameLower.contains($0) }
                 if isRainShelter { continue }
 
