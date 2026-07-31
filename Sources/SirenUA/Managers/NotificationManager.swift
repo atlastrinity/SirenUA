@@ -417,6 +417,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             } else {
                 content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
             }
+        } else if vibrationEnabled {
+            if item.isCritical {
+                content.sound = UNNotificationSound.defaultCritical
+            } else {
+                content.sound = UNNotificationSound.default
+            }
         } else {
             content.sound = nil
         }
