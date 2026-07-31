@@ -363,8 +363,9 @@ final class MapViewModel: ObservableObject {
             allTracked || trackedList.contains(name)
         }
         
+        // Враховуємо ВСІ активні тривоги (ЧЕРВОНІ) та ВСІ активні загрози/прогнози (ЖОВТІ) без винятку!
         let activeTrackedAlerts = alerts.filter { $0.isActive && isRegionFiltered($0.name) }
-        let activeTrackedThreats = isPremium ? alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) } : []
+        let activeTrackedThreats = alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
         let relevantAlerts = activeTrackedAlerts + activeTrackedThreats
         let activeNames = Set(relevantAlerts.map { $0.name })
         let activeRegions = regions.filter { activeNames.contains($0.nameUK) }
@@ -400,11 +401,13 @@ final class MapViewModel: ObservableObject {
                 let centerLat = (minLat + maxLat) / 2.0
                 let centerLon = (minLon + maxLon) / 2.0
                 
-                let rawLatDelta = (maxLat - minLat) * 1.35
-                let rawLonDelta = (maxLon - minLon) * 1.35
+                // Забезпечуємо 1.55x - 1.68x додатковий дельта-запас для вертикальних екранів iPhone,
+                // щоб ВСІ жовті та червоні області влазили повністю по краях екрана!
+                let rawLatDelta = max((maxLat - minLat) * 1.55, 2.5)
+                let rawLonDelta = max((maxLon - minLon) * 1.68, 3.8)
                 
-                let latDelta = min(max(rawLatDelta, 2.0), 7.8)
-                let lonDelta = min(max(rawLonDelta, 2.8), 13.0)
+                let latDelta = min(rawLatDelta, 10.5)
+                let lonDelta = min(rawLonDelta, 16.5)
                 
                 let region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
@@ -421,12 +424,13 @@ final class MapViewModel: ObservableObject {
             }
         }
         
+        // Масштаб за замовчуванням (впевнено влазить вся Україна з полями)
         let defaultRegion = MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656),
-            span: MKCoordinateSpan(latitudeDelta: 7.5, longitudeDelta: 12.5)
+            span: MKCoordinateSpan(latitudeDelta: 8.5, longitudeDelta: 14.5)
         )
         if animated {
-            withAnimation(.easeInOut(duration: 2.0)) {
+            withAnimation(.easeInOut(duration: 1.5)) {
                 self.cameraPosition = .region(defaultRegion)
             }
         } else {
