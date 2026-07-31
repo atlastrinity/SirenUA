@@ -294,9 +294,9 @@ struct AdminChronologyV2Response: Codable {
 // MARK: - Palantir Intelligence Decodables
 
 struct PalantirCorridor: Codable, Identifiable {
-    var id: String { "\(source)_\(target)_\(threat_type ?? "")_\(count)" }
-    let source: String
-    let target: String
+    var id: String { "\(source ?? "")_\(target ?? "")_\(threat_type ?? "")_\(count ?? 0)" }
+    let source: String?
+    let target: String?
     let source_lat: Double?
     let source_lon: Double?
     let target_lat: Double?
@@ -304,7 +304,7 @@ struct PalantirCorridor: Codable, Identifiable {
     let source_coords: [Double]?
     let target_coords: [Double]?
     let route_description: String?
-    let count: Int
+    let count: Int?
     let threat_type: String?
     let avg_confidence: Int?
     let accuracy: Int?
@@ -326,24 +326,41 @@ struct PalantirCorridor: Codable, Identifiable {
 }
 
 struct PalantirLaunchHub: Codable, Identifiable {
-    var id: String { name }
-    let name: String
-    let lat: Double
-    let lon: Double
-    let total_launches: Int
-    let by_type: [String: Int]
+    var id: String { name ?? UUID().uuidString }
+    let name: String?
+    let lat: Double?
+    let lon: Double?
+    let total_launches: Int?
+    let by_type: [String: Int]?
     let last_detected: String?
 }
 
 struct PalantirRegionRisk: Codable, Identifiable {
-    var id: String { name }
-    let name: String
-    let lat: Double
-    let lon: Double
-    let total_events: Int
+    var id: String { name ?? UUID().uuidString }
+    let name: String?
+    let lat: Double?
+    let lon: Double?
+    let total_events: Int?
+    let by_type: [String: Int]?
     let risk_score: Int?
     let avg_confidence: Int?
+    let confirmed: Int?
+    let predictive: Int?
     let dominant_threat_type: String?
+}
+
+struct PalantirDailySummary: Codable, Identifiable {
+    var id: String { date ?? day ?? UUID().uuidString }
+    let date: String?
+    let day: String?
+    let total_events: Int?
+    let cleared: Int?
+    let confirmed: Int?
+    let overestimated: Int?
+    let mitigated: Int?
+    let predictive: Int?
+    let avg_confidence: Int?
+    let effectiveness_pct: Double?
 }
 
 struct PalantirOverviewResponse: Codable {
@@ -353,7 +370,7 @@ struct PalantirOverviewResponse: Codable {
     let launch_hubs: [PalantirLaunchHub]?
     let region_risk_matrix: [PalantirRegionRisk]?
     let flight_corridors: [PalantirCorridor]?
-    let daily_summaries: [DailyStatEntryV2]?
+    let daily_summaries: [PalantirDailySummary]?
 }
 
 struct PalantirReportEntry: Codable, Identifiable {

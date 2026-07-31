@@ -189,7 +189,7 @@ struct AdminPalantirTab: View {
                                 .font(.system(size: 14))
                             
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(corridor.source) → \(corridor.target)")
+                                Text("\(corridor.source ?? "—") → \(corridor.target ?? "—")")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.white)
                                 Text("Тип: \(corridor.threat_type ?? "Загроза") • Вектор: \(corridor.computedSourceLat, specifier: "%.1f"),\(corridor.computedSourceLon, specifier: "%.1f")")
@@ -200,7 +200,7 @@ struct AdminPalantirTab: View {
                             Spacer()
                             
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text("\(corridor.count)x")
+                                Text("\(corridor.count ?? 0)x")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.orange)
                                 Text("\(corridor.avg_confidence ?? 90)% довіра")
@@ -243,15 +243,15 @@ struct AdminPalantirTab: View {
                     ForEach(hubs.prefix(6)) { hub in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(hub.name)
+                                Text(hub.name ?? "Хаб")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(.orange)
-                                Text("Координати: \(hub.lat, specifier: "%.2f"), \(hub.lon, specifier: "%.2f")")
+                                Text("Координати: \(hub.lat ?? 0.0, specifier: "%.2f"), \(hub.lon ?? 0.0, specifier: "%.2f")")
                                     .font(.system(size: 10))
                                     .foregroundColor(.white.opacity(0.4))
                             }
                             Spacer()
-                            Text("\(hub.total_launches) пусків")
+                            Text("\(hub.total_launches ?? 0) пусків")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.red)
                                 .padding(.horizontal, 8)
@@ -287,7 +287,7 @@ struct AdminPalantirTab: View {
                 VStack(spacing: 8) {
                     ForEach(regions.prefix(6)) { reg in
                         HStack {
-                            Text(reg.name)
+                            Text(reg.name ?? "Область")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white)
                             Spacer()
