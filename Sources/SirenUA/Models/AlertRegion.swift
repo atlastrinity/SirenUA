@@ -69,14 +69,7 @@ struct AlertRegion: Identifiable, Codable, Equatable {
             default: return "speaker.wave.3.fill"
             }
         } else if threatLevel != nil {
-            switch threatType {
-            case "shahed": return "airplane"
-            case "cruise_missile": return "bolt.fill"
-            case "ballistic": return "arrow.up.right"
-            case "mig31k": return "airplane"
-            case "kab": return "flame.fill"
-            default: return "exclamationmark.triangle.fill"
-            }
+            return ThreatConstants.sfSymbol(for: threatType)
         }
         return "info.circle.fill"
     }

@@ -1,3 +1,4 @@
+import SwiftUI
 import Foundation
 import MapKit
 import OSLog
@@ -68,6 +69,9 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     let origin_latitude: Double?
     let origin_longitude: Double?
 
+    let last_checkpoint_latitude: Double?
+    let last_checkpoint_longitude: Double?
+
     var id: String { threat_id }
 
     var originCoordinate: CLLocationCoordinate2D? {
@@ -75,37 +79,24 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    /// Іконка типу загрози для міні-картки
-    var threatIcon: String {
-        switch type {
-        case "shahed":          return "paperplane.fill"
-        case "cruise_missile":  return "bolt.horizontal.fill"
-        case "ballistic":       return "arrow.up.right.circle.fill"
-        case "mig31k":          return "airplane"
-        case "kab":             return "flame.fill"
-        case "tu95", "tu22m3":  return "airplane.circle.fill"
-        case "su35_su57":       return "airplane"
-        case "iskander":        return "cross.circle.fill"
-        case "zircon":          return "bolt.fill"
-        case "artillery", "mlrs": return "burst.fill"
-        case "recon", "recon_uav": return "eye.fill"
-        default:                return "exclamationmark.triangle.fill"
-        }
+    var lastCheckpointCoordinate: CLLocationCoordinate2D? {
+        guard let lat = last_checkpoint_latitude, let lon = last_checkpoint_longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    /// Назва типу загрози українською
+    /// Іконка типу загрози з центрального реєстру ThreatConstants
+    var threatIcon: String {
+        ThreatConstants.sfSymbol(for: type)
+    }
+
+    /// Назва типу загрози з центрального реєстру ThreatConstants
     var threatLabel: String {
-        switch type {
-        case "shahed":          return "БПЛА"
-        case "cruise_missile":  return "Ракети"
-        case "ballistic":       return "Балістика"
-        case "mig31k":          return "МіГ-31К"
-        case "kab":             return "КАБ"
-        case "tu95":            return "Ту-95"
-        case "iskander":        return "Іскандер"
-        case "artillery":       return "Обстріл"
-        default:                return "Загроза"
-        }
+        ThreatConstants.title(for: type)
+    }
+
+    /// Колір типу загрози з центрального реєстру ThreatConstants
+    var threatColor: Color {
+        ThreatConstants.color(for: type)
     }
 
     // MARK: Time helpers
