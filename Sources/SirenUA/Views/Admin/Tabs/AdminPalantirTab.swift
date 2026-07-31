@@ -192,7 +192,7 @@ struct AdminPalantirTab: View {
                                 Text("\(corridor.source) → \(corridor.target)")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.white)
-                                Text("Тип: \(corridor.threat_type ?? "Загроза") • Вектор: \(corridor.source_lat, specifier: "%.1f"),\(corridor.source_lon, specifier: "%.1f")")
+                                Text("Тип: \(corridor.threat_type ?? "Загроза") • Вектор: \(corridor.computedSourceLat, specifier: "%.1f"),\(corridor.computedSourceLon, specifier: "%.1f")")
                                     .font(.system(size: 10))
                                     .foregroundColor(.white.opacity(0.5))
                             }

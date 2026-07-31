@@ -294,18 +294,35 @@ struct AdminChronologyV2Response: Codable {
 // MARK: - Palantir Intelligence Decodables
 
 struct PalantirCorridor: Codable, Identifiable {
-    var id: String { "\(source)_\(target)_\(threat_type ?? "")" }
+    var id: String { "\(source)_\(target)_\(threat_type ?? "")_\(count)" }
     let source: String
     let target: String
-    let source_lat: Double
-    let source_lon: Double
-    let target_lat: Double
-    let target_lon: Double
+    let source_lat: Double?
+    let source_lon: Double?
+    let target_lat: Double?
+    let target_lon: Double?
+    let source_coords: [Double]?
+    let target_coords: [Double]?
+    let route_description: String?
     let count: Int
     let threat_type: String?
     let avg_confidence: Int?
+    let accuracy: Int?
     let avg_speed: Double?
     let data_source: String?
+
+    var computedSourceLat: Double {
+        source_lat ?? source_coords?.first ?? 50.0
+    }
+    var computedSourceLon: Double {
+        source_lon ?? (source_coords?.count ?? 0 > 1 ? source_coords![1] : 35.0)
+    }
+    var computedTargetLat: Double {
+        target_lat ?? target_coords?.first ?? 49.0
+    }
+    var computedTargetLon: Double {
+        target_lon ?? (target_coords?.count ?? 0 > 1 ? target_coords![1] : 32.0)
+    }
 }
 
 struct PalantirLaunchHub: Codable, Identifiable {
