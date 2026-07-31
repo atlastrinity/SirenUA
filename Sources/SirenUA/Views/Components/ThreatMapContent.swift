@@ -428,11 +428,38 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let startLon: Double
 
     if let origin = customOrigin {
+        // If Gemini explicitly provided custom origin coordinates, use them exactly
         startLat = origin.latitude
         startLon = origin.longitude
     } else {
-        startLat = target.latitude + latOffset
-        startLon = target.longitude + lonOffset
+        // Otherwise, extrapolate origin back to border / sea entry corridor along parallel transit line
+        switch threatType {
+        case "shahed":
+            if target.latitude > 49.5 {
+                // Northern / Central target (Kyiv, Sumy, Chernihiv, Poltava, Zhytomyr): project to North-East border
+                startLat = max(51.8, target.latitude + 1.6)
+                startLon = max(34.5, target.longitude + 2.8)
+            } else {
+                // Southern / Western target (Dnipro, Zaporizhzhia, Odesa, Vinnytsia): project to Azov Sea / Crimea border
+                startLat = min(45.8, target.latitude - 2.2)
+                startLon = max(35.5, target.longitude + 2.5)
+            }
+        case "cruise_missile", "tu95":
+            // Cruise missile / Tu-95: project to Caspian Sea / East border
+            startLat = max(48.5, target.latitude + 0.8)
+            startLon = max(39.2, target.longitude + 4.2)
+        case "ballistic", "iskander":
+            // Ballistic: project to Belgorod / Kursk / Savasleyka North-East border
+            startLat = max(51.2, target.latitude + 2.0)
+            startLon = max(36.2, target.longitude + 1.8)
+        case "kab":
+            // KAB: project to Frontline / Border
+            startLat = target.latitude + 0.6
+            startLon = target.longitude + 1.0
+        default:
+            startLat = max(51.5, target.latitude + 1.8)
+            startLon = max(35.0, target.longitude + 2.4)
+        }
     }
     
     let dLat = target.latitude - startLat
