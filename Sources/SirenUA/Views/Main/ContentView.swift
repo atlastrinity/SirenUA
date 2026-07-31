@@ -446,8 +446,24 @@ struct ContentView: View {
             if phase == .active {
                 Task {
                     await viewModel.fetchThreatState()
+                    mapViewModel.centerMapOnAlerts(
+                        alerts: viewModel.alerts,
+                        isPremium: viewModel.isPremium,
+                        lastAlertedRegionName: viewModel.lastAlertedRegionName,
+                        regions: geoManager.regions,
+                        animated: true
+                    )
                 }
             }
+        }
+        .onChange(of: viewModel.alerts) { _, newAlerts in
+            mapViewModel.centerMapOnAlerts(
+                alerts: newAlerts,
+                isPremium: viewModel.isPremium,
+                lastAlertedRegionName: viewModel.lastAlertedRegionName,
+                regions: geoManager.regions,
+                animated: true
+            )
         }
         .onChange(of: geoManager.isLoaded) { oldValue, newValue in
             if newValue {
