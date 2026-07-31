@@ -82,6 +82,9 @@ struct AdminRulesTab: View {
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
             
+            // Regional Rule Metrics & Dispersion Analytics Panel
+            RegionalRuleMetricsCard(viewModel: viewModel)
+            
             // Rebuild rules section
             VStack(alignment: .leading, spacing: 12) {
                 Text("🧠 Самонавчання ШІ (Gemini)")
@@ -291,6 +294,104 @@ struct GeminiRuleAuditRow: View {
         .background(Color.white.opacity(0.02))
         .cornerRadius(8)
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
+    }
+}
+
+// MARK: - Regional Rule Metrics & Dispersion Graph Component
+
+struct RegionalRuleMetricsCard: View {
+    @ObservedObject var viewModel: AdminViewModel
+
+    var metrics: AdminRegionRuleMetrics? {
+        viewModel.regionalRuleMetrics[viewModel.selectedRuleRegion]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("📊 Регіональна аналітика та дисперсія ШІ")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                Spacer()
+            }
+
+            // Region selector picker
+            HStack {
+                Text("Область:")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
+                Spacer()
+                Picker("", selection: $viewModel.selectedRuleRegion) {
+                    ForEach(viewModel.regionalRuleMetrics.keys.sorted(), id: \.self) { reg in
+                        Text(reg).tag(reg)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(.cyan)
+            }
+
+            if let m = metrics {
+                // Key metrics row
+                HStack(spacing: 8) {
+                    MetricBadge(title: "Приріст точності", value: "+\(String(format: "%.1f", m.accuracy_gain_pct))%", color: .green)
+                    MetricBadge(title: "Дисперсія дольоту", value: "±\(String(format: "%.1f", m.eta_variance_minutes)) хв", color: .cyan)
+                    MetricBadge(title: "Активні правила", value: "\(m.active_rules_count)", color: .purple)
+                }
+
+                // Interactive trend chart bar
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Динаміка прибутковості точності та зниження дисперсії (8 днів):")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+
+                    HStack(alignment: .bottom, spacing: 6) {
+                        ForEach(m.graph_time_series) { point in
+                            VStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(LinearGradient(gradient: Gradient(colors: [Color.green, Color.cyan]), startPoint: .top, endPoint: .bottom))
+                                    .frame(height: max(12, CGFloat(point.accuracy_score) * 0.5))
+                                Text(String(point.timestamp.suffix(2)))
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .frame(height: 60)
+                    .padding(.top, 4)
+                }
+            } else {
+                Text("Очікування завантаження аналітики областей...")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.4))
+                    .padding(.vertical, 8)
+            }
+        }
+        .padding(12)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
+    }
+}
+
+struct MetricBadge: View {
+    let title: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Text(title)
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.5))
+            Text(value)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(color)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.12))
+        .cornerRadius(6)
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.3), lineWidth: 1))
     }
 }
 

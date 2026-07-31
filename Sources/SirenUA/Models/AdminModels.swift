@@ -139,6 +139,34 @@ struct GeminiRulesHistoryResponse: Codable {
     let entries: [GeminiRuleAuditEntry]
 }
 
+struct GraphTimeSeriesPoint: Codable, Identifiable {
+    var id: String { timestamp }
+    let timestamp: String
+    let accuracy_score: Double
+    let variance_minutes: Double
+    let accuracy_gain_pct: Double
+}
+
+struct AdminRegionRuleMetrics: Codable, Identifiable {
+    var id: String { region }
+    let region: String
+    let active_rules_count: Int
+    let applied_events_count: Int
+    let base_model_accuracy_pct: Double
+    let ai_rules_accuracy_pct: Double
+    let accuracy_gain_pct: Double
+    let eta_variance_minutes: Double
+    let rules: [GeminiRule]
+    let recent_applications: [GeminiRuleAuditEntry]?
+    let graph_time_series: [GraphTimeSeriesPoint]
+}
+
+struct AdminRulesMetricsResponse: Codable {
+    let status: String
+    let total_regions: Int
+    let region_metrics: [String: AdminRegionRuleMetrics]
+}
+
 // MARK: - Redesigned Dashboard v2 Decodables
 
 struct DashboardAccuracyStats: Codable {

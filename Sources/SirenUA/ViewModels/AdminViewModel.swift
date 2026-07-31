@@ -64,6 +64,9 @@ class AdminViewModel: ObservableObject {
     @Published var dashboardStats: AdminDashboardStatsResponse? = nil
     @Published var correlationV2Data: AdminChronologyV2Response? = nil
     @Published var chronologyData: AdminChronologyResponse? = nil
+    @Published var selectedRuleRegion: String = "Сумська область"
+    @Published var regionalRuleMetrics: [String: AdminRegionRuleMetrics] = [:]
+
     @Published var activeRules: [GeminiRule] = []
     @Published var ruleAuditHistory: [GeminiRuleAuditEntry] = []
     @Published var errorsList: [AdminErrorEntry] = []
@@ -269,6 +272,15 @@ class AdminViewModel: ObservableObject {
                 self.ruleAuditHistory = decoded.entries
             } catch {
                 adminLogger.error("❌ historyData decode error: \(error)")
+            }
+
+            do {
+                let metricsUrl = URL(string: "\(serverURL)/api/admin/rules/metrics_by_region")!
+                let (metricsData, _) = try await URLSession.shared.data(from: metricsUrl)
+                let decoded = try JSONDecoder().decode(AdminRulesMetricsResponse.self, from: metricsData)
+                self.regionalRuleMetrics = decoded.region_metrics
+            } catch {
+                adminLogger.error("❌ metricsData decode error: \(error)")
             }
         } catch {
             adminLogger.error("❌ fetchRules network/request error: \(error)")
