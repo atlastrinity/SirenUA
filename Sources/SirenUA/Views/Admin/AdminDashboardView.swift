@@ -9,6 +9,7 @@ struct AdminDashboardView: View {
     @State private var selectedTab = 0
     private let tabs = [
         "Дашборд",
+        "Палантір AI",
         "Кореляція AI",
         "Хронологія",
         "AI Правила",
@@ -58,12 +59,14 @@ struct AdminDashboardView: View {
                                 case 0:
                                     AdminDashboardTab(viewModel: viewModel)
                                 case 1:
-                                    AdminCorrelationTab(viewModel: viewModel)
+                                    AdminPalantirTab(viewModel: viewModel)
                                 case 2:
-                                    AdminChronologyTab(viewModel: viewModel)
+                                    AdminCorrelationTab(viewModel: viewModel)
                                 case 3:
-                                    AdminRulesTab(viewModel: viewModel)
+                                    AdminChronologyTab(viewModel: viewModel)
                                 case 4:
+                                    AdminRulesTab(viewModel: viewModel)
+                                case 5:
                                     AdminErrorsTab(viewModel: viewModel)
                                 default:
                                     AdminControlTab(viewModel: viewModel)

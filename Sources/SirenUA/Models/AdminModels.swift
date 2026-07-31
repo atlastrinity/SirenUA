@@ -291,6 +291,68 @@ struct AdminChronologyV2Response: Codable {
     let type_breakdown: [TypeBreakdownEntry]?
 }
 
+// MARK: - Palantir Intelligence Decodables
+
+struct PalantirCorridor: Codable, Identifiable {
+    var id: String { "\(source)_\(target)_\(threat_type ?? "")" }
+    let source: String
+    let target: String
+    let source_lat: Double
+    let source_lon: Double
+    let target_lat: Double
+    let target_lon: Double
+    let count: Int
+    let threat_type: String?
+    let avg_confidence: Int?
+    let avg_speed: Double?
+    let data_source: String?
+}
+
+struct PalantirLaunchHub: Codable, Identifiable {
+    var id: String { name }
+    let name: String
+    let lat: Double
+    let lon: Double
+    let total_launches: Int
+    let by_type: [String: Int]
+    let last_detected: String?
+}
+
+struct PalantirRegionRisk: Codable, Identifiable {
+    var id: String { name }
+    let name: String
+    let lat: Double
+    let lon: Double
+    let total_events: Int
+    let risk_score: Int?
+    let avg_confidence: Int?
+    let dominant_threat_type: String?
+}
+
+struct PalantirOverviewResponse: Codable {
+    let system: String?
+    let days: Int?
+    let trajectory_corridors: [PalantirCorridor]?
+    let launch_hubs: [PalantirLaunchHub]?
+    let region_risk_matrix: [PalantirRegionRisk]?
+    let flight_corridors: [PalantirCorridor]?
+    let daily_summaries: [DailyStatEntryV2]?
+}
+
+struct PalantirReportEntry: Codable, Identifiable {
+    let id: Int
+    let created_at: String
+    let report_date: String
+    let threat_assessment_summary: String?
+    let confidence_index: Double?
+    let generated_by: String?
+}
+
+struct PalantirReportsResponse: Codable {
+    let reports: [PalantirReportEntry]
+    let total: Int
+}
+
 // MARK: - UI Constants
 
 struct ChartColorTheme {

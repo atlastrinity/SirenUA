@@ -72,7 +72,11 @@ class AdminViewModel: ObservableObject {
     @Published var errorsList: [AdminErrorEntry] = []
     @Published var errorStats: AdminErrorStatsResponse? = nil
     
-    @Published var regionsList: [String] = []
+    // Palantir Data Store
+    @Published var palantirOverview: PalantirOverviewResponse? = nil
+    @Published var palantirReportsList: [PalantirReportEntry] = []
+    @Published var palantirDaysFilter: Int = 30
+    @Published var isSynthesizingPalantir: Bool = false
     
     var serverURL: String {
         NetworkManager.serverURL
@@ -118,12 +122,14 @@ class AdminViewModel: ObservableObject {
         case 0:
             await fetchDashboardStats()
         case 1:
-            await fetchCorrelationV2()
+            await fetchPalantirOverview()
         case 2:
-            await fetchChronology()
+            await fetchCorrelationV2()
         case 3:
-            await fetchRules()
+            await fetchChronology()
         case 4:
+            await fetchRules()
+        case 5:
             await fetchErrors()
         default:
             await performDiagnostics()
@@ -135,6 +141,7 @@ class AdminViewModel: ObservableObject {
         lastFetchError = nil
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.fetchDashboardStats() }
+            group.addTask { await self.fetchPalantirOverview() }
             group.addTask { await self.fetchCorrelationV2() }
             group.addTask { await self.fetchChronology() }
             group.addTask { await self.fetchRules() }
@@ -305,6 +312,43 @@ class AdminViewModel: ObservableObject {
                 self.errorsList = decodedErrors.errors
             }
         } catch {}
+    }
+    
+    func fetchPalantirOverview() async {
+        guard let url = URL(string: "\(serverURL)/api/admin/palantir/overview?days=\(palantirDaysFilter)") else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let decoded = try JSONDecoder().decode(PalantirOverviewResponse.self, from: data)
+            self.palantirOverview = decoded
+        } catch {
+            adminLogger.error("Failed to decode PalantirOverviewResponse: \(error)")
+        }
+        
+        guard let reportsUrl = URL(string: "\(serverURL)/api/admin/palantir/reports?limit=20") else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: reportsUrl)
+            let decoded = try JSONDecoder().decode(PalantirReportsResponse.self, from: data)
+            self.palantirReportsList = decoded.reports
+        } catch {
+            adminLogger.error("Failed to decode PalantirReportsResponse: \(error)")
+        }
+    }
+    
+    func triggerPalantirSynthesis() async {
+        guard let url = URL(string: "\(serverURL)/api/admin/palantir/synthesize") else { return }
+        isSynthesizingPalantir = true
+        do {
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            let (_, res) = try await URLSession.shared.data(for: req)
+            if let http = res as? HTTPURLResponse, http.statusCode == 200 {
+                triggerHaptic("heavy")
+                await fetchPalantirOverview()
+            }
+        } catch {
+            adminLogger.error("Palantir synthesis error: \(error)")
+        }
+        isSynthesizingPalantir = false
     }
     
     func loadRegions() async {
