@@ -65,11 +65,11 @@ struct ContentView: View {
     
     @AppStorage("allRegionsTracked") private var allRegionsTracked = true
     @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
-    @State private var isTrackedOnlyFilter = false
+    @State private var showRegionPickerSheet = false
     @State private var showBottomOperationalToast = false
 
     private func isRegionTracked(_ name: String) -> Bool {
-        if !isTrackedOnlyFilter || allRegionsTracked { return true }
+        if allRegionsTracked { return true }
         let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
         if list.isEmpty { return true }
         return list.contains(name)
@@ -112,8 +112,8 @@ struct ContentView: View {
     private func selectAllRegions() {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
             allRegionsTracked = true
-            isTrackedOnlyFilter = false
         }
+        NotificationManager.shared.syncTopicSubscriptions()
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
@@ -134,19 +134,26 @@ struct ContentView: View {
             
             if currentList.isEmpty {
                 allRegionsTracked = true
-                isTrackedOnlyFilter = false
             } else {
                 allRegionsTracked = false
-                isTrackedOnlyFilter = true
             }
             
             trackedRegionsString = currentList.joined(separator: ";")
         }
+        NotificationManager.shared.syncTopicSubscriptions()
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
+    private func handleConfirmRegionSelection() {
+        NotificationManager.shared.syncTopicSubscriptions()
+        let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        if !allRegionsTracked && list.count == 1 {
+            mapViewModel.focusOnSingleRegion(regionName: list[0], geoManager: geoManager, alerts: viewModel.alerts)
+        }
+    }
+
     private var primaryHeaderRegionLabel: String {
-        if allRegionsTracked || !isTrackedOnlyFilter {
+        if allRegionsTracked {
             let activeOrLast = primaryThreatRegion?.name ?? viewModel.lastAlertedRegionName ?? "м. Київ"
             return "УСІ ОБЛАСТІ • \(activeOrLast)"
         } else {
@@ -338,9 +345,22 @@ struct ContentView: View {
                     .environmentObject(viewModel)
             }
         }
+        .sheet(isPresented: $showRegionPickerSheet) {
+            RegionSelectionSheet(
+                allRegionsTracked: $allRegionsTracked,
+                trackedRegionsString: $trackedRegionsString,
+                onConfirm: { handleConfirmRegionSelection() }
+            )
+        }
         .tabHandlers(mapViewModel: mapViewModel)
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
+        }
+        .onChange(of: trackedRegionsString) { _, _ in
+            NotificationManager.shared.syncTopicSubscriptions()
+        }
+        .onChange(of: allRegionsTracked) { _, _ in
+            NotificationManager.shared.syncTopicSubscriptions()
         }
         .onChange(of: viewModel.lastAlertedRegionName) { _, _ in
             viewModel.markLastAlertAsViewed()
@@ -494,15 +514,11 @@ struct ContentView: View {
                 threatType: primaryThreatType,
                 confidence: primaryThreatConfidence,
                 eta: primaryThreatETA,
-                isTrackedOnly: isTrackedOnlyFilter,
+                isTrackedOnly: !allRegionsTracked,
                 allRegionsList: allRegionsList,
                 trackedRegionsSet: trackedRegionsSet,
                 allRegionsTracked: allRegionsTracked,
-                onSelectAllRegions: { selectAllRegions() },
-                onToggleRegion: { regionName in
-                    toggleTrackedRegion(regionName)
-                    mapViewModel.focusOnSingleRegion(regionName: regionName, geoManager: geoManager, alerts: viewModel.alerts)
-                },
+                onOpenRegionPicker: { showRegionPickerSheet = true },
                 onCardTap: {
                     if let targetRegion = primaryThreatRegion?.name {
                         mapViewModel.focusOnSingleRegion(regionName: targetRegion, geoManager: geoManager, alerts: viewModel.alerts)

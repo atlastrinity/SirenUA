@@ -12,13 +12,14 @@ struct AIRadarHeroCardView: View {
     let allRegionsList: [String]
     let trackedRegionsSet: Set<String>
     let allRegionsTracked: Bool
-    let onSelectAllRegions: () -> Void
-    let onToggleRegion: (String) -> Void
+    var onSelectAllRegions: (() -> Void)? = nil
+    var onToggleRegion: ((String) -> Void)? = nil
+    var onOpenRegionPicker: (() -> Void)? = nil
     var onCardTap: (() -> Void)? = nil
     
     var body: some View {
         VStack(spacing: 8) {
-            // Top Bar: Brand, Logo & Interactive Region Selection Dropdown Menu
+            // Top Bar: Brand, Logo & Interactive Region Selection Dropdown Button
             HStack {
                 HStack(spacing: 5) {
                     Image(systemName: "dot.radiowaves.up.forward")
@@ -31,30 +32,10 @@ struct AIRadarHeroCardView: View {
                 
                 Spacer()
                 
-                // Interactive Region Selection Dropdown Menu
-                Menu {
-                    Button(action: onSelectAllRegions) {
-                        HStack {
-                            Text("🌐 Усі області України")
-                            if allRegionsTracked {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    
-                    Divider()
-                    
-                    ForEach(allRegionsList, id: \.self) { regionName in
-                        Button(action: { onToggleRegion(regionName) }) {
-                            HStack {
-                                Text(regionName)
-                                if !allRegionsTracked && trackedRegionsSet.contains(regionName) {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                } label: {
+                // Interactive Region Selection Button
+                Button(action: {
+                    onOpenRegionPicker?()
+                }) {
                     HStack(spacing: 4) {
                         Image(systemName: isTrackedOnly ? "mappin.circle.fill" : "globe.europe.africa.fill")
                             .font(.system(size: 11, weight: .bold))
