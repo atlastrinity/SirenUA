@@ -432,47 +432,25 @@ struct ContentView: View {
         )) {
             RegionOnboardingView()
         }
-        .onChange(of: onboardingCompleted) { oldValue, newValue in
+        .onChange(of: onboardingCompleted) { _, newValue in
             if newValue {
-                mapViewModel.centerMapOnAlerts(
-                    alerts: viewModel.alerts,
-                    isPremium: viewModel.isPremium,
-                    lastAlertedRegionName: viewModel.lastAlertedRegionName,
-                    regions: geoManager.regions
-                )
+                triggerMapCenter()
             }
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
                 Task {
                     await viewModel.fetchThreatState()
-                    mapViewModel.centerMapOnAlerts(
-                        alerts: viewModel.alerts,
-                        isPremium: viewModel.isPremium,
-                        lastAlertedRegionName: viewModel.lastAlertedRegionName,
-                        regions: geoManager.regions,
-                        animated: true
-                    )
+                    triggerMapCenter(animated: true)
                 }
             }
         }
-        .onChange(of: viewModel.alerts) { _, newAlerts in
-            mapViewModel.centerMapOnAlerts(
-                alerts: newAlerts,
-                isPremium: viewModel.isPremium,
-                lastAlertedRegionName: viewModel.lastAlertedRegionName,
-                regions: geoManager.regions,
-                animated: true
-            )
+        .onChange(of: viewModel.alerts) { _, _ in
+            triggerMapCenter(animated: true)
         }
-        .onChange(of: geoManager.isLoaded) { oldValue, newValue in
+        .onChange(of: geoManager.isLoaded) { _, newValue in
             if newValue {
-                mapViewModel.centerMapOnAlerts(
-                    alerts: viewModel.alerts,
-                    isPremium: viewModel.isPremium,
-                    lastAlertedRegionName: viewModel.lastAlertedRegionName,
-                    regions: geoManager.regions
-                )
+                triggerMapCenter()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
@@ -488,12 +466,7 @@ struct ContentView: View {
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                mapViewModel.centerMapOnAlerts(
-                    alerts: viewModel.alerts,
-                    isPremium: viewModel.isPremium,
-                    lastAlertedRegionName: viewModel.lastAlertedRegionName,
-                    regions: geoManager.regions
-                )
+                triggerMapCenter()
             }
         }
         .onReceive(refreshTimer) { _ in
@@ -504,6 +477,16 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    private func triggerMapCenter(animated: Bool = false) {
+        mapViewModel.centerMapOnAlerts(
+            alerts: viewModel.alerts,
+            isPremium: viewModel.isPremium,
+            lastAlertedRegionName: viewModel.lastAlertedRegionName,
+            regions: geoManager.regions,
+            animated: animated
+        )
     }
 
     @ViewBuilder
