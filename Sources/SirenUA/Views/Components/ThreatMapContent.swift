@@ -302,8 +302,9 @@ struct FlyingThreatMapOverlay: MapContent {
 /// Значок БПЛА/ракети всередині області відображається ВИКЛЮЧНО коли оголошена офіційна тривога (alert.isActive == true).
 /// Якщо в області немає тривоги (жовта область) — значок БПЛА всередині області НЕ показується!
 func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
-    guard alert.isActive else { return false }
-    return alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty)
+    let isPredictive = alert.isThreatPredictive || (alert.currentThreat?.is_predictive ?? false)
+    let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty) || isPredictive
+    return (alert.isActive || isPredictive) && hasThreatData
 }
 
 // MARK: - Trajectory Flow Arrow Data
