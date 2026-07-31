@@ -152,32 +152,44 @@ final class AlertViewModelV3: ObservableObject {
         ) { [weak self] notification in
             guard let self else { return }
             Task { @MainActor in
-                if let userInfo = notification.userInfo,
-                   let regionName = userInfo["region"] as? String {
+                if let userInfo = notification.userInfo {
+                    let regionName = (userInfo["region"] as? String)
+                                  ?? (userInfo["regionName"] as? String)
+                                  ?? ""
                     let level = (userInfo["level"] as? String)
                              ?? (userInfo["threat_level"] as? String)
                              ?? "none"
-                    vmLogger.info("FCM push received for \(regionName) (level: \(level)) — applying instantly")
+                    let status = (userInfo["status"] as? String) ?? ""
+                    let action = (userInfo["action"] as? String) ?? ""
+                    let isClear = status == "clear" || status == "off" || action == "clear" || level == "none" || level == "clear"
+                    let isActiveVal = (userInfo["is_active"] as? Bool)
+                                   ?? ((userInfo["is_active"] as? String) == "true" || (userInfo["is_active"] as? String) == "1")
 
-                    if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
-                        // FCM push: update AI threat level ONLY.
-                        // isActive (official alarm) must come from the server — do NOT set it here.
-                        if level == "none" {
-                            self.alerts[index].threatLevel = nil
-                            self.alerts[index].threatType = nil
-                            self.alerts[index].threatDetail = nil
-                            self.alerts[index].activeThreats = []
-                            self.alerts[index].selectedThreatIndex = 0
-                        } else {
-                            self.alerts[index].threatLevel = level
-                            if let type = userInfo["threat_type"] as? String, !type.isEmpty {
-                                self.alerts[index].threatType = type
+                    if !regionName.isEmpty {
+                        vmLogger.info("FCM push received for \(regionName) (level: \(level), status: \(status), isClear: \(isClear)) — applying instantly")
+
+                        if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
+                            if isClear {
+                                self.alerts[index].isActive = false
+                                self.alerts[index].threatLevel = nil
+                                self.alerts[index].threatType = nil
+                                self.alerts[index].threatDetail = nil
+                                self.alerts[index].activeThreats = []
+                                self.alerts[index].selectedThreatIndex = 0
+                            } else {
+                                if isActiveVal {
+                                    self.alerts[index].isActive = true
+                                }
+                                self.alerts[index].threatLevel = level
+                                if let type = userInfo["threat_type"] as? String, !type.isEmpty {
+                                    self.alerts[index].threatType = type
+                                }
                             }
+                            self.updateStats()
                         }
-                        self.updateStats()
                     }
                 }
-                // Always fetch authoritative state from server (populates is_active correctly)
+                // Always fetch authoritative state from server immediately
                 await self.fetchThreatState()
             }
         }

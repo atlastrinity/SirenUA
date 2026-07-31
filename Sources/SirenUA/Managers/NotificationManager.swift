@@ -180,8 +180,15 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             regionName = region
         }
 
-        if let regionName = regionName, !regionName.isEmpty {
-            DispatchQueue.main.async {
+        DispatchQueue.main.async {
+            // Instantly notify AlertViewModelV3 to fetch authoritative state and clear any finished alerts
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ThreatDataUpdated"),
+                object: nil,
+                userInfo: userInfo
+            )
+
+            if let regionName = regionName, !regionName.isEmpty {
                 NotificationManager.shared.pendingTappedRegion = regionName
                 NotificationCenter.default.post(
                     name: NSNotification.Name("OpenRegionDetail"),

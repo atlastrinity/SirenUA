@@ -32,6 +32,7 @@ struct ContentView: View {
     @StateObject var viewModel = AlertViewModelV3()
     @StateObject var geoManager = GeoJSONManager()
     @StateObject var locationManager = LocationManager.shared
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject var mapViewModel = MapViewModel()
     
     @AppStorage("showRadar") private var showRadar = true
@@ -435,6 +436,13 @@ struct ContentView: View {
                     lastAlertedRegionName: viewModel.lastAlertedRegionName,
                     regions: geoManager.regions
                 )
+            }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                Task {
+                    await viewModel.fetchThreatState()
+                }
             }
         }
         .onChange(of: geoManager.isLoaded) { oldValue, newValue in

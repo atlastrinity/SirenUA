@@ -72,8 +72,13 @@ extension ContentView {
 
     func handleOpenRegionDetail(_ notification: Notification) {
         guard let regionName = notification.userInfo?["regionName"] as? String else { return }
-        if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
-            mapViewModel.selectedRegionForDetail = region
+        Task {
+            await viewModel.fetchThreatState()
+            await MainActor.run {
+                if let region = viewModel.alerts.first(where: { $0.name == regionName }) {
+                    mapViewModel.selectedRegionForDetail = region
+                }
+            }
         }
     }
 
