@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import UIKit
 import OSLog
 
 private let critLogger = Logger(subsystem: "com.sirenua", category: "CriticalAlert")
@@ -31,11 +32,13 @@ final class CriticalAlertManager: NSObject {
         let center = UNUserNotificationCenter.current()
 
         if isActive {
+            let muteAlarms = UserDefaults.standard.bool(forKey: "muteAlarmsSound")
+
             // Send critical alert
             let content = UNMutableNotificationContent()
             content.title = "AIR RAID ALERT"
             content.body = "⚠️ AIR RAID ALERT IN \(region.uppercased()) ⚠️"
-            content.sound = .defaultCritical
+            content.sound = muteAlarms ? nil : .defaultCritical
             content.categoryIdentifier = "AIR_RAID_ALERT"
             content.interruptionLevel = .critical
             content.userInfo = ["region": region]
@@ -50,12 +53,16 @@ final class CriticalAlertManager: NSObject {
                     critLogger.info("Critical alert sent for \(region)")
                 }
             }
+
+            triggerVibration(.warning)
         } else {
-            // Send end alert
+            let muteClear = UserDefaults.standard.bool(forKey: "muteClearSound")
+
+            // Send end alert with vidbiy.wav
             let content = UNMutableNotificationContent()
             content.title = "ALERT ENDED"
             content.body = "Air raid alert has ended in \(region.uppercased())"
-            content.sound = .default
+            content.sound = muteClear ? nil : UNNotificationSound(named: UNNotificationSoundName("vidbiy.wav"))
             content.categoryIdentifier = "ALERT_ENDED"
 
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
@@ -68,6 +75,18 @@ final class CriticalAlertManager: NSObject {
                     critLogger.info("Alert ended notification sent for \(region)")
                 }
             }
+
+            triggerVibration(.success)
+        }
+    }
+
+    private func triggerVibration(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        let vibrationOn = UserDefaults.standard.object(forKey: "vibrationEnabled") as? Bool ?? true
+        guard vibrationOn else { return }
+        DispatchQueue.main.async {
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(type)
         }
     }
 
