@@ -432,27 +432,12 @@ struct ContentView: View {
         )) {
             RegionOnboardingView()
         }
-        .onChange(of: onboardingCompleted) { _, newValue in
-            if newValue {
-                triggerMapCenter()
-            }
-        }
-        .onChange(of: scenePhase) { phase in
-            if phase == .active {
-                Task {
-                    await viewModel.fetchThreatState()
-                    triggerMapCenter(animated: true)
-                }
-            }
-        }
-        .onChange(of: viewModel.alerts) { _, _ in
-            triggerMapCenter(animated: true)
-        }
-        .onChange(of: geoManager.isLoaded) { _, newValue in
-            if newValue {
-                triggerMapCenter()
-            }
-        }
+        .mapStateHandlers(
+            viewModel: viewModel,
+            mapViewModel: mapViewModel,
+            geoManager: geoManager,
+            onboardingCompleted: $onboardingCompleted
+        )
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
         .onAppear {
             locationManager.requestPermission()
@@ -670,6 +655,63 @@ struct ContentViewTabHandlers: ViewModifier {
 extension View {
     func tabHandlers(mapViewModel: MapViewModel) -> some View {
         modifier(ContentViewTabHandlers(mapViewModel: mapViewModel))
+    }
+
+    func mapStateHandlers(
+        viewModel: AlertViewModelV3,
+        mapViewModel: MapViewModel,
+        geoManager: GeoJSONManager,
+        onboardingCompleted: Binding<Bool>
+    ) -> some View {
+        modifier(ContentViewMapStateHandlers(
+            viewModel: viewModel,
+            mapViewModel: mapViewModel,
+            geoManager: geoManager,
+            onboardingCompleted: onboardingCompleted
+        ))
+    }
+}
+
+struct ContentViewMapStateHandlers: ViewModifier {
+    @ObservedObject var viewModel: AlertViewModelV3
+    @ObservedObject var mapViewModel: MapViewModel
+    @ObservedObject var geoManager: GeoJSONManager
+    @Environment(\.scenePhase) private var scenePhase
+    @Binding var onboardingCompleted: Bool
+
+    private func triggerMapCenter(animated: Bool = false) {
+        mapViewModel.centerMapOnAlerts(
+            alerts: viewModel.alerts,
+            isPremium: viewModel.isPremium,
+            lastAlertedRegionName: viewModel.lastAlertedRegionName,
+            regions: geoManager.regions,
+            animated: animated
+        )
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: onboardingCompleted) { _, newValue in
+                if newValue {
+                    triggerMapCenter()
+                }
+            }
+            .onChange(of: scenePhase) { phase in
+                if phase == .active {
+                    Task {
+                        await viewModel.fetchThreatState()
+                        triggerMapCenter(animated: true)
+                    }
+                }
+            }
+            .onChange(of: viewModel.alerts) { _, _ in
+                triggerMapCenter(animated: true)
+            }
+            .onChange(of: geoManager.isLoaded) { _, newValue in
+                if newValue {
+                    triggerMapCenter()
+                }
+            }
     }
 }
 
