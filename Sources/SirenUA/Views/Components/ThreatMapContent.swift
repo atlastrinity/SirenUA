@@ -372,28 +372,40 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let latOffset: Double
     let lonOffset: Double
     let curvature: Double
+    let cycles: Double
+    let waveAmplitude: Double
     
     switch threatType {
     case "shahed":
         latOffset = -3.2  // Coming from Black Sea / Crimea / South-East
         lonOffset = 3.6
-        curvature = -0.22 // Smooth aerodynamic arc
+        curvature = -0.22 // Base aerodynamic arc
+        cycles = 3.5      // 3.5 weaving S-curves (змійка)
+        waveAmplitude = 0.055 // Realistic lateral evasion amplitude
     case "cruise_missile", "tu95":
         latOffset = 1.4   // Coming from Caspian Sea / East
         lonOffset = 4.8
         curvature = 0.20
+        cycles = 2.5      // 2.5 tactical waypoint weaves
+        waveAmplitude = 0.045
     case "ballistic", "iskander":
         latOffset = 3.2   // Coming from North / Belgorod / Kursk
         lonOffset = 2.2
-        curvature = -0.18
+        curvature = -0.15
+        cycles = 1.5      // Minor terminal trajectory wobble
+        waveAmplitude = 0.025
     case "kab":
         latOffset = 0.9   // Coming from Frontline / Border
         lonOffset = 1.6
         curvature = 0.15
+        cycles = 2.0      // Wind drift glide weaving
+        waveAmplitude = 0.035
     default:
         latOffset = -2.4
         lonOffset = 3.0
         curvature = 0.20
+        cycles = 3.0
+        waveAmplitude = 0.040
     }
     
     let startLat: Double
@@ -423,20 +435,39 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let controlLon = midLon + normalLon * (distance * curvature)
     
     var fullPoints: [CLLocationCoordinate2D] = []
-    let steps = 24 // Bezier curve resolution (25 points total: indices 0...24)
+    let steps = 60 // Ultra-high resolution (61 points total: indices 0...60) for smooth snake curves
     for i in 0...steps {
         let t = Double(i) / Double(steps)
         let invT = 1.0 - t
         
-        let lat = invT * invT * startLat + 2.0 * invT * t * controlLat + t * t * target.latitude
-        let lon = invT * invT * startLon + 2.0 * invT * t * controlLon + t * t * target.longitude
+        // Base Quadratic Bezier coordinate
+        let baseLat = invT * invT * startLat + 2.0 * invT * t * controlLat + t * t * target.latitude
+        let baseLon = invT * invT * startLon + 2.0 * invT * t * controlLon + t * t * target.longitude
         
-        fullPoints.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+        // Local Tangent Vector along the trajectory
+        let tangentLat = 2.0 * invT * (controlLat - startLat) + 2.0 * t * (target.latitude - controlLat)
+        let tangentLon = 2.0 * invT * (controlLon - startLon) + 2.0 * t * (target.longitude - controlLon)
+        let tLen = max(0.0001, sqrt(tangentLat * tangentLat + tangentLon * tangentLon))
+        
+        // Local Perpendicular Vector
+        let localPerpLat = -tangentLon / tLen
+        let localPerpLon = tangentLat / tLen
+        
+        // Aerodynamic Envelope: zero at launch (t=0) and target (t=1), peaking in mid-flight
+        let envelope = sin(t * .pi)
+        
+        // Multi-harmonic snake perturbation (змійка / зигзаг)
+        let snakeOffset = sin(t * .pi * 2.0 * cycles) * envelope * (distance * waveAmplitude)
+        
+        let finalLat = baseLat + localPerpLat * snakeOffset
+        let finalLon = baseLon + localPerpLon * snakeOffset
+        
+        fullPoints.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
     }
     
-    // Directional flow arrows at ~30% and ~60% along trajectory (indices 7 and 14 of 0...24)
+    // Directional flow arrows at ~25%, ~50%, and ~75% along trajectory (indices 15, 30, and 45 of 0...60)
     var flowArrows: [TrajectoryFlowArrow] = []
-    let arrowStepIndices = [7, 14]
+    let arrowStepIndices = [15, 30, 45]
     for stepIdx in arrowStepIndices {
         let ap1 = fullPoints[stepIdx]
         let ap2 = fullPoints[stepIdx + 1]
@@ -449,8 +480,8 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         flowArrows.append(TrajectoryFlowArrow(coordinate: ap1, angle: aAngleDeg, opacity: arrowOpacity))
     }
 
-    // Last telemetry checkpoint at ~75% along the trajectory (index 18 of 0...24)
-    let checkpointIdx = 18
+    // Last telemetry checkpoint at ~80% along the trajectory (index 48 of 0...60)
+    let checkpointIdx = 48
     let p1 = fullPoints[checkpointIdx]
     let p2 = fullPoints[checkpointIdx + 1]
     
