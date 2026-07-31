@@ -19,7 +19,9 @@ struct SettingsView: View {
     @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
     @AppStorage("adminAuthenticated")        private var adminAuthenticated        = false
     @AppStorage("adminViewMode")             private var adminViewMode             = false
+    @AppStorage("muteAlarmsSound")          private var muteAlarmsSound           = false
     @AppStorage("muteThreatsSound")         private var muteThreatsSound          = false
+    @AppStorage("muteClearSound")           private var muteClearSound            = false
 
     @State private var inputEmail = ""
     @State private var inputPassword = ""
@@ -297,7 +299,7 @@ struct SettingsView: View {
     // MARK: - Cards
 
     private var notificationsCard: some View {
-        SettingsCard(title: "Сповіщення", icon: "bell.fill", iconColor: .siBlue) {
+        SettingsCard(title: "Сповіщення та Звуки", icon: "bell.fill", iconColor: .siBlue) {
             StyledToggleRow(
                 title: "Увімкнути сповіщення",
                 subtitle: "Push-повідомлення про тривоги",
@@ -317,13 +319,33 @@ struct SettingsView: View {
             )
             
             StyledDivider()
+
+            StyledToggleRow(
+                title: "Без звуку для тривоги",
+                subtitle: "Вимкнути звук при офіційній тривозі",
+                icon: "bell.slash.fill",
+                iconColor: .red,
+                isOn: $muteAlarmsSound
+            )
+
+            StyledDivider()
             
             StyledToggleRow(
                 title: "Без звуку для загроз",
-                subtitle: "Вимкнути звук для попереджень",
+                subtitle: "Вимкнути звук для ШІ-попереджень",
                 icon: "speaker.slash.circle.fill",
                 iconColor: .siOrange,
                 isOn: $muteThreatsSound
+            )
+
+            StyledDivider()
+
+            StyledToggleRow(
+                title: "Без звуку для відбою",
+                subtitle: "Вимкнути звук при відбої тривоги",
+                icon: "speaker.slash.fill",
+                iconColor: .green,
+                isOn: $muteClearSound
             )
         }
     }

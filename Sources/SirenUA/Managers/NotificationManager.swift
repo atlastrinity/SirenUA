@@ -134,6 +134,17 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 completionHandler([.banner, .sound, .badge, .list])
                 return
             }
+            let userInfo = notification.request.content.userInfo
+            var regionName: String? = userInfo["region"] as? String ?? userInfo["regionName"] as? String
+            if regionName == nil, let aps = userInfo["aps"] as? [String: Any],
+               let custom = aps["custom_data"] as? [String: Any] {
+                regionName = custom["region"] as? String
+            }
+            if let region = regionName, !self.shouldNotify(for: region) {
+                completionHandler([])
+                return
+            }
+
             let interruptionLevel = notification.request.content.interruptionLevel
             let isCriticalNotif = interruptionLevel == .critical || interruptionLevel == .timeSensitive
             let throttle = isCriticalNotif ? Self.soundThrottleCritical : Self.soundThrottleNormal
@@ -144,45 +155,45 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 completionHandler([.banner, .badge, .list])
             } else {
                 if notification.request.content.sound != nil {
-                                    self.lastPlayedTime = now
-                                }
-                                completionHandler([.banner, .sound, .badge, .list])
-                            }
-                        }
-                    }
+                    self.lastPlayedTime = now
+                }
+                completionHandler([.banner, .sound, .badge, .list])
+            }
+        }
+    }
 
-                    func userNotificationCenter(
-                        _ center: UNUserNotificationCenter,
-                        didReceive response: UNNotificationResponse,
-                        withCompletionHandler completionHandler: @escaping () -> Void
-                    ) {
-                        let userInfo = response.notification.request.content.userInfo
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
 
-                        var regionName: String? = nil
-                        if let reg = userInfo["region"] as? String {
-                            regionName = reg
-                        } else if let reg = userInfo["regionName"] as? String {
-                            regionName = reg
-                        } else if let reg = userInfo["aps"] as? [String: Any],
-                                  let custom = reg["custom_data"] as? [String: Any],
-                                  let region = custom["region"] as? String {
-                            regionName = region
-                        }
+        var regionName: String? = nil
+        if let reg = userInfo["region"] as? String {
+            regionName = reg
+        } else if let reg = userInfo["regionName"] as? String {
+            regionName = reg
+        } else if let reg = userInfo["aps"] as? [String: Any],
+                  let custom = reg["custom_data"] as? [String: Any],
+                  let region = custom["region"] as? String {
+            regionName = region
+        }
 
-                        if let regionName = regionName, !regionName.isEmpty {
-                            DispatchQueue.main.async {
-                                NotificationManager.shared.pendingTappedRegion = regionName
-                                NotificationCenter.default.post(
-                                    name: NSNotification.Name("OpenRegionDetail"),
-                                    object: nil,
-                                    userInfo: ["regionName": regionName]
-                                )
-                            }
-                        }
-                        completionHandler()
-                    }
+        if let regionName = regionName, !regionName.isEmpty {
+            DispatchQueue.main.async {
+                NotificationManager.shared.pendingTappedRegion = regionName
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("OpenRegionDetail"),
+                    object: nil,
+                    userInfo: ["regionName": regionName]
+                )
+            }
+        }
+        completionHandler()
+    }
 
-                    private var syncTask: Task<Void, Never>? = nil
+    private var syncTask: Task<Void, Never>? = nil
 
     func syncTopicSubscriptions() {
         DispatchQueue.main.async { [weak self] in
@@ -193,7 +204,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled else { return }
                 
-                let allTracked = UserDefaults.standard.bool(forKey: "allRegionsTracked")
+                let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
                 let trackedString = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
                 let trackedList = Set(trackedString.components(separatedBy: ";").filter { !$0.isEmpty })
 
@@ -229,7 +240,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let level: UNNotificationInterruptionLevel = isCrit ? .critical : .timeSensitive
 
         let fullTitle = "🚨 Повітряна тривога — \(regionName)"
-        enqueue(title: fullTitle, body: body, soundName: "siren.wav", regionName: regionName,
+        let soundName = muteAlarmsSound ? "" : "siren.wav"
+
+        enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: level, relevanceScore: 1.0, isCritical: isCrit)
 
         // Also fire through CriticalAlertManager for redundant lock-screen delivery if enabled
@@ -269,7 +282,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     func sendClearNotification(for regionName: String) {
         let title = "🟢 Відбій тривоги — \(regionName)"
         let body  = "Відбій повітряної тривоги в: \(regionName)."
-        enqueue(title: title, body: body, soundName: "vidbiy.wav", regionName: regionName,
+        let soundName = muteClearSound ? "" : "vidbiy.wav"
+
+        enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
     }
 
@@ -283,8 +298,16 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         UserDefaults.standard.object(forKey: "criticalAlertsEnabled") as? Bool ?? true
     }
 
+    private var muteAlarmsSound: Bool {
+        UserDefaults.standard.bool(forKey: "muteAlarmsSound")
+    }
+
     private var muteThreatsSound: Bool {
         UserDefaults.standard.bool(forKey: "muteThreatsSound")
+    }
+
+    private var muteClearSound: Bool {
+        UserDefaults.standard.bool(forKey: "muteClearSound")
     }
 
     private func shouldNotify(for regionName: String) -> Bool {
@@ -370,6 +393,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     }
 
     private func playSound(named filename: String, for regionName: String) {
+        guard !filename.isEmpty else { return }
         guard notificationsEnabled, shouldNotify(for: regionName) else { return }
 
         DispatchQueue.global(qos: .userInitiated).async {
