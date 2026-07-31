@@ -59,7 +59,7 @@ struct AdminPalantirTab: View {
                 Spacer()
                 
                 HStack(spacing: 4) {
-                    ForEach([7, 30, 90], id: \.self) { d in
+                    ForEach([1, 7, 30, 90], id: \.self) { d in
                         Button(action: {
                             viewModel.triggerHaptic("light")
                             viewModel.palantirDaysFilter = d
