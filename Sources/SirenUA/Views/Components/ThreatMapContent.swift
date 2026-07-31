@@ -17,6 +17,22 @@ struct ThreatMapContent: MapContent {
     let getThreatTypeDescriptionShort: (String) -> String
     let onRegionSelected: (AlertRegion) -> Void
 
+    var flyingThreatAlerts: [AlertRegion] {
+        alerts.filter { shouldShowFlyingThreat(for: $0) }
+    }
+    
+    var statusBadgeAlerts: [AlertRegion] {
+        alerts.filter { alert in
+            if shouldShowFlyingThreat(for: alert) {
+                return false
+            }
+            if alert.isActive { return true }
+            if alert.threatLevel == nil && alert.activeThreats.isEmpty { return true }
+            if !alert.isActive && alert.threatLevel != nil { return true }
+            return false
+        }
+    }
+
     var body: some MapContent {
         // Polygons for safe regions (Clean Deep Midnight Blue)
         ForEach(safeRegions) { region in
@@ -67,175 +83,21 @@ struct ThreatMapContent: MapContent {
                 .shadow(radius: 5)
         }
         
-        // Regional threat level and status badges
-        // Show badges for: active alerts, safe regions, AND threat regions where flying markers are suppressed
-        ForEach(alerts.filter { alert in
-            // Always show active alert badges
-            if alert.isActive { return true }
-            // Always show safe region badges
-            if alert.threatLevel == nil && alert.activeThreats.isEmpty { return true }
-            // Show badges for threat regions where we DON'T render flying markers
-            // (low/medium threats without official alert — they only get colored polygon, no БПЛА)
-            if !alert.isActive && alert.threatLevel != nil {
-                let showsFlying = shouldShowFlyingThreat(for: alert)
-                return !showsFlying // Show badge only if flying marker is suppressed
-            }
-            return false
-        }) { alert in
-            let isThreatActive = !alert.isActive && alert.threatLevel != nil
-            let badgeIcon: String = alert.isActive ? "exclamationmark.triangle.fill" : (isThreatActive ? alert.icon : "checkmark.circle.fill")
-            let badgeBgColor: Color = alert.isActive ? .red : (isThreatActive ? alert.color : .green)
-
-            Annotation(coordinate: alert.coordinate) {
-                VStack(spacing: 4) {
-                    Button(action: {
-                        onRegionSelected(alert)
-                    }) {
-                        Image(systemName: badgeIcon)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(5)
-                            .background(badgeBgColor)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                            .shadow(radius: 3)
-                    }
-                    
-                    VStack(spacing: 1) {
-                        let _ = timeRefreshTrigger
-                        Text(alert.name)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.white)
-                        
-                        if isThreatActive {
-                            let type = alert.currentThreat?.type ?? alert.threatType
-                            let desc = getThreatTypeDescriptionShort(type ?? "")
-                            Text(desc.isEmpty || desc == "Загроза" ? "Загроза підльоту" : desc)
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(.yellow)
-                                .lineLimit(1)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        if isThreatActive {
-                            HStack(spacing: 3) {
-                                if let conf = alert.threatConfidence {
-                                    Text("⚙️ \(conf)%")
-                                        .font(.system(size: 7, weight: .bold))
-                                        .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
-                                }
-                                if let eta = alert.displayETA, !eta.isEmpty {
-                                    Text(eta)
-                                        .font(.system(size: 7, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.7))
-                                }
-                            }
-                        } else if !alert.isActive {
-                            Text("Без тривоги")
-                                .font(.system(size: 7, weight: .medium))
-                                .foregroundColor(.green.opacity(0.9))
-                        }
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(badgeBgColor.opacity(0.3), lineWidth: 0.5)
-                    )
-                }
-            } label: {
-                EmptyView()
-            }
-        }
-        
-        // Flying threat targets annotations (Drones / Missiles / Ballistics)
-        // CRITICAL RULE: We trust the official alert status.
-        // БПЛА/ракети показуються ТІЛЬКИ коли:
-        //   1. isActive == true (офіційна тривога оголошена), АБО
-        //   2. threatLevel == critical/high з підтвердженою (non-predictive) загрозою та confidence >= 75%
-        // Для low/medium загроз без офіційної тривоги — тільки жовтий/оранжевий полігон,
-        // щоб не вводити в оману: якщо область жовта — БПЛА НЕ показуємо.
-        ForEach(alerts.filter { shouldShowFlyingThreat(for: $0) }) { alert in
-            let threatType = alert.currentThreat?.type ?? alert.threatType
-            let threatLabel = alert.currentThreat?.threatLabel ?? getThreatTypeDescriptionShort(threatType ?? "")
-            let confidence = alert.currentThreat?.confidence ?? alert.threatConfidence
-            let eta = alert.currentThreat?.dynamicETA ?? alert.displayETA
-            let color = alert.color
-            let customOrigin = alert.currentThreat?.originCoordinate
-            let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
-
-            // 0. Continuous Solid Black Isolation Base (Masks region polygons underneath)
-            MapPolyline(coordinates: trajectory.fullPoints)
-                .stroke(Color.black, style: StrokeStyle(lineWidth: 10.0, lineCap: .round, lineJoin: .round))
-                .mapOverlayLevel(level: .aboveLabels)
-
-            // 1. Continuous Dissolving Comet Nebula Glow (Electric Neon Yellow Mist)
-            MapPolyline(coordinates: trajectory.fullPoints)
-                .stroke(
-                    Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.35),
-                    style: StrokeStyle(lineWidth: 12.0, lineCap: .round, lineJoin: .round)
+        // Regional threat level, status badges, and flying threat overlays
+        ForEach(alerts) { alert in
+            if shouldShowFlyingThreat(for: alert) {
+                FlyingThreatMapOverlay(
+                    alert: alert,
+                    getThreatTypeDescriptionShort: getThreatTypeDescriptionShort,
+                    onRegionSelected: onRegionSelected
                 )
-                .mapOverlayLevel(level: .aboveLabels)
-
-            // 2. Continuous Solid Pure Neon Yellow Comet Core Stripe
-            MapPolyline(coordinates: trajectory.fullPoints)
-                .stroke(
-                    Color(red: 1.0, green: 0.95, blue: 0.0),
-                    style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round)
+            } else {
+                RegionStatusBadgeAnnotation(
+                    alert: alert,
+                    timeRefreshTrigger: timeRefreshTrigger,
+                    getThreatTypeDescriptionShort: getThreatTypeDescriptionShort,
+                    onRegionSelected: onRegionSelected
                 )
-                .mapOverlayLevel(level: .aboveLabels)
-
-            // 3. Razor-Sharp Opaque White Laser Core near Target Head
-            MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(12)))
-                .stroke(
-                    Color.white,
-                    style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
-                )
-                .mapOverlayLevel(level: .aboveLabels)
-
-            // Flow direction chevrons along trajectory (~30% and ~60%)
-            ForEach(0..<trajectory.flowArrows.count, id: \.self) { arrowIdx in
-                let arrow = trajectory.flowArrows[arrowIdx]
-                Annotation(coordinate: arrow.coordinate) {
-                    TrajectoryFlowChevronView(
-                        angle: arrow.angle,
-                        threatIcon: alert.currentThreat?.threatIcon ?? "exclamationmark.triangle.fill",
-                        threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
-                        opacity: arrow.opacity
-                    )
-                } label: {
-                    EmptyView()
-                }
-            }
-
-            // Single "Point of Last Coordinate Clarification" (📍 УТОЧНЕННЯ КООРДИНАТ)
-            Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
-                LastTelemetryCheckpointView(
-                    angle: trajectory.lastCheckpointAngle,
-                    color: color
-                )
-            } label: {
-                EmptyView()
-            }
-
-            // Target Region Destination Flying Threat Badge
-            Annotation(coordinate: alert.coordinate) {
-                Button(action: {
-                    onRegionSelected(alert)
-                }) {
-                    FlyingThreatMarkerView(
-                        threatType: threatType,
-                        threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
-                        confidence: confidence,
-                        eta: eta,
-                        color: color,
-                        isPredictive: alert.isThreatPredictive
-                    )
-                }
-            } label: {
-                EmptyView()
             }
         }
 
@@ -250,6 +112,175 @@ struct ThreatMapContent: MapContent {
         if let route = route {
             MapPolyline(route)
                 .stroke(.blue, lineWidth: 5)
+        }
+    }
+}
+
+// MARK: - Region Status Badge Annotation MapContent
+
+struct RegionStatusBadgeAnnotation: MapContent {
+    let alert: AlertRegion
+    let timeRefreshTrigger: Date
+    let getThreatTypeDescriptionShort: (String) -> String
+    let onRegionSelected: (AlertRegion) -> Void
+
+    var body: some MapContent {
+        let isThreatActive = !alert.isActive && alert.threatLevel != nil
+        let badgeIcon: String = alert.isActive ? "exclamationmark.triangle.fill" : (isThreatActive ? alert.icon : "checkmark.circle.fill")
+        let badgeBgColor: Color = alert.isActive ? .red : (isThreatActive ? alert.color : .green)
+
+        Annotation(coordinate: alert.coordinate) {
+            VStack(spacing: 4) {
+                Button(action: {
+                    onRegionSelected(alert)
+                }) {
+                    Image(systemName: badgeIcon)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(5)
+                        .background(badgeBgColor)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                        .shadow(radius: 3)
+                }
+                
+                VStack(spacing: 1) {
+                    let _ = timeRefreshTrigger
+                    Text(alert.name)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    if isThreatActive {
+                        let type = alert.currentThreat?.type ?? alert.threatType
+                        let desc = getThreatTypeDescriptionShort(type ?? "")
+                        Text(desc.isEmpty || desc == "Загроза" ? "Загроза підльоту" : desc)
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundColor(.yellow)
+                            .lineLimit(1)
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    if isThreatActive {
+                        HStack(spacing: 3) {
+                            if let conf = alert.threatConfidence {
+                                Text("⚙️ \(conf)%")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                            }
+                            if let eta = alert.displayETA, !eta.isEmpty {
+                                Text(eta)
+                                    .font(.system(size: 7, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                        }
+                    } else if !alert.isActive {
+                        Text("Без тривоги")
+                            .font(.system(size: 7, weight: .medium))
+                            .foregroundColor(.green.opacity(0.9))
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.ultraThinMaterial)
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(badgeBgColor.opacity(0.3), lineWidth: 0.5)
+                )
+            }
+        } label: {
+            EmptyView()
+        }
+    }
+}
+
+// MARK: - Flying Threat Map Overlay MapContent
+
+struct FlyingThreatMapOverlay: MapContent {
+    let alert: AlertRegion
+    let getThreatTypeDescriptionShort: (String) -> String
+    let onRegionSelected: (AlertRegion) -> Void
+
+    var body: some MapContent {
+        let threatType = alert.currentThreat?.type ?? alert.threatType
+        let threatLabel = alert.currentThreat?.threatLabel ?? getThreatTypeDescriptionShort(threatType ?? "")
+        let confidence = alert.currentThreat?.confidence ?? alert.threatConfidence
+        let eta = alert.currentThreat?.dynamicETA ?? alert.displayETA
+        let color = alert.color
+        let customOrigin = alert.currentThreat?.originCoordinate
+        let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
+
+        // 0. Continuous Solid Black Isolation Base (Masks region polygons underneath)
+        MapPolyline(coordinates: trajectory.fullPoints)
+            .stroke(Color.black, style: StrokeStyle(lineWidth: 10.0, lineCap: .round, lineJoin: .round))
+            .mapOverlayLevel(level: .aboveLabels)
+
+        // 1. Continuous Dissolving Comet Nebula Glow (Electric Neon Yellow Mist)
+        MapPolyline(coordinates: trajectory.fullPoints)
+            .stroke(
+                Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.35),
+                style: StrokeStyle(lineWidth: 12.0, lineCap: .round, lineJoin: .round)
+            )
+            .mapOverlayLevel(level: .aboveLabels)
+
+        // 2. Continuous Solid Pure Neon Yellow Comet Core Stripe
+        MapPolyline(coordinates: trajectory.fullPoints)
+            .stroke(
+                Color(red: 1.0, green: 0.95, blue: 0.0),
+                style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round)
+            )
+            .mapOverlayLevel(level: .aboveLabels)
+
+        // 3. Razor-Sharp Opaque White Laser Core near Target Head
+        MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(12)))
+            .stroke(
+                Color.white,
+                style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
+            )
+            .mapOverlayLevel(level: .aboveLabels)
+
+        // Flow direction chevrons along trajectory (~30% and ~60%)
+        ForEach(0..<trajectory.flowArrows.count, id: \.self) { arrowIdx in
+            let arrow = trajectory.flowArrows[arrowIdx]
+            Annotation(coordinate: arrow.coordinate) {
+                TrajectoryFlowChevronView(
+                    angle: arrow.angle,
+                    threatIcon: alert.currentThreat?.threatIcon ?? "exclamationmark.triangle.fill",
+                    threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
+                    opacity: arrow.opacity
+                )
+            } label: {
+                EmptyView()
+            }
+        }
+
+        // Single "Point of Last Coordinate Clarification" (📍 УТОЧНЕННЯ КООРДИНАТ)
+        Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
+            LastTelemetryCheckpointView(
+                angle: trajectory.lastCheckpointAngle,
+                color: color
+            )
+        } label: {
+            EmptyView()
+        }
+
+        // Target Region Destination Flying Threat Badge
+        Annotation(coordinate: alert.coordinate) {
+            Button(action: {
+                onRegionSelected(alert)
+            }) {
+                FlyingThreatMarkerView(
+                    regionName: alert.name,
+                    threatType: threatType,
+                    threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
+                    confidence: confidence,
+                    eta: eta,
+                    color: color,
+                    isPredictive: alert.isThreatPredictive
+                )
+            }
+        } label: {
+            EmptyView()
         }
     }
 }
@@ -501,6 +532,7 @@ struct LastTelemetryCheckpointView: View {
 // MARK: - FlyingThreatMarkerView
 
 struct FlyingThreatMarkerView: View {
+    let regionName: String
     let threatType: String?
     let threatLabel: String
     let confidence: Int?
@@ -517,9 +549,11 @@ struct FlyingThreatMarkerView: View {
         case "ballistic":       return "arrow.up.right.circle.fill"
         case "mig31k":          return "airplane"
         case "kab":             return "flame.fill"
-        case "tu95":            return "airplane.circle.fill"
+        case "tu95", "tu22m3":  return "airplane.circle.fill"
+        case "su35_su57":       return "airplane"
         case "iskander":        return "cross.circle.fill"
         case "artillery":       return "burst.fill"
+        case "recon", "recon_uav": return "eye.fill"
         default:                return "exclamationmark.triangle.fill"
         }
     }
@@ -559,34 +593,49 @@ struct FlyingThreatMarkerView: View {
                 isPulsing = true
             }
 
-            // Visual Flying Tag ("🔴 ЛЕТИТЬ: БпЛА • 92%")
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 5, height: 5)
-                
-                Text(threatLabel.uppercased())
-                    .font(.system(size: 8, weight: .black, design: .rounded))
+            // Visual Flying Tag ("Полтавська область • 🔴 ЛЕТИТЬ: БпЛА • 92%")
+            VStack(spacing: 2) {
+                Text(regionName)
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white)
-                
-                if let conf = confidence {
-                    Text("\(conf)%")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .lineLimit(1)
+
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 4, height: 4)
+                    
+                    Text(threatLabel.uppercased())
+                        .font(.system(size: 8, weight: .black, design: .rounded))
                         .foregroundColor(.yellow)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.black.opacity(0.4))
-                        .clipShape(Capsule())
+                        .lineLimit(1)
+                    
+                    if let conf = confidence {
+                        Text("\(conf)%")
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 3)
+                            .padding(.vertical, 1)
+                            .background(Color.black.opacity(0.4))
+                            .clipShape(Capsule())
+                    }
+                    
+                    if let etaStr = eta, !etaStr.isEmpty {
+                        Text(etaStr)
+                            .font(.system(size: 7, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                            .lineLimit(1)
+                    }
                 }
             }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(.ultraThinMaterial)
-            .clipShape(Capsule())
+            .cornerRadius(8)
             .overlay(
-                Capsule().stroke(color.opacity(0.8), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.8), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.4), radius: 5, x: 0, y: 2)
+            .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 2)
         }
     }
 }
