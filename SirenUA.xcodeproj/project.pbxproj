@@ -18,6 +18,7 @@
 		DFC0B360B4E3C34DDDBED4E9 /* ContentView+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C8022CD2CB6624817D6ECF /* ContentView+Theme.swift */; };
 		0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BA16504A891512121DBF64D /* Assets.xcassets */; };
 		0CC99CB0B44F61B4A47B2629 /* RegionHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D9BC6244BDDF4F0663E106 /* RegionHistoryEvent.swift */; };
+		9F71A3B01122334400556677 /* ThreatConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F71A3B01122334400556678 /* ThreatConstants.swift */; };
 		0E50948AD94AF6FB81C85E06 /* NavigationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF634E9651E888F120FACE1 /* NavigationOverlay.swift */; };
 		0EC84AE6796EEC6E6F34CD2A /* AlertListOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FCDD604237AFB48CCEBE29 /* AlertListOverlayView.swift */; };
 		0FCD652AD3504B91794D26F5 /* AlertPinViewV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B295678EDD4A48D0B7FEE38 /* AlertPinViewV4.swift */; };
@@ -62,6 +63,7 @@
 		C54799935055C03981CA6F26 /* OperationalMonitoringCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925E120A440DB03B70EC83D0 /* OperationalMonitoringCardView.swift */; };
 		C54799935055C03981CA6F27 /* MapLegendPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925E120A440DB03B70EC83D1 /* MapLegendPillView.swift */; };
 		C54799935055C03981CA6F28 /* MainTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925E120A440DB03B70EC83D2 /* MainTabBarView.swift */; };
+		C54799935055C03981CA6F29 /* RegionSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925E120A440DB03B70EC83D3 /* RegionSelectionSheet.swift */; };
 		C722E6922DAF2FE158B70281 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30463DD6C0646A3B7A290141 /* AppDelegate.swift */; };
 		C91CAE56E6F3791349448508 /* PremiumPurchaseCTA.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D90D690AC96C92008BF84E /* PremiumPurchaseCTA.swift */; };
 		D22B1569856DA5420FBEC59D /* StyledToggleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA832B2B3714348B4565F1E7 /* StyledToggleRow.swift */; };
@@ -135,6 +137,7 @@
 		925E120A440DB03B70EC83D0 /* OperationalMonitoringCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationalMonitoringCardView.swift; sourceTree = "<group>"; };
 		925E120A440DB03B70EC83D1 /* MapLegendPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLegendPillView.swift; sourceTree = "<group>"; };
 		925E120A440DB03B70EC83D2 /* MainTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarView.swift; sourceTree = "<group>"; };
+		925E120A440DB03B70EC83D3 /* RegionSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSelectionSheet.swift; sourceTree = "<group>"; };
 		95ADDC4958C3DDFE90FA169C /* SirenUAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SirenUAApp.swift; sourceTree = "<group>"; };
 		9A13E90781CE797D24F859D6 /* clearance.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clearance.wav; sourceTree = "<group>"; };
 		9CBC2210508C17624AFBDAF8 /* AdminModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminModels.swift; sourceTree = "<group>"; };
@@ -151,6 +154,7 @@
 		C04391E80219E2B099533C21 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C91A8EB5D33BEA49BCB7CBFA /* View+PressEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+PressEvents.swift"; sourceTree = "<group>"; };
 		C9D9BC6244BDDF4F0663E106 /* RegionHistoryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionHistoryEvent.swift; sourceTree = "<group>"; };
+		9F71A3B01122334400556678 /* ThreatConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatConstants.swift; sourceTree = "<group>"; };
 		CA832B2B3714348B4565F1E7 /* StyledToggleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyledToggleRow.swift; sourceTree = "<group>"; };
 		CFE0BC3871D497F65492C083 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D095FF259C3F660FB4D0FB15 /* MKDirectionsTransportType+Hashable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MKDirectionsTransportType+Hashable.swift"; sourceTree = "<group>"; };
@@ -309,6 +313,7 @@
 				9CBC2210508C17624AFBDAF8 /* AdminModels.swift */,
 				4B85C79DE976461E5F8515FC /* AlertRegion.swift */,
 				C9D9BC6244BDDF4F0663E106 /* RegionHistoryEvent.swift */,
+				9F71A3B01122334400556678 /* ThreatConstants.swift */,
 				18EBAD5E8706EFEEC0F927B6 /* ShelterItem.swift */,
 			);
 			path = Models;
@@ -363,6 +368,7 @@
 				925E120A440DB03B70EC83D0 /* OperationalMonitoringCardView.swift */,
 				925E120A440DB03B70EC83D1 /* MapLegendPillView.swift */,
 				925E120A440DB03B70EC83D2 /* MainTabBarView.swift */,
+				925E120A440DB03B70EC83D3 /* RegionSelectionSheet.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -564,6 +570,7 @@
 				C54799935055C03981CA6F26 /* OperationalMonitoringCardView.swift in Sources */,
 				C54799935055C03981CA6F27 /* MapLegendPillView.swift in Sources */,
 				C54799935055C03981CA6F28 /* MainTabBarView.swift in Sources */,
+				C54799935055C03981CA6F29 /* RegionSelectionSheet.swift in Sources */,
 				DAF92976F6869766756C9374 /* View+PressEvents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
