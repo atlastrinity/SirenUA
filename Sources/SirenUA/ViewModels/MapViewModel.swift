@@ -397,37 +397,21 @@ final class MapViewModel: ObservableObject {
             if let minLat = lats.min(), let maxLat = lats.max(),
                let minLon = lons.min(), let maxLon = lons.max() {
                 
-                let centerLat: Double
-                let centerLon: Double
-                let latDelta: Double
-                let lonDelta: Double
+                let centerLat = (minLat + maxLat) / 2.0
+                let centerLon = (minLon + maxLon) / 2.0
                 
-                if !relevantAlerts.isEmpty {
-                    centerLat = relevantAlerts.map { $0.coordinate.latitude }.reduce(0, +) / Double(relevantAlerts.count)
-                    centerLon = relevantAlerts.map { $0.coordinate.longitude }.reduce(0, +) / Double(relevantAlerts.count)
-                    
-                    let maxLatDist = max(abs(maxLat - centerLat), abs(centerLat - minLat))
-                    let maxLonDist = max(abs(maxLon - centerLon), abs(centerLon - minLon))
-                    
-                    latDelta = max(maxLatDist * 2, 1.0) * 1.3
-                    lonDelta = max(maxLonDist * 2, 1.5) * 1.3
-                } else {
-                    centerLat = (minLat + maxLat) / 2.0
-                    centerLon = (minLon + maxLon) / 2.0
-                    
-                    latDelta = max(maxLat - minLat, 1.0) * 1.3
-                    lonDelta = max(maxLon - minLon, 1.5) * 1.3
-                }
+                let rawLatDelta = (maxLat - minLat) * 1.35
+                let rawLonDelta = (maxLon - minLon) * 1.35
+                
+                let latDelta = min(max(rawLatDelta, 2.0), 7.8)
+                let lonDelta = min(max(rawLonDelta, 2.8), 13.0)
                 
                 let region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
-                    span: MKCoordinateSpan(
-                        latitudeDelta: min(latDelta, 8.0),
-                        longitudeDelta: min(lonDelta, 13.0)
-                    )
+                    span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
                 )
                 if animated {
-                    withAnimation(.easeInOut(duration: 2.0)) {
+                    withAnimation(.easeInOut(duration: 1.2)) {
                         self.cameraPosition = .region(region)
                     }
                 } else {
