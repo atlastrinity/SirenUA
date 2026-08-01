@@ -401,13 +401,13 @@ final class MapViewModel: ObservableObject {
                 let centerLat = (minLat + maxLat) / 2.0
                 let centerLon = (minLon + maxLon) / 2.0
                 
-                // Забезпечуємо 1.55x - 1.68x додатковий дельта-запас для вертикальних екранів iPhone,
-                // щоб ВСІ жовті та червоні області влазили повністю по краях екрана!
+                // Забезпечуємо гнучкий дельта-запас для вертикальних екранів iPhone,
+                // щоб ВСІ жовті та червоні області влазили повністю без обрізання!
                 let rawLatDelta = max((maxLat - minLat) * 1.55, 2.5)
-                let rawLonDelta = max((maxLon - minLon) * 1.68, 3.8)
+                let rawLonDelta = max((maxLon - minLon) * 1.65, 3.8)
                 
-                let latDelta = min(rawLatDelta, 10.5)
-                let lonDelta = min(rawLonDelta, 16.5)
+                let latDelta = min(rawLatDelta, 14.0)
+                let lonDelta = min(rawLonDelta, 22.0)
                 
                 let region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
@@ -427,7 +427,7 @@ final class MapViewModel: ObservableObject {
         // Масштаб за замовчуванням (впевнено влазить вся Україна з полями)
         let defaultRegion = MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656),
-            span: MKCoordinateSpan(latitudeDelta: 8.5, longitudeDelta: 14.5)
+            span: MKCoordinateSpan(latitudeDelta: 9.5, longitudeDelta: 16.5)
         )
         if animated {
             withAnimation(.easeInOut(duration: 1.5)) {
