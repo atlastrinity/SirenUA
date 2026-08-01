@@ -148,16 +148,24 @@ extension AlertViewModelV3 {
         guard !isFetching else { return }
         isFetching = true
         isLoading = true
-        errorMessage = nil
 
         do {
             let liveData = try await networkManager.fetchLiveAlerts()
             applyLiveAlerts(liveData)
             isFirstFetch = false
             updateStats()
+            firstNetworkFailureDate = nil
+            errorMessage = nil
         } catch {
-            errorMessage = "Помилка оновлення тривог: \(error.localizedDescription)"
             vmLogger.error("Error fetching alerts: \(error.localizedDescription)")
+            if firstNetworkFailureDate == nil {
+                firstNetworkFailureDate = Date()
+            }
+            let duration = Date().timeIntervalSince(firstNetworkFailureDate!)
+            if duration >= 120 {
+                let mins = max(2, Int(duration / 60))
+                errorMessage = "Відсутнє мережеве з'єднання (\(mins) хв). Перевірте інтернет."
+            }
         }
 
         isLoading = false

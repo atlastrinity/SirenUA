@@ -35,6 +35,7 @@ final class AlertViewModelV3: ObservableObject {
     var isFirstFetch: Bool = true
     var isFirstThreatFetch: Bool = true
     var isFetching: Bool = false
+    var firstNetworkFailureDate: Date? = nil
     var cancellables = Set<AnyCancellable>()
 
     var refreshInterval: Int { 30 }
