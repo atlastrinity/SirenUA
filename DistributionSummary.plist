@@ -10,7 +10,7 @@
 				<string>arm64</string>
 			</array>
 			<key>buildNumber</key>
-			<string>115</string>
+			<string>117</string>
 			<key>certificate</key>
 			<dict>
 				<key>SHA1</key>
@@ -49,7 +49,7 @@
 				<key>id</key>
 				<string>B7WVJ3B4B7</string>
 				<key>name</key>
-				<string>Олег Kizyma</string>
+				<string></string>
 			</dict>
 			<key>versionNumber</key>
 			<string>1.0</string>
