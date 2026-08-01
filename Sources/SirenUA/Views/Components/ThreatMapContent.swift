@@ -247,32 +247,7 @@ struct FlyingThreatMapOverlay: MapContent {
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // Flow direction chevrons along trajectory (~25%, ~50%, ~75%)
-        ForEach(0..<trajectory.flowArrows.count, id: \.self) { arrowIdx in
-            let arrow = trajectory.flowArrows[arrowIdx]
-            Annotation(coordinate: arrow.coordinate) {
-                TrajectoryFlowChevronView(
-                    angle: arrow.angle,
-                    threatIcon: alert.currentThreat?.threatIcon ?? "exclamationmark.triangle.fill",
-                    threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
-                    opacity: arrow.opacity
-                )
-                .scaleEffect(zoomScale)
-            } label: {
-                EmptyView()
-            }
-        }
-
-        // Single "Point of Last Coordinate Clarification" (📍 УТОЧНЕННЯ КООРДИНАТ)
-        Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
-            LastTelemetryCheckpointView(
-                angle: trajectory.lastCheckpointAngle,
-                color: color
-            )
-            .scaleEffect(zoomScale)
-        } label: {
-            EmptyView()
-        }
+        // Clean trajectory flow: polyline leads directly to destination threat marker without intermediate icon clutter
 
         // Target Region Destination Flying Threat Badge
         Annotation(coordinate: alert.coordinate) {
