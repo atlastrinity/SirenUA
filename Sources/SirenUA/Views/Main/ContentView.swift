@@ -205,7 +205,7 @@ struct ContentView: View {
             // 1. ШАР КАРТИ (Повне відображення загроз по всій Україні)
             Map(
                 position: $mapViewModel.cameraPosition,
-                bounds: MapCameraBounds(minimumDistance: 100, maximumDistance: 3_000_000),
+                bounds: MapCameraBounds(minimumDistance: 100, maximumDistance: 15_000_000),
                 interactionModes: .all,
                 selection: $mapViewModel.selectedShelter
             ) {

@@ -406,8 +406,8 @@ final class MapViewModel: ObservableObject {
                 let rawLatDelta = max((maxLat - minLat) * 1.55, 2.5)
                 let rawLonDelta = max((maxLon - minLon) * 1.65, 3.8)
                 
-                let latDelta = min(rawLatDelta, 14.0)
-                let lonDelta = min(rawLonDelta, 22.0)
+                let latDelta = min(rawLatDelta, 18.0)
+                let lonDelta = min(rawLonDelta, 28.0)
                 
                 let region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
