@@ -247,9 +247,20 @@ struct FlyingThreatMapOverlay: MapContent {
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // Clean trajectory flow: polyline leads directly to destination threat marker without intermediate icon clutter
+        // 4. Intermediate Detection Checkpoint Threat Object Badge (Spotted along trajectory path)
+        Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
+            TrajectoryFlowChevronView(
+                angle: trajectory.lastCheckpointAngle,
+                threatIcon: threatIconName(for: threatType),
+                threatLabel: threatLabel.isEmpty ? "Виявлено" : threatLabel,
+                opacity: 0.95
+            )
+            .scaleEffect(zoomScale)
+        } label: {
+            EmptyView()
+        }
 
-        // Target Region Destination Flying Threat Badge
+        // 5. Target Region Destination Flying Threat Badge
         Annotation(coordinate: alert.coordinate) {
             Button(action: {
                 onRegionSelected(alert)
@@ -268,6 +279,22 @@ struct FlyingThreatMapOverlay: MapContent {
         } label: {
             EmptyView()
         }
+    }
+}
+
+func threatIconName(for threatType: String?) -> String {
+    switch threatType {
+    case "shahed":          return "paperplane.fill"
+    case "cruise_missile":  return "bolt.horizontal.fill"
+    case "ballistic":       return "arrow.up.right.circle.fill"
+    case "mig31k":          return "airplane"
+    case "kab":             return "flame.fill"
+    case "tu95", "tu22m3":  return "airplane.circle.fill"
+    case "su35_su57":       return "airplane"
+    case "iskander":        return "cross.circle.fill"
+    case "artillery":       return "burst.fill"
+    case "recon", "recon_uav": return "eye.fill"
+    default:                return "exclamationmark.triangle.fill"
     }
 }
 
