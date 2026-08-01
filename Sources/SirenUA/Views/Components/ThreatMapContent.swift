@@ -84,6 +84,7 @@ struct ThreatMapContent: MapContent {
                 .overlay(Circle().stroke(Color.white, lineWidth: 2))
                 .shadow(radius: 5)
                 .scaleEffect(zoomScale)
+                .allowsHitTesting(false)
         }
         
         // Regional threat level, status badges, and flying threat overlays
@@ -137,18 +138,14 @@ struct RegionStatusBadgeAnnotation: MapContent {
 
         Annotation(coordinate: alert.coordinate) {
             VStack(spacing: 4) {
-                Button(action: {
-                    onRegionSelected(alert)
-                }) {
-                    Image(systemName: badgeIcon)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(5)
-                        .background(badgeBgColor)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                        .shadow(radius: 3)
-                }
+                Image(systemName: badgeIcon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(5)
+                    .background(badgeBgColor)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                    .shadow(radius: 3)
                 
                 VStack(spacing: 1) {
                     let _ = timeRefreshTrigger
@@ -195,6 +192,9 @@ struct RegionStatusBadgeAnnotation: MapContent {
                 )
             }
             .scaleEffect(zoomScale)
+            .onTapGesture {
+                onRegionSelected(alert)
+            }
         } label: {
             EmptyView()
         }
@@ -256,25 +256,25 @@ struct FlyingThreatMapOverlay: MapContent {
                 opacity: 0.95
             )
             .scaleEffect(zoomScale)
+            .allowsHitTesting(false)
         } label: {
             EmptyView()
         }
 
         // 5. Target Region Destination Flying Threat Badge
         Annotation(coordinate: alert.coordinate) {
-            Button(action: {
+            FlyingThreatMarkerView(
+                regionName: alert.name,
+                threatType: threatType,
+                threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
+                confidence: confidence,
+                eta: eta,
+                color: color,
+                isPredictive: alert.isThreatPredictive
+            )
+            .scaleEffect(zoomScale)
+            .onTapGesture {
                 onRegionSelected(alert)
-            }) {
-                FlyingThreatMarkerView(
-                    regionName: alert.name,
-                    threatType: threatType,
-                    threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
-                    confidence: confidence,
-                    eta: eta,
-                    color: color,
-                    isPredictive: alert.isThreatPredictive
-                )
-                .scaleEffect(zoomScale)
             }
         } label: {
             EmptyView()
