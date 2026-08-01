@@ -311,9 +311,10 @@ struct ContentView: View {
             
             if mapViewModel.showHistory {
                 AlertListOverlayView(
-                    title: "ІСТОРІЯ ТРИВОГ",
+                    title: "ІСТОРІЯ ТРИВОГ (Всі області)",
                     color: .yellow,
                     alerts: viewModel.alerts,
+                    filterMode: .all,
                     filterActiveOnly: false,
                     isPremium: viewModel.isPremium,
                     onSelect: { region in
