@@ -283,19 +283,7 @@ struct FlyingThreatMapOverlay: MapContent {
 }
 
 func threatIconName(for threatType: String?) -> String {
-    switch threatType {
-    case "shahed":          return "paperplane.fill"
-    case "cruise_missile":  return "bolt.horizontal.fill"
-    case "ballistic":       return "arrow.up.right.circle.fill"
-    case "mig31k":          return "airplane"
-    case "kab":             return "flame.fill"
-    case "tu95", "tu22m3":  return "airplane.circle.fill"
-    case "su35_su57":       return "airplane"
-    case "iskander":        return "cross.circle.fill"
-    case "artillery":       return "burst.fill"
-    case "recon", "recon_uav": return "eye.fill"
-    default:                return "exclamationmark.triangle.fill"
-    }
+    return ThreatConstants.sfSymbol(for: threatType)
 }
 
 // MARK: - Flying Threat Visibility Logic
@@ -608,19 +596,7 @@ struct FlyingThreatMarkerView: View {
     @State private var isPulsing = false
     
     var iconName: String {
-        switch threatType {
-        case "shahed":          return "paperplane.fill"
-        case "cruise_missile":  return "bolt.horizontal.fill"
-        case "ballistic":       return "arrow.up.right.circle.fill"
-        case "mig31k":          return "airplane"
-        case "kab":             return "flame.fill"
-        case "tu95", "tu22m3":  return "airplane.circle.fill"
-        case "su35_su57":       return "airplane"
-        case "iskander":        return "cross.circle.fill"
-        case "artillery":       return "burst.fill"
-        case "recon", "recon_uav": return "eye.fill"
-        default:                return "exclamationmark.triangle.fill"
-        }
+        return ThreatConstants.sfSymbol(for: threatType)
     }
     
     var body: some View {
