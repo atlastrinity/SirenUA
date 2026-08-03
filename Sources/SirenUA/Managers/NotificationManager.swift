@@ -410,18 +410,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         content.interruptionLevel = item.interruptionLevel
         content.relevanceScore = item.relevanceScore
         
-        // Sound & Vibration configuration: assign sound or defaultSound so iOS triggers vibration motor
+        // Sound configuration: set custom/critical sound if not muted, or nil if muted
         if !item.soundName.isEmpty {
             if item.isCritical {
                 content.sound = UNNotificationSound.defaultCritical
             } else {
                 content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
-            }
-        } else if vibrationEnabled {
-            if item.isCritical {
-                content.sound = UNNotificationSound.defaultCritical
-            } else {
-                content.sound = UNNotificationSound.default
             }
         } else {
             content.sound = nil
