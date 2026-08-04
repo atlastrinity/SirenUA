@@ -218,37 +218,37 @@ struct FlyingThreatMapOverlay: MapContent {
         let customOrigin = alert.currentThreat?.originCoordinate
         let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
 
-        // 0. Comet Outer Dust Coma (16 optimized gradient segments)
+        // 0. Comet Outer Dust Coma (16 smooth gradient sub-polyline segments)
         ForEach(0..<trajectory.cometTailSegments.count, id: \.self) { idx in
             let seg = trajectory.cometTailSegments[idx]
-            MapPolyline(coordinates: [seg.start, seg.end])
+            MapPolyline(coordinates: seg.points)
                 .stroke(
                     color.opacity(seg.outerOpacity),
                     style: StrokeStyle(lineWidth: seg.outerWidth, lineCap: .round, lineJoin: .round)
                 )
-                .mapOverlayLevel(level: .aboveRoads)
+                .mapOverlayLevel(level: .aboveLabels)
         }
 
-        // 1. Sleek Dark Base Isolation Layer (Single Polyline pass)
+        // 1. Sleek Dark Base Isolation Layer (Single Polyline pass, 48 smooth points)
         MapPolyline(coordinates: trajectory.fullPoints)
             .stroke(Color.black.opacity(0.70), style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
-            .mapOverlayLevel(level: .aboveRoads)
+            .mapOverlayLevel(level: .aboveLabels)
 
-        // 2. Continuous Solid Neon Core Path (Single Polyline pass)
+        // 2. Continuous Solid Neon Core Path (Single Polyline pass, 48 smooth points)
         MapPolyline(coordinates: trajectory.fullPoints)
             .stroke(
                 Color(red: 1.0, green: 0.92, blue: 0.0).opacity(0.92),
                 style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
             )
-            .mapOverlayLevel(level: .aboveRoads)
+            .mapOverlayLevel(level: .aboveLabels)
 
-        // 3. Concentrated White Laser Focus Head (Single Polyline pass)
+        // 3. Concentrated White Laser Focus Head (Single Polyline pass, 16 smooth points)
         MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(max(2, trajectory.fullPoints.count / 3))))
             .stroke(
                 Color.white,
                 style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
             )
-            .mapOverlayLevel(level: .aboveRoads)
+            .mapOverlayLevel(level: .aboveLabels)
 
         // 6. Intermediate Detection Checkpoint Threat Object Badge
         Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
@@ -311,8 +311,7 @@ struct TrajectoryFlowArrow {
 // MARK: - Comet Tail Segment
 
 struct CometTailSegment {
-    let start: CLLocationCoordinate2D
-    let end: CLLocationCoordinate2D
+    let points: [CLLocationCoordinate2D]
     // Outer dust coma
     let outerWidth: CGFloat
     let outerOpacity: Double
@@ -477,7 +476,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let controlLon = midLon + normalLon * (distance * curvature)
     
     var fullPoints: [CLLocationCoordinate2D] = []
-    let steps = 16 // High performance resolution (17 points total: indices 0...16)
+    let steps = 48 // 48 ultra-smooth interpolated points
     for i in 0...steps {
         let t = Double(i) / Double(steps)
         let invT = 1.0 - t
@@ -501,40 +500,36 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         fullPoints.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
     }
 
-    // MARK: - Comet Tail Generation
-    // t=0 → origin (tail start, widest point — "кома комети")
-    // t=1 → target (head/nucleus, sharpest point)
-    //
-    // Width law: w(t) = wMax * (1 - t)^1.6  (power-law taper — реалістична комета)
-    // Opacity law: outer ~ (1-t)^0.7, core ~ (1-t)^1.4 + bright near head
-
+    // MARK: - Comet Tail Generation (16 smooth multi-point sub-polylines)
     let wMax = distance * 0.055  // Maximum coma width at tail origin
     var cometSegments: [CometTailSegment] = []
+    let numSegments = 16
+    let pointsPerSeg = steps / numSegments // 3 points per sub-polyline segment
 
-    for i in 0..<steps {
-        let t0 = Double(i) / Double(steps)
-        let t1 = Double(i + 1) / Double(steps)
+    for segIdx in 0..<numSegments {
+        let startPointIdx = segIdx * pointsPerSeg
+        let endPointIdx = min(steps, (segIdx + 1) * pointsPerSeg)
+        let segPoints = Array(fullPoints[startPointIdx...endPointIdx])
 
-        // Width is WIDE at t=0 (tail) and ZERO at t=1 (head)
+        let t0 = Double(startPointIdx) / Double(steps)
+        let t1 = Double(endPointIdx) / Double(steps)
+
         let w0 = wMax * pow(1.0 - t0, 1.6)
         let w1 = wMax * pow(1.0 - t1, 1.6)
         let wAvg = (w0 + w1) * 0.5
 
-        // Opacity: dust coma visible throughout tail, fades toward head
-        let progress = t0  // 0 = tail, 1 = head
+        let progress = t0
         let outerOpacity = 0.28 * pow(1.0 - progress, 0.7)
         let midOpacity   = 0.42 * pow(1.0 - progress, 1.0)
-        let coreOpacity  = 0.18 + 0.72 * pow(progress, 0.8)  // core gets BRIGHTER near head
+        let coreOpacity  = 0.18 + 0.72 * pow(progress, 0.8)
 
-        // Line widths (in map-point scale relative to distance)
         let outerPxRaw = CGFloat(wAvg * 420.0 / distance)
         let outerPx = max(4.0, min(22.0, outerPxRaw))
         let midPx   = max(2.0, min(12.0, outerPx * 0.52))
         let corePx  = max(1.2, min(5.0,  outerPx * 0.22))
 
         cometSegments.append(CometTailSegment(
-            start: fullPoints[i],
-            end: fullPoints[i + 1],
+            points: segPoints,
             outerWidth: outerPx,
             outerOpacity: outerOpacity,
             midWidth: midPx,
@@ -546,7 +541,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
 
     // Directional flow arrows at ~25%, ~50%, and ~75% along trajectory
     var flowArrows: [TrajectoryFlowArrow] = []
-    let arrowStepIndices = [4, 8, 12]
+    let arrowStepIndices = [12, 24, 36]
     for stepIdx in arrowStepIndices {
         let ap1 = fullPoints[stepIdx]
         let ap2 = fullPoints[stepIdx + 1]
@@ -560,7 +555,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     }
 
     // Last telemetry checkpoint at ~80% along the trajectory
-    let checkpointIdx = 12
+    let checkpointIdx = 38
     let p1 = fullPoints[checkpointIdx]
     let p2 = fullPoints[checkpointIdx + 1]
 
