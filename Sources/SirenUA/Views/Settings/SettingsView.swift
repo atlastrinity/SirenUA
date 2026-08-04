@@ -308,6 +308,9 @@ struct SettingsView: View {
                 iconColor: .siBlue,
                 isOn: $notificationsEnabled
             )
+            .onChange(of: notificationsEnabled) { oldValue, newValue in
+                haptic()
+            }
             
             StyledDivider()
             
@@ -318,6 +321,15 @@ struct SettingsView: View {
                 iconColor: .red,
                 isOn: $criticalAlertsEnabled
             )
+            .disabled(!notificationsEnabled)
+            .opacity(notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: criticalAlertsEnabled) { oldValue, newValue in
+                if newValue {
+                    // Увімкнення критичних сповіщень автоматично вмикає звук тривоги (вимикає "Без звуку")
+                    muteAlarmsSound = false
+                }
+                haptic()
+            }
             
             StyledDivider()
 
@@ -328,6 +340,15 @@ struct SettingsView: View {
                 iconColor: .red,
                 isOn: $muteAlarmsSound
             )
+            .disabled(!notificationsEnabled)
+            .opacity(notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: muteAlarmsSound) { oldValue, newValue in
+                if newValue {
+                    // Увімкнення "Без звуку" для тривоги автоматично вимикає режим критичних сповіщень
+                    criticalAlertsEnabled = false
+                }
+                haptic()
+            }
 
             StyledDivider()
             
@@ -338,6 +359,11 @@ struct SettingsView: View {
                 iconColor: .siOrange,
                 isOn: $muteThreatsSound
             )
+            .disabled(!notificationsEnabled)
+            .opacity(notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: muteThreatsSound) { oldValue, newValue in
+                haptic()
+            }
 
             StyledDivider()
 
@@ -348,6 +374,11 @@ struct SettingsView: View {
                 iconColor: .green,
                 isOn: $muteClearSound
             )
+            .disabled(!notificationsEnabled)
+            .opacity(notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: muteClearSound) { oldValue, newValue in
+                haptic()
+            }
 
             StyledDivider()
 
@@ -358,6 +389,11 @@ struct SettingsView: View {
                 iconColor: .purple,
                 isOn: $vibrationEnabled
             )
+            .disabled(!notificationsEnabled)
+            .opacity(notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: vibrationEnabled) { oldValue, newValue in
+                haptic()
+            }
         }
     }
 

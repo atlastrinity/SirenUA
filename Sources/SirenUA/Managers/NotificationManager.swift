@@ -247,8 +247,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
         let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
 
-        // Use .critical if entitled and enabled by user, otherwise .timeSensitive
-        let isCrit = hasCriticalAlerts && criticalAlertsEnabled
+        // Use .critical if entitled and enabled by user AND alarms are not muted
+        let isCrit = hasCriticalAlerts && criticalAlertsEnabled && !muteAlarmsSound
         let level: UNNotificationInterruptionLevel = isCrit ? .critical : .timeSensitive
 
         let fullTitle = "🚨 Повітряна тривога — \(regionName)"
@@ -266,7 +266,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
                                 confidence: Int = 75, isCritical: Bool = false) {
-        let effectiveIsCritical = isCritical && criticalAlertsEnabled
+        let effectiveIsCritical = isCritical && criticalAlertsEnabled && !muteThreatsSound
         let level: UNNotificationInterruptionLevel
         let relevance: Double
 
@@ -445,10 +445,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         }
         let url = URL(fileURLWithPath: path)
 
-        audioQueueLock.lock()
-        audioPlaybackQueue.append(url)
-        let shouldStart = !isAudioPlaying
-        audioQueueLock.unlock()
+        var shouldStart = false
+        audioQueueLock.withLock {
+            audioPlaybackQueue.append(url)
+            shouldStart = !isAudioPlaying
+        }
 
         if shouldStart {
             playNextAudioInQueue()
@@ -456,15 +457,17 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     }
 
     private func playNextAudioInQueue() {
-        audioQueueLock.lock()
-        guard !audioPlaybackQueue.isEmpty else {
-            isAudioPlaying = false
-            audioQueueLock.unlock()
-            return
+        var nextUrl: URL?
+        audioQueueLock.withLock {
+            if audioPlaybackQueue.isEmpty {
+                isAudioPlaying = false
+            } else {
+                nextUrl = audioPlaybackQueue.removeFirst()
+                isAudioPlaying = true
+            }
         }
-        let nextUrl = audioPlaybackQueue.removeFirst()
-        isAudioPlaying = true
-        audioQueueLock.unlock()
+
+        guard let nextUrl else { return }
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
@@ -478,9 +481,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 notifLogger.info("Playing queued audio: \(nextUrl.lastPathComponent)")
             } catch {
                 notifLogger.error("Audio player error: \(error.localizedDescription)")
-                self.audioQueueLock.lock()
-                self.isAudioPlaying = false
-                self.audioQueueLock.unlock()
+                self.audioQueueLock.withLock {
+                    self.isAudioPlaying = false
+                }
                 self.playNextAudioInQueue()
             }
         }
@@ -490,9 +493,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in
-            NotificationManager.shared.audioQueueLock.lock()
-            NotificationManager.shared.isAudioPlaying = false
-            NotificationManager.shared.audioQueueLock.unlock()
+            NotificationManager.shared.audioQueueLock.withLock {
+                NotificationManager.shared.isAudioPlaying = false
+            }
             NotificationManager.shared.playNextAudioInQueue()
         }
     }

@@ -276,7 +276,9 @@ final class SirenUATests: XCTestCase {
             is_test: false,
             group_id: nil,
             origin_latitude: 50.0,
-            origin_longitude: 30.0
+            origin_longitude: 30.0,
+            last_checkpoint_latitude: nil,
+            last_checkpoint_longitude: nil
         )
         
         XCTAssertEqual(threat.elapsedMinutes, 10)
@@ -302,7 +304,9 @@ final class SirenUATests: XCTestCase {
             is_test: false,
             group_id: nil,
             origin_latitude: 50.0,
-            origin_longitude: 30.0
+            origin_longitude: 30.0,
+            last_checkpoint_latitude: nil,
+            last_checkpoint_longitude: nil
         )
         
         XCTAssertEqual(threat.elapsedMinutes, 15)
