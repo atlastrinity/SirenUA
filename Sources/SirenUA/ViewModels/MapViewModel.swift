@@ -26,11 +26,11 @@ final class MapViewModel: ObservableObject {
     @Published var routeErrorMessage: String? = nil
     @Published var shelterInfoMessage: String? = nil
     
-    // Initial camera focused on Kyiv
+    // Initial camera focused on active threat region for close-up view
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234),
-            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+            center: CLLocationCoordinate2D(latitude: 49.0, longitude: 34.0),
+            span: MKCoordinateSpan(latitudeDelta: 2.8, longitudeDelta: 4.2)
         )
     )
 

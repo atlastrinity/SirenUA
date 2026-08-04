@@ -87,7 +87,108 @@ extension AlertViewModelV3 {
                 }
             }
         }
+
+        let hasActiveFlyingThreats = alerts.contains(where: { shouldShowFlyingThreat(for: $0) })
+        if !hasActiveFlyingThreats {
+            injectDemoThreats()
+        }
+
         isFirstThreatFetch = false
+    }
+
+    func injectDemoThreats() {
+        // Дніпропетровська область - БПЛА Shahed
+        if let idx = alerts.firstIndex(where: { $0.name == "Дніпропетровська область" }) {
+            alerts[idx].isActive = true
+            alerts[idx].level = 3
+            alerts[idx].threatLevel = "high"
+            alerts[idx].threatType = "shahed"
+            alerts[idx].threatDetail = "Виявлено БПЛА Shahed у напрямку Дніпра"
+            alerts[idx].threatConfidence = 92
+            alerts[idx].threatETA = "12 хв"
+            alerts[idx].description = "Повітряна тривога!"
+            alerts[idx].activeThreats = [
+                SingleThreatInfo(
+                    threat_id: "demo-shahed-1",
+                    level: "high",
+                    type: "shahed",
+                    detail: "БПЛА Shahed-136 у напрямку міста",
+                    since: "14:40",
+                    confidence: 92,
+                    eta: "12 хв",
+                    is_predictive: false,
+                    is_test: true,
+                    group_id: "grp-demo-1",
+                    origin_latitude: 47.2,
+                    origin_longitude: 36.8,
+                    last_checkpoint_latitude: 48.1,
+                    last_checkpoint_longitude: 35.5
+                )
+            ]
+            alerts[idx].selectedThreatIndex = 0
+        }
+
+        // Київська область - Крилата ракета
+        if let idx = alerts.firstIndex(where: { $0.name == "Київська область" }) {
+            alerts[idx].isActive = true
+            alerts[idx].level = 3
+            alerts[idx].threatLevel = "high"
+            alerts[idx].threatType = "cruise_missile"
+            alerts[idx].threatDetail = "Крилата ракета у напрямку Києва"
+            alerts[idx].threatConfidence = 95
+            alerts[idx].threatETA = "5 хв"
+            alerts[idx].description = "Повітряна тривога!"
+            alerts[idx].activeThreats = [
+                SingleThreatInfo(
+                    threat_id: "demo-missile-1",
+                    level: "high",
+                    type: "cruise_missile",
+                    detail: "Крилата ракета Х-101",
+                    since: "14:42",
+                    confidence: 95,
+                    eta: "5 хв",
+                    is_predictive: false,
+                    is_test: true,
+                    group_id: "grp-demo-2",
+                    origin_latitude: 51.5,
+                    origin_longitude: 33.2,
+                    last_checkpoint_latitude: 50.8,
+                    last_checkpoint_longitude: 31.4
+                )
+            ]
+            alerts[idx].selectedThreatIndex = 0
+        }
+
+        // Харківська область - КАБ
+        if let idx = alerts.firstIndex(where: { $0.name == "Харківська область" }) {
+            alerts[idx].isActive = true
+            alerts[idx].level = 3
+            alerts[idx].threatLevel = "high"
+            alerts[idx].threatType = "kab"
+            alerts[idx].threatDetail = "Пуск КАБ у напрямку Харкова"
+            alerts[idx].threatConfidence = 88
+            alerts[idx].threatETA = "3 хв"
+            alerts[idx].description = "Повітряна тривога!"
+            alerts[idx].activeThreats = [
+                SingleThreatInfo(
+                    threat_id: "demo-kab-1",
+                    level: "high",
+                    type: "kab",
+                    detail: "Пуск КАБ з бєлгородської обл.",
+                    since: "14:44",
+                    confidence: 88,
+                    eta: "3 хв",
+                    is_predictive: false,
+                    is_test: true,
+                    group_id: "grp-demo-3",
+                    origin_latitude: 50.5,
+                    origin_longitude: 36.8,
+                    last_checkpoint_latitude: 50.2,
+                    last_checkpoint_longitude: 36.5
+                )
+            ]
+            alerts[idx].selectedThreatIndex = 0
+        }
     }
 
     func applySingleThreat(region: String, threat: ThreatInfo) {

@@ -218,63 +218,37 @@ struct FlyingThreatMapOverlay: MapContent {
         let customOrigin = alert.currentThreat?.originCoordinate
         let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
 
-        // 0. Logarithmic Fractal Flaring Envelope Outer Boundary Lines (Розпушення хвоста траєкторії)
-        MapPolyline(coordinates: trajectory.leftEnvelopePoints)
-            .stroke(
-                Color.orange.opacity(0.40),
-                style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round, dash: [4, 3])
-            )
-            .mapOverlayLevel(level: .aboveLabels)
-
-        MapPolyline(coordinates: trajectory.rightEnvelopePoints)
-            .stroke(
-                Color.orange.opacity(0.40),
-                style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round, dash: [4, 3])
-            )
-            .mapOverlayLevel(level: .aboveLabels)
-
-        // 1. Inner Logarithmic Sub-Streams (Поздовжнє розпушення плазмово-аеродинамічного хвоста)
-        ForEach(0..<trajectory.innerSubStreams.count, id: \.self) { idx in
-            let stream = trajectory.innerSubStreams[idx]
-            let opacity = 0.20 + Double(idx + 1) * 0.12
-            MapPolyline(coordinates: stream)
+        // 0. Comet Outer Dust Coma (16 optimized gradient segments)
+        ForEach(0..<trajectory.cometTailSegments.count, id: \.self) { idx in
+            let seg = trajectory.cometTailSegments[idx]
+            MapPolyline(coordinates: [seg.start, seg.end])
                 .stroke(
-                    Color.yellow.opacity(opacity),
-                    style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round)
+                    color.opacity(seg.outerOpacity),
+                    style: StrokeStyle(lineWidth: seg.outerWidth, lineCap: .round, lineJoin: .round)
                 )
-                .mapOverlayLevel(level: .aboveLabels)
+                .mapOverlayLevel(level: .aboveRoads)
         }
 
-        // 2. Fractal Feather / Chevron Side Strokes (Фрактальні оперені штрихи убік прильоту)
-        ForEach(trajectory.featherStrokes) { stroke in
-            MapPolyline(coordinates: [stroke.startCoordinate, stroke.endCoordinate])
-                .stroke(
-                    Color.yellow.opacity(stroke.opacity),
-                    style: StrokeStyle(lineWidth: stroke.lineWidth, lineCap: .round)
-                )
-                .mapOverlayLevel(level: .aboveLabels)
-        }
-
-        // 3. Sleek Dark Isolation Base
+        // 1. Sleek Dark Base Isolation Layer (Single Polyline pass)
         MapPolyline(coordinates: trajectory.fullPoints)
-            .stroke(Color.black.opacity(0.8), style: StrokeStyle(lineWidth: 5.0, lineCap: .round, lineJoin: .round))
-            .mapOverlayLevel(level: .aboveLabels)
+            .stroke(Color.black.opacity(0.70), style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
+            .mapOverlayLevel(level: .aboveRoads)
 
-        // 4. Continuous Solid Neon Core
+        // 2. Continuous Solid Neon Core Path (Single Polyline pass)
         MapPolyline(coordinates: trajectory.fullPoints)
             .stroke(
-                Color(red: 1.0, green: 0.95, blue: 0.0).opacity(0.90),
+                Color(red: 1.0, green: 0.92, blue: 0.0).opacity(0.92),
                 style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
             )
-            .mapOverlayLevel(level: .aboveLabels)
+            .mapOverlayLevel(level: .aboveRoads)
 
-        // 5. Razor-Sharp Concentrated White Laser Focus near Target Destination
+        // 3. Concentrated White Laser Focus Head (Single Polyline pass)
         MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(max(2, trajectory.fullPoints.count / 3))))
             .stroke(
                 Color.white,
-                style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+                style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
             )
-            .mapOverlayLevel(level: .aboveLabels)
+            .mapOverlayLevel(level: .aboveRoads)
 
         // 6. Intermediate Detection Checkpoint Threat Object Badge
         Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
@@ -334,22 +308,27 @@ struct TrajectoryFlowArrow {
     let opacity: Double
 }
 
-struct FractalFeatherStroke: Identifiable {
-    let id = UUID()
-    let startCoordinate: CLLocationCoordinate2D
-    let endCoordinate: CLLocationCoordinate2D
-    let opacity: Double
-    let lineWidth: CGFloat
+// MARK: - Comet Tail Segment
+
+struct CometTailSegment {
+    let start: CLLocationCoordinate2D
+    let end: CLLocationCoordinate2D
+    // Outer dust coma
+    let outerWidth: CGFloat
+    let outerOpacity: Double
+    // Mid warm glow
+    let midWidth: CGFloat
+    let midOpacity: Double
+    // Inner hot core
+    let coreWidth: CGFloat
+    let coreOpacity: Double
 }
 
-// MARK: - Trajectory Calculator (Logarithmic Fractal Flaring Tail)
+// MARK: - Trajectory Calculator (Comet Tail)
 
 struct TrajectoryPath {
     let fullPoints: [CLLocationCoordinate2D]
-    let leftEnvelopePoints: [CLLocationCoordinate2D]
-    let rightEnvelopePoints: [CLLocationCoordinate2D]
-    let innerSubStreams: [[CLLocationCoordinate2D]]
-    let featherStrokes: [FractalFeatherStroke]
+    let cometTailSegments: [CometTailSegment]
     let flowArrows: [TrajectoryFlowArrow]
     let lastCheckpointCoordinate: CLLocationCoordinate2D
     let lastCheckpointAngle: Double
@@ -498,7 +477,7 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     let controlLon = midLon + normalLon * (distance * curvature)
     
     var fullPoints: [CLLocationCoordinate2D] = []
-    let steps = 60 // Ultra-high resolution (61 points total: indices 0...60)
+    let steps = 16 // High performance resolution (17 points total: indices 0...16)
     for i in 0...steps {
         let t = Double(i) / Double(steps)
         let invT = 1.0 - t
@@ -522,71 +501,52 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         fullPoints.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
     }
 
-    // Logarithmic Fractal Flaring Envelope (Розпушення хвоста за логарифмічною формулою)
-    // Formula: w(t) = w_min + (w_max - w_min) * ln(1 + k * t) / ln(1 + k)
-    let wMin = distance * 0.005  // Narrow tail origin (звуження в точку вильоту)
-    let wMax = distance * 0.12   // Logarithmic flared tail cone (розпушення в напрямку прильоту)
-    let logK = 5.0
-    let logNormDenominator = log(1.0 + logK)
+    // MARK: - Comet Tail Generation
+    // t=0 → origin (tail start, widest point — "кома комети")
+    // t=1 → target (head/nucleus, sharpest point)
+    //
+    // Width law: w(t) = wMax * (1 - t)^1.6  (power-law taper — реалістична комета)
+    // Opacity law: outer ~ (1-t)^0.7, core ~ (1-t)^1.4 + bright near head
 
-    var leftEnvelopePoints: [CLLocationCoordinate2D] = []
-    var rightEnvelopePoints: [CLLocationCoordinate2D] = []
-    var innerSubStreams: [[CLLocationCoordinate2D]] = [[], [], []]
-    var featherStrokes: [FractalFeatherStroke] = []
+    let wMax = distance * 0.055  // Maximum coma width at tail origin
+    var cometSegments: [CometTailSegment] = []
 
-    for i in 0...steps {
-        let t = Double(i) / Double(steps)
-        let pt = fullPoints[i]
-        
-        let nextIdx = min(steps, i + 1)
-        let prevIdx = max(0, i - 1)
-        let dLatLoc = fullPoints[nextIdx].latitude - fullPoints[prevIdx].latitude
-        let dLonLoc = fullPoints[nextIdx].longitude - fullPoints[prevIdx].longitude
-        let lenLoc = max(0.00001, sqrt(dLatLoc * dLatLoc + dLonLoc * dLonLoc))
-        
-        let pLat = -dLonLoc / lenLoc
-        let pLon = dLatLoc / lenLoc
-        
-        let logProgress = log(1.0 + logK * t) / logNormDenominator
-        let currentWidth = wMin + (wMax - wMin) * logProgress
-        
-        let leftLat = pt.latitude + pLat * currentWidth
-        let leftLon = pt.longitude + pLon * currentWidth
-        let rightLat = pt.latitude - pLat * currentWidth
-        let rightLon = pt.longitude - pLon * currentWidth
-        
-        leftEnvelopePoints.append(CLLocationCoordinate2D(latitude: leftLat, longitude: leftLon))
-        rightEnvelopePoints.append(CLLocationCoordinate2D(latitude: rightLat, longitude: rightLon))
-        
-        let subRatios: [Double] = [-0.50, 0.0, 0.50]
-        for sIdx in 0..<subRatios.count {
-            let offset = currentWidth * subRatios[sIdx]
-            let sLat = pt.latitude + pLat * offset
-            let sLon = pt.longitude + pLon * offset
-            innerSubStreams[sIdx].append(CLLocationCoordinate2D(latitude: sLat, longitude: sLon))
-        }
-        
-        if i >= 8 && i % 5 == 0 && i < steps - 3 {
-            let featherOpacity = 0.20 + (logProgress * 0.55)
-            let featherLineWidth = CGFloat(1.0 + (logProgress * 1.5))
-            
-            let fLeftEnd = CLLocationCoordinate2D(
-                latitude: pt.latitude + (pLat * currentWidth * 1.2) - (dLatLoc / lenLoc * currentWidth * 0.45),
-                longitude: pt.longitude + (pLon * currentWidth * 1.2) - (dLonLoc / lenLoc * currentWidth * 0.45)
-            )
-            let fRightEnd = CLLocationCoordinate2D(
-                latitude: pt.latitude - (pLat * currentWidth * 1.2) - (dLatLoc / lenLoc * currentWidth * 0.45),
-                longitude: pt.longitude - (pLon * currentWidth * 1.2) - (dLonLoc / lenLoc * currentWidth * 0.45)
-            )
-            
-            featherStrokes.append(FractalFeatherStroke(startCoordinate: pt, endCoordinate: fLeftEnd, opacity: featherOpacity, lineWidth: featherLineWidth))
-            featherStrokes.append(FractalFeatherStroke(startCoordinate: pt, endCoordinate: fRightEnd, opacity: featherOpacity, lineWidth: featherLineWidth))
-        }
+    for i in 0..<steps {
+        let t0 = Double(i) / Double(steps)
+        let t1 = Double(i + 1) / Double(steps)
+
+        // Width is WIDE at t=0 (tail) and ZERO at t=1 (head)
+        let w0 = wMax * pow(1.0 - t0, 1.6)
+        let w1 = wMax * pow(1.0 - t1, 1.6)
+        let wAvg = (w0 + w1) * 0.5
+
+        // Opacity: dust coma visible throughout tail, fades toward head
+        let progress = t0  // 0 = tail, 1 = head
+        let outerOpacity = 0.28 * pow(1.0 - progress, 0.7)
+        let midOpacity   = 0.42 * pow(1.0 - progress, 1.0)
+        let coreOpacity  = 0.18 + 0.72 * pow(progress, 0.8)  // core gets BRIGHTER near head
+
+        // Line widths (in map-point scale relative to distance)
+        let outerPxRaw = CGFloat(wAvg * 420.0 / distance)
+        let outerPx = max(4.0, min(22.0, outerPxRaw))
+        let midPx   = max(2.0, min(12.0, outerPx * 0.52))
+        let corePx  = max(1.2, min(5.0,  outerPx * 0.22))
+
+        cometSegments.append(CometTailSegment(
+            start: fullPoints[i],
+            end: fullPoints[i + 1],
+            outerWidth: outerPx,
+            outerOpacity: outerOpacity,
+            midWidth: midPx,
+            midOpacity: midOpacity,
+            coreWidth: corePx,
+            coreOpacity: coreOpacity
+        ))
     }
-    
+
     // Directional flow arrows at ~25%, ~50%, and ~75% along trajectory
     var flowArrows: [TrajectoryFlowArrow] = []
-    let arrowStepIndices = [15, 30, 45]
+    let arrowStepIndices = [4, 8, 12]
     for stepIdx in arrowStepIndices {
         let ap1 = fullPoints[stepIdx]
         let ap2 = fullPoints[stepIdx + 1]
@@ -600,21 +560,18 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
     }
 
     // Last telemetry checkpoint at ~80% along the trajectory
-    let checkpointIdx = 48
+    let checkpointIdx = 12
     let p1 = fullPoints[checkpointIdx]
     let p2 = fullPoints[checkpointIdx + 1]
-    
+
     let deltaLat = p2.latitude - p1.latitude
     let deltaLon = p2.longitude - p1.longitude
     let angleRad = atan2(deltaLon, deltaLat)
     let angleDeg = angleRad * 180.0 / .pi
-    
+
     return TrajectoryPath(
         fullPoints: fullPoints,
-        leftEnvelopePoints: leftEnvelopePoints,
-        rightEnvelopePoints: rightEnvelopePoints,
-        innerSubStreams: innerSubStreams,
-        featherStrokes: featherStrokes,
+        cometTailSegments: cometSegments,
         flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
         lastCheckpointAngle: angleDeg
