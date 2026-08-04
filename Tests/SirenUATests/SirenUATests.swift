@@ -314,4 +314,67 @@ final class SirenUATests: XCTestCase {
         // remaining = 120 - 2.666... * 15 = 120 - 40 = 80 km
         XCTAssertEqual(dynamicLine, "Відстань: ~80 км")
     }
+
+    func testNotificationSettingsToggles() throws {
+        let defaults = UserDefaults.standard
+
+        // Backup current values
+        let oldNotif = defaults.object(forKey: "notificationsEnabled")
+        let oldCrit = defaults.object(forKey: "criticalAlertsEnabled")
+        let oldAlarmMute = defaults.object(forKey: "muteAlarmsSound")
+        let oldThreatMute = defaults.object(forKey: "muteThreatsSound")
+        let oldClearMute = defaults.object(forKey: "muteClearSound")
+        let oldVib = defaults.object(forKey: "vibrationEnabled")
+
+        defer {
+            defaults.setValue(oldNotif, forKey: "notificationsEnabled")
+            defaults.setValue(oldCrit, forKey: "criticalAlertsEnabled")
+            defaults.setValue(oldAlarmMute, forKey: "muteAlarmsSound")
+            defaults.setValue(oldThreatMute, forKey: "muteThreatsSound")
+            defaults.setValue(oldClearMute, forKey: "muteClearSound")
+            defaults.setValue(oldVib, forKey: "vibrationEnabled")
+        }
+
+        // 1. notificationsEnabled toggle
+        defaults.set(false, forKey: "notificationsEnabled")
+        XCTAssertFalse(defaults.bool(forKey: "notificationsEnabled"))
+
+        defaults.set(true, forKey: "notificationsEnabled")
+        XCTAssertTrue(defaults.bool(forKey: "notificationsEnabled"))
+
+        // 2. criticalAlertsEnabled toggle
+        defaults.set(false, forKey: "criticalAlertsEnabled")
+        XCTAssertFalse(defaults.bool(forKey: "criticalAlertsEnabled"))
+
+        defaults.set(true, forKey: "criticalAlertsEnabled")
+        XCTAssertTrue(defaults.bool(forKey: "criticalAlertsEnabled"))
+
+        // 3. muteAlarmsSound toggle
+        defaults.set(true, forKey: "muteAlarmsSound")
+        XCTAssertTrue(defaults.bool(forKey: "muteAlarmsSound"))
+
+        defaults.set(false, forKey: "muteAlarmsSound")
+        XCTAssertFalse(defaults.bool(forKey: "muteAlarmsSound"))
+
+        // 4. muteThreatsSound toggle
+        defaults.set(true, forKey: "muteThreatsSound")
+        XCTAssertTrue(defaults.bool(forKey: "muteThreatsSound"))
+
+        defaults.set(false, forKey: "muteThreatsSound")
+        XCTAssertFalse(defaults.bool(forKey: "muteThreatsSound"))
+
+        // 5. muteClearSound toggle
+        defaults.set(true, forKey: "muteClearSound")
+        XCTAssertTrue(defaults.bool(forKey: "muteClearSound"))
+
+        defaults.set(false, forKey: "muteClearSound")
+        XCTAssertFalse(defaults.bool(forKey: "muteClearSound"))
+
+        // 6. vibrationEnabled toggle
+        defaults.set(false, forKey: "vibrationEnabled")
+        XCTAssertFalse(defaults.bool(forKey: "vibrationEnabled"))
+
+        defaults.set(true, forKey: "vibrationEnabled")
+        XCTAssertTrue(defaults.bool(forKey: "vibrationEnabled"))
+    }
 }
