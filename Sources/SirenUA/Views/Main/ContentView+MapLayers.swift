@@ -25,14 +25,14 @@ extension ContentView {
     var activeThreatRegions: [RegionPolygon] {
         return geoManager.regions.filter { region in
             guard let alert = alertsDict[region.nameUK] else { return false }
-            return !alert.isActive && alert.threatLevel != nil
+            return !alert.isActive && (alert.threatLevel != nil || !alert.activeThreats.isEmpty)
         }
     }
 
     var safeRegions: [RegionPolygon] {
         geoManager.regions.filter { region in
             guard let alert = alertsDict[region.nameUK] else { return true }
-            return !alert.isActive && alert.threatLevel == nil
+            return !alert.isActive && alert.threatLevel == nil && alert.activeThreats.isEmpty
         }
     }
 }

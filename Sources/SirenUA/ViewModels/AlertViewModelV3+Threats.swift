@@ -14,8 +14,17 @@ extension AlertViewModelV3 {
         isFetching = true
 
         do {
-            let threats = try await networkManager.fetchThreats(serverURL: threatServerURL)
+            async let threatsTask = networkManager.fetchThreats(serverURL: threatServerURL)
+            async let liveAlertsTask = networkManager.fetchLiveAlerts()
+
+            let threats = try await threatsTask
+            let liveAlerts = try? await liveAlertsTask
+
             applyThreats(threats)
+            if let liveAlerts, !liveAlerts.isEmpty {
+                applyLiveAlerts(liveAlerts)
+            }
+
             updateStats()
             updateLastAlertedRegion()
             isFirstThreatFetch = false
