@@ -11,8 +11,8 @@ struct RegionPolygonsLayer: MapContent {
     var body: some MapContent {
         // Polygons for safe regions (Clean Deep Midnight Blue with Kyiv-style Cyan Stroke)
         ForEach(safeRegions) { region in
-            let strokeColor = Color.cyan.opacity(0.85)
-            let strokeWidth: CGFloat = 1.2
+            let strokeColor = Color.cyan.opacity(0.60)
+            let strokeWidth: CGFloat = 0.7
 
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
@@ -26,7 +26,7 @@ struct RegionPolygonsLayer: MapContent {
         ForEach(activeThreatRegions) { region in
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let fillColor: Color = threatColor.opacity(0.62)
-            let strokeWidth: CGFloat = 1.2
+            let strokeWidth: CGFloat = 0.8
 
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
@@ -40,7 +40,7 @@ struct RegionPolygonsLayer: MapContent {
         ForEach(activeAlertRegions) { region in
             let isLastAlerted = region.nameUK == lastAlertedRegionName
             let redFill = isLastAlerted ? Color(red: 0.96, green: 0.11, blue: 0.16).opacity(0.68) : Color(red: 0.91, green: 0.13, blue: 0.19).opacity(0.58)
-            let strokeWidth: CGFloat = 1.2
+            let strokeWidth: CGFloat = 0.8
 
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)

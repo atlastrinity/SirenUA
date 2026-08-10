@@ -147,14 +147,18 @@ final class GeoJSONManager: ObservableObject {
                     mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
                 }
             } else if let multi = geometry as? MKMultiPolygon {
-                for polygon in multi.polygons {
+                let sorted = multi.polygons.sorted { $0.pointCount > $1.pointCount }
+                for (idx, polygon) in sorted.enumerated() {
                     let extracted = extractCoordinates(from: polygon)
                     let simplified = simplifyCoordinates(extracted)
-                    coords.append(simplified)
-                    if let interior = polygon.interiorPolygons, !interior.isEmpty {
-                        mkPolys.append(polygon)
-                    } else {
-                        mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
+                    // Keep main landmasses and sizable islands, filter micro islets that cause heavy stroke clusters
+                    if idx == 0 || simplified.count >= 15 {
+                        coords.append(simplified)
+                        if let interior = polygon.interiorPolygons, !interior.isEmpty {
+                            mkPolys.append(polygon)
+                        } else {
+                            mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
+                        }
                     }
                 }
             }
