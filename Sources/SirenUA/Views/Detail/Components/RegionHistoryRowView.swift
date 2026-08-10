@@ -118,8 +118,11 @@ struct RegionHistoryRowView: View {
     }
     
     private func threatTypeColor(_ type: String?, level: String) -> Color {
+        if level == "none" || level == "clear" {
+            return .green
+        }
         if type == "official_alarm" {
-            return level == "none" ? .green : .red
+            return .red
         }
         switch type {
         case "shahed": return .yellow

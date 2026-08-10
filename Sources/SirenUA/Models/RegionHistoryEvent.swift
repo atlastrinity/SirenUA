@@ -92,8 +92,12 @@ struct RegionHistoryEvent: Identifiable, Codable {
     
     /// Emoji icon for threat type
     var typeIcon: String {
+        let isClear = (threat_level == "none" || threat_level == "clear")
+        if isClear {
+            return "🟢"
+        }
         switch threat_type {
-        case "official_alarm": return threat_level == "none" ? "🟢" : "🚨"
+        case "official_alarm": return "🚨"
         case "shahed": return "🛩"
         case "cruise_missile": return "🚀"
         case "ballistic": return "💥"
@@ -107,8 +111,62 @@ struct RegionHistoryEvent: Identifiable, Codable {
     
     /// Human-readable threat type name
     var typeName: String {
+        let isClear = (threat_level == "none" || threat_level == "clear")
+        let detailLower = detail?.lowercased() ?? ""
+        
+        if isClear {
+            // Check if threat_type is a specific tactical threat
+            switch threat_type {
+            case "shahed":
+                return "Відбій загрози: БПЛА Шахед"
+            case "cruise_missile":
+                return "Відбій загрози: Крилаті ракети"
+            case "ballistic":
+                return "Відбій загрози: Балістика"
+            case "mig31k":
+                return "Відбій загрози: МіГ-31К"
+            case "kab":
+                return "Відбій загрози: КАБ"
+            case "iskander":
+                return "Відбій загрози: Іскандер"
+            case "tu95":
+                return "Відбій загрози: Ту-95МС"
+            case "official_alarm":
+                // If detail mentions threat mitigation (e.g. ballistic/drones), show "Відбій загрози"
+                if detailLower.contains("загроз") {
+                    if detailLower.contains("балістик") {
+                        return "Відбій загрози: Балістика"
+                    } else if detailLower.contains("шахед") || detailLower.contains("бпла") || detailLower.contains("дрон") {
+                        return "Відбій загрози: БПЛА Шахед"
+                    } else if detailLower.contains("ракет") {
+                        return "Відбій загрози: Крилаті ракети"
+                    } else if detailLower.contains("каб") || detailLower.contains("авіац") {
+                        return "Відбій загрози: КАБ / Авіація"
+                    } else if detailLower.contains("міг") || detailLower.contains("кинджал") {
+                        return "Відбій загрози: МіГ-31К"
+                    }
+                    return "Відбій загрози"
+                }
+                return "Відбій повітряної тривоги"
+            default:
+                if detailLower.contains("балістик") {
+                    return "Відбій загрози: Балістика"
+                } else if detailLower.contains("шахед") || detailLower.contains("бпла") || detailLower.contains("дрон") {
+                    return "Відбій загрози: БПЛА Шахед"
+                } else if detailLower.contains("ракет") {
+                    return "Відбій загрози: Крилаті ракети"
+                } else if detailLower.contains("каб") {
+                    return "Відбій загрози: КАБ"
+                } else if detailLower.contains("тривог") {
+                    return "Відбій повітряної тривоги"
+                }
+                return "Відбій загрози"
+            }
+        }
+        
+        // Active threats (threat_level != none)
         switch threat_type {
-        case "official_alarm": return threat_level == "none" ? "Відбій тривоги" : "Повітряна тривога"
+        case "official_alarm": return "Повітряна тривога"
         case "shahed": return "БПЛА Шахед"
         case "cruise_missile": return "Крилаті ракети"
         case "ballistic": return "Балістика"
