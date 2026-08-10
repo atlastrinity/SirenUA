@@ -121,17 +121,7 @@ struct RegionHistoryRowView: View {
         if level == "none" || level == "clear" {
             return .green
         }
-        if type == "official_alarm" {
-            return .red
-        }
-        switch type {
-        case "shahed": return .yellow
-        case "kab": return .orange
-        case "ballistic", "iskander": return .red
-        case "mig31k", "tu95": return .purple
-        case "cruise_missile": return Color(red: 1.0, green: 0.2, blue: 0.4)
-        default: return .gray
-        }
+        return ThreatConstants.color(for: type)
     }
     
     private func levelLabel(_ level: String) -> String {
