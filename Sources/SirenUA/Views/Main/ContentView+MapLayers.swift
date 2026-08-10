@@ -17,22 +17,38 @@ extension ContentView {
     }
 
     var activeAlertRegions: [RegionPolygon] {
-        geoManager.regions.filter { region in
-            alertsDict[region.nameUK]?.isActive == true
-        }
+        geoManager.regions
+            .filter { alertsDict[$0.nameUK]?.isActive == true }
+            .sorted { r1, r2 in
+                if r1.nameUK == "м. Київ" { return false }
+                if r2.nameUK == "м. Київ" { return true }
+                return r1.nameUK < r2.nameUK
+            }
     }
 
     var activeThreatRegions: [RegionPolygon] {
-        return geoManager.regions.filter { region in
-            guard let alert = alertsDict[region.nameUK] else { return false }
-            return !alert.isActive && (alert.threatLevel != nil || !alert.activeThreats.isEmpty)
-        }
+        geoManager.regions
+            .filter { region in
+                guard let alert = alertsDict[region.nameUK] else { return false }
+                return !alert.isActive && (alert.threatLevel != nil || !alert.activeThreats.isEmpty)
+            }
+            .sorted { r1, r2 in
+                if r1.nameUK == "м. Київ" { return false }
+                if r2.nameUK == "м. Київ" { return true }
+                return r1.nameUK < r2.nameUK
+            }
     }
 
     var safeRegions: [RegionPolygon] {
-        geoManager.regions.filter { region in
-            guard let alert = alertsDict[region.nameUK] else { return true }
-            return !alert.isActive && alert.threatLevel == nil && alert.activeThreats.isEmpty
-        }
+        geoManager.regions
+            .filter { region in
+                guard let alert = alertsDict[region.nameUK] else { return true }
+                return !alert.isActive && alert.threatLevel == nil && alert.activeThreats.isEmpty
+            }
+            .sorted { r1, r2 in
+                if r1.nameUK == "м. Київ" { return false }
+                if r2.nameUK == "м. Київ" { return true }
+                return r1.nameUK < r2.nameUK
+            }
     }
 }
