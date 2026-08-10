@@ -10,19 +10,12 @@ private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Setting
 // MARK: - SettingsView
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
-    @AppStorage("notificationsEnabled")      private var notificationsEnabled      = true
-    @AppStorage("criticalAlertsEnabled")     private var criticalAlertsEnabled     = true
+    @ObservedObject private var settings = NotificationSettings.shared
     @AppStorage("mapType")                   private var mapType                   = 0
     @AppStorage("walkingSearchRadius")       private var walkingSearchRadius       = 1.5
     @AppStorage("drivingSearchRadius")       private var drivingSearchRadius       = 5.0
-    @AppStorage("allRegionsTracked")         private var allRegionsTracked         = true
-    @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
     @AppStorage("adminAuthenticated")        private var adminAuthenticated        = false
     @AppStorage("adminViewMode")             private var adminViewMode             = false
-    @AppStorage("muteAlarmsSound")          private var muteAlarmsSound           = false
-    @AppStorage("muteThreatsSound")         private var muteThreatsSound          = false
-    @AppStorage("muteClearSound")           private var muteClearSound            = false
-    @AppStorage("vibrationEnabled")          private var vibrationEnabled          = true
 
     @State private var inputEmail = ""
     @State private var inputPassword = ""
@@ -57,18 +50,11 @@ struct SettingsView: View {
 
     // MARK: Region helpers
     private func isTracked(_ name: String) -> Bool {
-        guard !trackedRegionsString.isEmpty || !allRegionsTracked else { return true }
-        return trackedRegionsString.components(separatedBy: ";").contains(name)
+        settings.isTracked(name)
     }
 
     private func setTracked(_ name: String, isOn: Bool) {
-        var list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-        if isOn {
-            if !list.contains(name) { list.append(name) }
-        } else {
-            list.removeAll { $0 == name }
-        }
-        trackedRegionsString = list.joined(separator: ";")
+        settings.setTracked(name, isOn: isOn)
     }
 
     // MARK: Haptics
@@ -208,15 +194,15 @@ struct SettingsView: View {
                 isInitialized = true
             }
         }
-        .onChange(of: notificationsEnabled) { oldValue, newValue in
+        .onChange(of: settings.notificationsEnabled) { oldValue, newValue in
             guard isInitialized else { return }
             NotificationManager.shared.syncTopicSubscriptions()
         }
-        .onChange(of: trackedRegionsString) { oldValue, newValue in
+        .onChange(of: settings.trackedRegionsString) { oldValue, newValue in
             guard isInitialized else { return }
             NotificationManager.shared.syncTopicSubscriptions()
         }
-        .onChange(of: allRegionsTracked) { oldValue, newValue in
+        .onChange(of: settings.allRegionsTracked) { oldValue, newValue in
             guard isInitialized else { return }
             NotificationManager.shared.syncTopicSubscriptions()
         }
@@ -306,11 +292,9 @@ struct SettingsView: View {
                 subtitle: "Push-повідомлення про тривоги",
                 icon: "bell.fill",
                 iconColor: .siBlue,
-                isOn: $notificationsEnabled
+                isOn: $settings.notificationsEnabled
             )
-            .onChange(of: notificationsEnabled) { oldValue, newValue in
-                haptic()
-            }
+            .onChange(of: settings.notificationsEnabled) { _, _ in haptic() }
             
             StyledDivider()
             
@@ -319,17 +303,11 @@ struct SettingsView: View {
                 subtitle: "Пробивати режим «Не турбувати»",
                 icon: "exclamationmark.triangle.fill",
                 iconColor: .red,
-                isOn: $criticalAlertsEnabled
+                isOn: $settings.criticalAlertsEnabled
             )
-            .disabled(!notificationsEnabled)
-            .opacity(notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: criticalAlertsEnabled) { oldValue, newValue in
-                if newValue {
-                    // Увімкнення критичних сповіщень автоматично вмикає звук тривоги (вимикає "Без звуку")
-                    muteAlarmsSound = false
-                }
-                haptic()
-            }
+            .disabled(!settings.notificationsEnabled)
+            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: settings.criticalAlertsEnabled) { _, _ in haptic() }
             
             StyledDivider()
 
@@ -338,17 +316,11 @@ struct SettingsView: View {
                 subtitle: "Вимкнути звук при офіційній тривозі",
                 icon: "bell.slash.fill",
                 iconColor: .red,
-                isOn: $muteAlarmsSound
+                isOn: $settings.muteAlarmsSound
             )
-            .disabled(!notificationsEnabled)
-            .opacity(notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: muteAlarmsSound) { oldValue, newValue in
-                if newValue {
-                    // Увімкнення "Без звуку" для тривоги автоматично вимикає режим критичних сповіщень
-                    criticalAlertsEnabled = false
-                }
-                haptic()
-            }
+            .disabled(!settings.notificationsEnabled)
+            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: settings.muteAlarmsSound) { _, _ in haptic() }
 
             StyledDivider()
             
@@ -357,13 +329,11 @@ struct SettingsView: View {
                 subtitle: "Вимкнути звук для ШІ-попереджень",
                 icon: "speaker.slash.circle.fill",
                 iconColor: .siOrange,
-                isOn: $muteThreatsSound
+                isOn: $settings.muteThreatsSound
             )
-            .disabled(!notificationsEnabled)
-            .opacity(notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: muteThreatsSound) { oldValue, newValue in
-                haptic()
-            }
+            .disabled(!settings.notificationsEnabled)
+            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: settings.muteThreatsSound) { _, _ in haptic() }
 
             StyledDivider()
 
@@ -372,13 +342,11 @@ struct SettingsView: View {
                 subtitle: "Вимкнути звук при відбої тривоги",
                 icon: "speaker.slash.fill",
                 iconColor: .green,
-                isOn: $muteClearSound
+                isOn: $settings.muteClearSound
             )
-            .disabled(!notificationsEnabled)
-            .opacity(notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: muteClearSound) { oldValue, newValue in
-                haptic()
-            }
+            .disabled(!settings.notificationsEnabled)
+            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: settings.muteClearSound) { _, _ in haptic() }
 
             StyledDivider()
 
@@ -387,87 +355,20 @@ struct SettingsView: View {
                 subtitle: "Вібрувати при тривозі, загрозах та відбої",
                 icon: "iphone.radiowaves.left.and.right",
                 iconColor: .purple,
-                isOn: $vibrationEnabled
+                isOn: $settings.vibrationEnabled
             )
-            .disabled(!notificationsEnabled)
-            .opacity(notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: vibrationEnabled) { oldValue, newValue in
-                haptic()
-            }
+            .disabled(!settings.notificationsEnabled)
+            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: settings.vibrationEnabled) { _, _ in haptic() }
         }
     }
 
     private var mapCard: some View {
-        SettingsCard(title: "Карта та Навігація", icon: "map.fill", iconColor: .siGold) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Тип карти")
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.5))
-
-                Picker("Тип карти", selection: $mapType) {
-                    Text("Стандартна").tag(0)
-                    Text("Гібридна").tag(1)
-                    Text("Супутник").tag(2)
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: mapType) { oldValue, newValue in haptic() }
-            }
-
-            StyledDivider()
-
-            radiusRow(
-                title: "Радіус пошуку пішки",
-                icon: "figure.walk",
-                iconColor: ChartColorTheme.accent,
-                value: $walkingSearchRadius,
-                range: 0.5...3.0,
-                step: 0.5,
-                format: "%.1f"
-            )
-
-            StyledDivider()
-
-            radiusRow(
-                title: "Радіус пошуку авто",
-                icon: "car.fill",
-                iconColor: ChartColorTheme.active,
-                value: $drivingSearchRadius,
-                range: 1.0...20.0,
-                step: 1.0,
-                format: "%.0f"
-            )
-        }
-    }
-
-    private func radiusRow(
-        title: String,
-        icon: String,
-        iconColor: Color,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        step: Double,
-        format: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(iconColor)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                Spacer()
-                Text("\(value.wrappedValue, specifier: format) км")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundColor(iconColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(iconColor.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-            Slider(value: value, in: range, step: step)
-                .tint(iconColor)
-        }
+        MapSettingsCard(
+            mapType: $mapType,
+            walkingSearchRadius: $walkingSearchRadius,
+            drivingSearchRadius: $drivingSearchRadius
+        )
     }
 
     private var premiumCard: some View {
@@ -591,134 +492,27 @@ struct SettingsView: View {
     }
 
     private var regionsCard: some View {
-        SettingsCard(title: "Відслідковувані регіони", icon: "mappin.and.ellipse", iconColor: ChartColorTheme.active) {
-            StyledToggleRow(
-                title: "Усі регіони України",
-                subtitle: "Отримувати тривоги по всій країні",
-                icon: "globe.europe.africa.fill",
-                iconColor: ChartColorTheme.active,
-                isOn: Binding(
-                    get: { allRegionsTracked },
-                    set: { newVal in
-                        haptic()
-                        allRegionsTracked = newVal
-                        trackedRegionsString = newVal ? allRegionsList.joined(separator: ";") : ""
-                    }
-                )
-            )
-
-            if !allRegionsTracked {
-                StyledDivider()
-                regionsPickerSection
-            }
-        }
-    }
-
-    private var regionsPickerSection: some View {
-        VStack(spacing: 0) {
-            Button(action: {
-                withAnimation(.spring(response: 0.3)) {
-                    isRegionsExpanded.toggle()
-                }
-            }) {
-                HStack {
-                    Image(systemName: isRegionsExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
-                        .foregroundColor(.siGold)
-                        .font(.system(size: 16))
-                    Text("Вибрати регіони вручну")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.75))
-                    Spacer()
-                    let count = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }.count
-                    if count > 0 {
-                        Text("\(count)")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.siGold)
-                            .clipShape(Capsule())
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if isRegionsExpanded {
-                VStack(spacing: 0) {
-                    ForEach(allRegionsList, id: \.self) { region in
-                        HStack {
-                            Text(region)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white)
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { isTracked(region) },
-                                set: { isOn in
-                                    haptic()
-                                    setTracked(region, isOn: isOn)
-                                }
-                            ))
-                            .labelsHidden()
-                            .tint(.siGold)
-                        }
-                        .padding(.vertical, 9)
-                        .padding(.horizontal, 4)
-
-                        if region != allRegionsList.last {
-                            Divider().background(Color.white.opacity(0.05))
-                        }
-                    }
-                }
-                .padding(.top, 10)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
+        RegionTrackingCard(
+            settings: settings,
+            isRegionsExpanded: $isRegionsExpanded,
+            allRegionsList: allRegionsList,
+            onHaptic: { style in haptic(style) }
+        )
     }
 
     private var diagnosticsCard: some View {
-        SettingsCard(title: "Діагностика з'єднання", icon: "network", iconColor: .purple) {
-            ServerStatusRow(
-                name: "Основний сервер тривог",
-                url: "ubilling.net.ua",
-                status: alertsServerStatus
-            )
-
-            StyledDivider()
-
-            ServerStatusRow(
-                name: "Сервер загроз (Premium)",
-                url: "sirenua-threatserver.onrender.com",
-                status: threatsServerStatus
-            )
-
-            StyledDivider()
-
-            ServerStatusRow(
-                name: "Аналізатор ШІ (Gemini)",
-                url: "gemini-2.5-flash",
-                status: geminiServerStatus
-            )
-
-            HStack {
-                Spacer()
-                Button(action: {
-                    haptic(.medium)
-                    alertsServerStatus  = .checking
-                    threatsServerStatus = .checking
-                    geminiServerStatus  = .checking
-                    Task { await checkServerStatus() }
-                }) {
-                    Label("Оновити статус", systemImage: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(ChartColorTheme.accent)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 14)
-                        .background(ChartColorTheme.accent.opacity(0.12))
-                        .clipShape(Capsule())
-                }
+        ServerDiagnosticsCard(
+            alertsServerStatus: alertsServerStatus,
+            threatsServerStatus: threatsServerStatus,
+            geminiServerStatus: geminiServerStatus,
+            onRefresh: {
+                haptic(.medium)
+                alertsServerStatus  = .checking
+                threatsServerStatus = .checking
+                geminiServerStatus  = .checking
+                Task { await checkServerStatus() }
             }
-        }
+        )
     }
 
     private var adminDashboardCard: some View {
@@ -747,82 +541,10 @@ struct SettingsView: View {
     }
 
     private var mockScenariosCard: some View {
-        SettingsCard(title: "Симуляція загроз (Розробка)", icon: "flask.fill", iconColor: .orange) {
-            Text("Запустіть один із тестових сценаріїв для перевірки жовтих областей, телеметрії, відстані та кругових діаграм ймовірностей.")
-                .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.4))
-                .lineSpacing(4)
-            
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    Button(action: {
-                        haptic(.medium)
-                        triggerScenario("shaheds_south")
-                    }) {
-                        HStack {
-                            Image(systemName: "play.fill")
-                            Text("Шахеди з півдня")
-                        }
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(ChartColorTheme.active.opacity(0.2))
-                        .cornerRadius(8)
-                    }
-                    
-                    Button(action: {
-                        haptic(.medium)
-                        triggerScenario("mig_takeoff")
-                    }) {
-                        HStack {
-                            Image(systemName: "play.fill")
-                            Text("Зліт МіГ-31К")
-                        }
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(ChartColorTheme.orange.opacity(0.2))
-                        .cornerRadius(8)
-                    }
-                }
-                
-                HStack(spacing: 8) {
-                    Button(action: {
-                        haptic(.medium)
-                        triggerScenario("cruise_missiles_west")
-                    }) {
-                        HStack {
-                            Image(systemName: "play.fill")
-                            Text("Ракети (Захід)")
-                        }
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(ChartColorTheme.accent.opacity(0.2))
-                        .cornerRadius(8)
-                    }
-                    
-                    Button(action: {
-                        haptic(.medium)
-                        triggerScenario("clear")
-                    }) {
-                        HStack {
-                            Image(systemName: "xmark.circle.fill")
-                            Text("Очистити все")
-                        }
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(ChartColorTheme.overestimated.opacity(0.15))
-                        .cornerRadius(8)
-                    }
-                }
-            }
-        }
+        MockScenariosCard(onTriggerScenario: { scenario in
+            haptic(.medium)
+            triggerScenario(scenario)
+        })
     }
 
     private var aboutCard: some View {

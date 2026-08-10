@@ -139,15 +139,39 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 completionHandler([.banner, .sound, .badge, .list])
                 return
             }
+
+            guard NotificationSettings.shared.notificationsEnabled else {
+                completionHandler([])
+                return
+            }
+
             let userInfo = notification.request.content.userInfo
             var regionName: String? = userInfo["region"] as? String ?? userInfo["regionName"] as? String
             if regionName == nil, let aps = userInfo["aps"] as? [String: Any],
                let custom = aps["custom_data"] as? [String: Any] {
                 regionName = custom["region"] as? String
             }
-            if let region = regionName, !self.shouldNotify(for: region) {
+            if let region = regionName, !NotificationSettings.shared.isTracked(region) {
                 completionHandler([])
                 return
+            }
+
+            let title = notification.request.content.title.lowercased()
+            let body = notification.request.content.body.lowercased()
+
+            let isClear = title.contains("відбій") || body.contains("відбій")
+            let isAlarm = title.contains("тривога") || body.contains("тривога")
+            let isThreat = title.contains("загроза") || title.contains("каб") || title.contains("шахед") || title.contains("ракета") || body.contains("загроза")
+
+            let shouldPlaySound: Bool
+            if isClear {
+                shouldPlaySound = NotificationSettings.shared.shouldPlayClearSound
+            } else if isAlarm {
+                shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
+            } else if isThreat {
+                shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
+            } else {
+                shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
             }
 
             let interruptionLevel = notification.request.content.interruptionLevel
@@ -155,7 +179,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             let throttle = isCriticalNotif ? Self.soundThrottleCritical : Self.soundThrottleNormal
             
             let now = Date()
-            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
+            if !shouldPlaySound {
+                notifLogger.info("Foreground notification sound suppressed by user settings")
+                completionHandler([.banner, .badge, .list])
+            } else if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
                 notifLogger.debug("Foreground notification sound suppressed (within \(throttle)s)")
                 completionHandler([.banner, .badge, .list])
             } else if notification.request.content.sound != nil {
@@ -216,12 +243,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled else { return }
                 
-                let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-                let trackedString = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
-                let trackedList = Set(trackedString.components(separatedBy: ";").filter { !$0.isEmpty })
+                let notifsEnabled = NotificationSettings.shared.notificationsEnabled
 
                 for (region, topic) in self.topicMapping {
-                    let shouldSubscribe = allTracked || trackedList.contains(region)
+                    let shouldSubscribe = notifsEnabled && NotificationSettings.shared.isTracked(region)
                     if shouldSubscribe {
                         do {
                             try await Messaging.messaging().subscribe(toTopic: topic)
@@ -247,17 +272,15 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
         let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
 
-        // Use .critical if entitled and enabled by user AND alarms are not muted
-        let isCrit = hasCriticalAlerts && criticalAlertsEnabled && !muteAlarmsSound
+        let isCrit = hasCriticalAlerts && NotificationSettings.shared.criticalAlertsEnabled && NotificationSettings.shared.shouldPlayAlarmSound
         let level: UNNotificationInterruptionLevel = isCrit ? .critical : .timeSensitive
 
         let fullTitle = "🚨 Повітряна тривога — \(regionName)"
-        let soundName = muteAlarmsSound ? "" : "siren.wav"
+        let soundName = NotificationSettings.shared.shouldPlayAlarmSound ? "siren.wav" : ""
 
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: level, relevanceScore: 1.0, isCritical: isCrit)
 
-        // Haptic feedback for official alarm
         triggerHaptic(.warning, pulses: 4)
         if isCrit, #available(iOS 16.0, *) {
             CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
@@ -266,12 +289,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
                                 confidence: Int = 75, isCritical: Bool = false) {
-        let effectiveIsCritical = isCritical && criticalAlertsEnabled && !muteThreatsSound
+        let effectiveIsCritical = isCritical && NotificationSettings.shared.criticalAlertsEnabled && NotificationSettings.shared.shouldPlayThreatSound
         let level: UNNotificationInterruptionLevel
         let relevance: Double
 
         if effectiveIsCritical || confidence >= 85 {
-            level = .timeSensitive  // Pierces Focus, but not DND without entitlement
+            level = .timeSensitive
             relevance = 0.8
         } else if confidence >= 60 {
             level = .timeSensitive
@@ -281,7 +304,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             relevance = 0.4
         }
 
-        let soundName = muteThreatsSound ? "" : (effectiveIsCritical ? "siren.wav" : "warning.wav")
+        let soundName = NotificationSettings.shared.shouldPlayThreatSound ? (effectiveIsCritical ? "siren.wav" : "warning.wav") : ""
 
         var fullTitle = title
         if !title.contains(regionName) {
@@ -291,54 +314,48 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: level, relevanceScore: relevance, isCritical: effectiveIsCritical)
 
-        // Haptic feedback for threat detection (stronger multi-pulse for high confidence)
         triggerHaptic(confidence >= 85 ? .error : .warning, pulses: 3)
     }
 
     func sendClearNotification(for regionName: String) {
         let title = "🟢 Відбій тривоги — \(regionName)"
         let body  = "Відбій повітряної тривоги в: \(regionName)."
-        let soundName = muteClearSound ? "" : "vidbiy.wav"
+        let soundName = NotificationSettings.shared.shouldPlayClearSound ? "vidbiy.wav" : ""
 
         enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
                 interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
 
-        // Haptic feedback for alert clearance
         triggerHaptic(.success, pulses: 2)
     }
 
     // MARK: - Private helpers
 
     private var notificationsEnabled: Bool {
-        UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
+        NotificationSettings.shared.isNotificationsEnabled
     }
 
     private var criticalAlertsEnabled: Bool {
-        UserDefaults.standard.object(forKey: "criticalAlertsEnabled") as? Bool ?? true
+        NotificationSettings.shared.isCriticalAlertsEnabled
     }
 
     private var muteAlarmsSound: Bool {
-        UserDefaults.standard.bool(forKey: "muteAlarmsSound")
+        NotificationSettings.shared.isMuteAlarmsSound
     }
 
     private var muteThreatsSound: Bool {
-        UserDefaults.standard.bool(forKey: "muteThreatsSound")
+        NotificationSettings.shared.isMuteThreatsSound
     }
 
     private var muteClearSound: Bool {
-        UserDefaults.standard.bool(forKey: "muteClearSound")
+        NotificationSettings.shared.isMuteClearSound
     }
 
     private var vibrationEnabled: Bool {
-        UserDefaults.standard.object(forKey: "vibrationEnabled") as? Bool ?? true
+        NotificationSettings.shared.isVibrationEnabled
     }
 
-    /// Triggers distinct multi-pulse haptic feedback for alert events based on severity.
-    /// - Parameters:
-    ///   - type: .warning for alarms, .success for clears, .error for critical threats
-    ///   - pulses: Number of distinct vibration pulses (default 3)
     private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType, pulses: Int = 3) {
-        guard vibrationEnabled else { return }
+        guard NotificationSettings.shared.shouldVibrate else { return }
         DispatchQueue.main.async {
             #if os(iOS)
             for i in 0..<pulses {
@@ -354,10 +371,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     }
 
     private func shouldNotify(for regionName: String) -> Bool {
-        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        if allTracked { return true }
-        let tracked = UserDefaults.standard.string(forKey: "trackedRegionsString") ?? ""
-        return tracked.components(separatedBy: ";").contains(regionName)
+        NotificationSettings.shared.isTracked(regionName)
     }
 
     private func enqueue(title: String, body: String, soundName: String, regionName: String,
