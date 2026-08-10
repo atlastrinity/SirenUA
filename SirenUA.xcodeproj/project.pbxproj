@@ -77,6 +77,7 @@
 		B11111111111111111111112 /* ContentView+ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111112 /* ContentView+ViewModifiers.swift */; };
 		B11111111111111111111113 /* RegionDetailHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111113 /* RegionDetailHeaderView.swift */; };
 		B11111111111111111111114 /* AdminViewModel+Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111114 /* AdminViewModel+Telemetry.swift */; };
+		B11111111111111111111115 /* RegionHistoryRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111115 /* RegionHistoryRowView.swift */; };
 		B11111111111111111111105 /* RegionPolygonsLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111105 /* RegionPolygonsLayer.swift */; };
 		B11111111111111111111106 /* RegionStatusBadgeAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111106 /* RegionStatusBadgeAnnotation.swift */; };
 		B11111111111111111111107 /* TrajectoryCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111107 /* TrajectoryCalculator.swift */; };
@@ -137,6 +138,7 @@
 		A11111111111111111111112 /* ContentView+ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+ViewModifiers.swift"; sourceTree = "<group>"; };
 		A11111111111111111111113 /* RegionDetailHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RegionDetailHeaderView.swift"; sourceTree = "<group>"; };
 		A11111111111111111111114 /* AdminViewModel+Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdminViewModel+Telemetry.swift"; sourceTree = "<group>"; };
+		A11111111111111111111115 /* RegionHistoryRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RegionHistoryRowView.swift"; sourceTree = "<group>"; };
 		A11111111111111111111105 /* RegionPolygonsLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Layers/RegionPolygonsLayer.swift"; sourceTree = "<group>"; };
 		A11111111111111111111106 /* RegionStatusBadgeAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Components/RegionStatusBadgeAnnotation.swift"; sourceTree = "<group>"; };
 		A11111111111111111111107 /* TrajectoryCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Threats/TrajectoryCalculator.swift"; sourceTree = "<group>"; };
@@ -266,6 +268,7 @@
 		3EECE3A8270006ED8D499EED /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				A11111111111111111111115 /* RegionHistoryRowView.swift */,
 				F3D90D690AC96C92008BF84E /* PremiumPurchaseCTA.swift */,
 				73D05AA6EF664F667B662B2F /* TelemetryRow.swift */,
 				80AA13725CEBE7B0899F8EE5 /* ThreatDetailCard.swift */,
@@ -608,6 +611,7 @@
 				B11111111111111111111112 /* ContentView+ViewModifiers.swift in Sources */,
 				B11111111111111111111113 /* RegionDetailHeaderView.swift in Sources */,
 				B11111111111111111111114 /* AdminViewModel+Telemetry.swift in Sources */,
+				B11111111111111111111115 /* RegionHistoryRowView.swift in Sources */,
 				B11111111111111111111105 /* RegionPolygonsLayer.swift in Sources */,
 				B11111111111111111111106 /* RegionStatusBadgeAnnotation.swift in Sources */,
 				B11111111111111111111107 /* TrajectoryCalculator.swift in Sources */,
