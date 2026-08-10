@@ -179,6 +179,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             let throttle = isCriticalNotif ? Self.soundThrottleCritical : Self.soundThrottleNormal
             
             let now = Date()
+            if NotificationSettings.shared.shouldVibrate {
+                self.triggerHaptic(isAlarm ? .error : (isClear ? .success : .warning), pulses: isAlarm ? 4 : (isClear ? 2 : 3))
+            }
+
             if !shouldPlaySound {
                 notifLogger.info("Foreground notification sound suppressed by user settings")
                 completionHandler([.banner, .badge, .list])
@@ -320,8 +324,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         let body  = "Відбій повітряної тривоги в: \(regionName)."
         let soundName = NotificationSettings.shared.shouldPlayClearSound ? "vidbiy.wav" : ""
 
+        let shouldBypassDND = NotificationSettings.shared.isCriticalAlertsEnabled
+        let level: UNNotificationInterruptionLevel = shouldBypassDND ? .timeSensitive : .active
+
         enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: .active, relevanceScore: 0.3, isCritical: false)
+                interruptionLevel: level, relevanceScore: 0.3, isCritical: false)
 
         triggerHaptic(.success, pulses: 2)
     }
