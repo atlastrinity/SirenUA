@@ -396,7 +396,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             }
 
             if playSoundForThis {
-                self.playSound(named: soundName, for: regionName)
+                SoundPlayerManager.shared.playSound(named: soundName)
             }
 
             self.notificationQueue.append(PendingNotification(
@@ -448,71 +448,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 self.isProcessingQueue = false
                 self.processQueue()
             }
-        }
-    }
-
-    private func playSound(named filename: String, for regionName: String) {
-        guard !filename.isEmpty else { return }
-        guard notificationsEnabled, shouldNotify(for: regionName) else { return }
-
-        guard let path = Bundle.main.path(forResource: filename, ofType: nil) else {
-            notifLogger.warning("Audio file not found: \(filename)")
-            return
-        }
-        let url = URL(fileURLWithPath: path)
-
-        var shouldStart = false
-        audioQueueLock.withLock {
-            audioPlaybackQueue.append(url)
-            shouldStart = !isAudioPlaying
-        }
-
-        if shouldStart {
-            playNextAudioInQueue()
-        }
-    }
-
-    private func playNextAudioInQueue() {
-        var nextUrl: URL?
-        audioQueueLock.withLock {
-            if audioPlaybackQueue.isEmpty {
-                isAudioPlaying = false
-            } else {
-                nextUrl = audioPlaybackQueue.removeFirst()
-                isAudioPlaying = true
-            }
-        }
-
-        guard let nextUrl else { return }
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self else { return }
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.duckOthers])
-                try AVAudioSession.sharedInstance().setActive(true)
-                let player = try AVAudioPlayer(contentsOf: nextUrl)
-                player.delegate = self
-                self.audioPlayer = player
-                player.play()
-                notifLogger.info("Playing queued audio: \(nextUrl.lastPathComponent)")
-            } catch {
-                notifLogger.error("Audio player error: \(error.localizedDescription)")
-                self.audioQueueLock.withLock {
-                    self.isAudioPlaying = false
-                }
-                self.playNextAudioInQueue()
-            }
-        }
-    }
-
-    // MARK: - AVAudioPlayerDelegate
-
-    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        Task { @MainActor in
-            NotificationManager.shared.audioQueueLock.withLock {
-                NotificationManager.shared.isAudioPlaying = false
-            }
-            NotificationManager.shared.playNextAudioInQueue()
         }
     }
 }

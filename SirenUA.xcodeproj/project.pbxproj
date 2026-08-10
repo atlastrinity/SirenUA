@@ -67,12 +67,20 @@
 		D28D3221B2944B90EC3577E9 /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251C604A971EBA3C2D78BBAB /* AlertRegionDetailView.swift */; };
 		D88D51A31BFD78DA3B0C008C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 449147BC6A6B83151EBC569C /* NotificationManager.swift */; };
 		D88D51A31BFD78DA3B0C008D /* NotificationSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 449147BC6A6B83151EBC569D /* NotificationSettings.swift */; };
+		B11111111111111111111109 /* SoundPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111109 /* SoundPlayerManager.swift */; };
 		B11111111111111111111101 /* MapSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111101 /* MapSettingsCard.swift */; };
 		B11111111111111111111102 /* RegionTrackingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111102 /* RegionTrackingCard.swift */; };
 		B11111111111111111111103 /* ServerDiagnosticsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111103 /* ServerDiagnosticsCard.swift */; };
 		B11111111111111111111104 /* MockScenariosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111104 /* MockScenariosCard.swift */; };
+		B11111111111111111111110 /* NotificationsSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111110 /* NotificationsSettingsCard.swift */; };
+		B11111111111111111111111 /* PremiumSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111111 /* PremiumSettingsCard.swift */; };
+		B11111111111111111111112 /* ContentView+ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111112 /* ContentView+ViewModifiers.swift */; };
+		B11111111111111111111113 /* RegionDetailHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111113 /* RegionDetailHeaderView.swift */; };
+		B11111111111111111111114 /* AdminViewModel+Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111114 /* AdminViewModel+Telemetry.swift */; };
 		B11111111111111111111105 /* RegionPolygonsLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111105 /* RegionPolygonsLayer.swift */; };
 		B11111111111111111111106 /* RegionStatusBadgeAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111106 /* RegionStatusBadgeAnnotation.swift */; };
+		B11111111111111111111107 /* TrajectoryCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111107 /* TrajectoryCalculator.swift */; };
+		B11111111111111111111108 /* ThreatIconMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11111111111111111111108 /* ThreatIconMarker.swift */; };
 		DAB0109DBB6DDEE3BEFD4973 /* ShelterItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EBAD5E8706EFEEC0F927B6 /* ShelterItem.swift */; };
 		DAF92976F6869766756C9374 /* View+PressEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91A8EB5D33BEA49BCB7CBFA /* View+PressEvents.swift */; };
 		DC10839A225D7821729BB7F8 /* SmallIconButtonV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5D4126E025C32D1D8961A9 /* SmallIconButtonV4.swift */; };
@@ -119,12 +127,20 @@
 		41D32938646948B52EFBF900 /* AdminChronologyTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminChronologyTab.swift; sourceTree = "<group>"; };
 		449147BC6A6B83151EBC569C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		449147BC6A6B83151EBC569D /* NotificationSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettings.swift; sourceTree = "<group>"; };
+		A11111111111111111111109 /* SoundPlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayerManager.swift; sourceTree = "<group>"; };
 		A11111111111111111111101 /* MapSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Cards/MapSettingsCard.swift"; sourceTree = "<group>"; };
 		A11111111111111111111102 /* RegionTrackingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Cards/RegionTrackingCard.swift"; sourceTree = "<group>"; };
 		A11111111111111111111103 /* ServerDiagnosticsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Cards/ServerDiagnosticsCard.swift"; sourceTree = "<group>"; };
 		A11111111111111111111104 /* MockScenariosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Cards/MockScenariosCard.swift"; sourceTree = "<group>"; };
+		A11111111111111111111110 /* NotificationsSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Cards/NotificationsSettingsCard.swift"; sourceTree = "<group>"; };
+		A11111111111111111111111 /* PremiumSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Cards/PremiumSettingsCard.swift"; sourceTree = "<group>"; };
+		A11111111111111111111112 /* ContentView+ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+ViewModifiers.swift"; sourceTree = "<group>"; };
+		A11111111111111111111113 /* RegionDetailHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RegionDetailHeaderView.swift"; sourceTree = "<group>"; };
+		A11111111111111111111114 /* AdminViewModel+Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdminViewModel+Telemetry.swift"; sourceTree = "<group>"; };
 		A11111111111111111111105 /* RegionPolygonsLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Layers/RegionPolygonsLayer.swift"; sourceTree = "<group>"; };
 		A11111111111111111111106 /* RegionStatusBadgeAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Components/RegionStatusBadgeAnnotation.swift"; sourceTree = "<group>"; };
+		A11111111111111111111107 /* TrajectoryCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Threats/TrajectoryCalculator.swift"; sourceTree = "<group>"; };
+		A11111111111111111111108 /* ThreatIconMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Map/Threats/ThreatIconMarker.swift"; sourceTree = "<group>"; };
 		48EDB2326DC58522C8B22706 /* ContentView+Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Sheets.swift"; sourceTree = "<group>"; };
 		4B295678EDD4A48D0B7FEE38 /* AlertPinViewV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPinViewV4.swift; sourceTree = "<group>"; };
 		4B85C79DE976461E5F8515FC /* AlertRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRegion.swift; sourceTree = "<group>"; };
@@ -232,6 +248,7 @@
 			isa = PBXGroup;
 			children = (
 				251C604A971EBA3C2D78BBAB /* AlertRegionDetailView.swift */,
+				A11111111111111111111113 /* RegionDetailHeaderView.swift */,
 				34711DC64A7284E773156999 /* RegionHistoryView.swift */,
 				3EECE3A8270006ED8D499EED /* Components */,
 			);
@@ -275,6 +292,7 @@
 				6A7320EDE140411A78D11980 /* NetworkManager.swift */,
 				449147BC6A6B83151EBC569C /* NotificationManager.swift */,
 				449147BC6A6B83151EBC569D /* NotificationSettings.swift */,
+				A11111111111111111111109 /* SoundPlayerManager.swift */,
 				364CAC9A5E17ACF84A36006F /* StoreKitManager.swift */,
 				7E3E0D698143E8B52CC23157 /* API */,
 			);
@@ -303,6 +321,8 @@
 				A11111111111111111111102 /* RegionTrackingCard.swift */,
 				A11111111111111111111103 /* ServerDiagnosticsCard.swift */,
 				A11111111111111111111104 /* MockScenariosCard.swift */,
+				A11111111111111111111110 /* NotificationsSettingsCard.swift */,
+				A11111111111111111111111 /* PremiumSettingsCard.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -314,6 +334,7 @@
 				52577CC4A3DB333AB117FE33 /* ContentView.swift */,
 				06F0F73C781ABB4E72AA6837 /* ContentView+MapLayers.swift */,
 				48EDB2326DC58522C8B22706 /* ContentView+Sheets.swift */,
+				A11111111111111111111112 /* ContentView+ViewModifiers.swift */,
 				83317973B3F38750FEC97E3E /* ContentView+Theme.swift */,
 				95ADDC4958C3DDFE90FA169C /* SirenUAApp.swift */,
 			);
@@ -404,6 +425,8 @@
 				925E120A440DB03B70EC83CE /* TopAlertBannerV4.swift */,
 				A11111111111111111111105 /* RegionPolygonsLayer.swift */,
 				A11111111111111111111106 /* RegionStatusBadgeAnnotation.swift */,
+				A11111111111111111111107 /* TrajectoryCalculator.swift */,
+				A11111111111111111111108 /* ThreatIconMarker.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -421,6 +444,7 @@
 			isa = PBXGroup;
 			children = (
 				013689DDFEEE1910227FD2A8 /* AdminViewModel.swift */,
+				A11111111111111111111114 /* AdminViewModel+Telemetry.swift */,
 				A436C2C5186204E6DFB2C26E /* AlertViewModelV3.swift */,
 				EAE9DD0C65FF1AC66F0CDE89 /* AlertViewModelV3+Helpers.swift */,
 				253AD282B3FF1A5930AE4EA9 /* AlertViewModelV3+Threats.swift */,
@@ -574,12 +598,20 @@
 				4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */,
 				D88D51A31BFD78DA3B0C008C /* NotificationManager.swift in Sources */,
 				D88D51A31BFD78DA3B0C008D /* NotificationSettings.swift in Sources */,
+				B11111111111111111111109 /* SoundPlayerManager.swift in Sources */,
 				B11111111111111111111101 /* MapSettingsCard.swift in Sources */,
 				B11111111111111111111102 /* RegionTrackingCard.swift in Sources */,
 				B11111111111111111111103 /* ServerDiagnosticsCard.swift in Sources */,
 				B11111111111111111111104 /* MockScenariosCard.swift in Sources */,
+				B11111111111111111111110 /* NotificationsSettingsCard.swift in Sources */,
+				B11111111111111111111111 /* PremiumSettingsCard.swift in Sources */,
+				B11111111111111111111112 /* ContentView+ViewModifiers.swift in Sources */,
+				B11111111111111111111113 /* RegionDetailHeaderView.swift in Sources */,
+				B11111111111111111111114 /* AdminViewModel+Telemetry.swift in Sources */,
 				B11111111111111111111105 /* RegionPolygonsLayer.swift in Sources */,
 				B11111111111111111111106 /* RegionStatusBadgeAnnotation.swift in Sources */,
+				B11111111111111111111107 /* TrajectoryCalculator.swift in Sources */,
+				B11111111111111111111108 /* ThreatIconMarker.swift in Sources */,
 				F154D729BE7F42FD3707DA94 /* OperationalMonitoringCardView.swift in Sources */,
 				C91CAE56E6F3791349448508 /* PremiumPurchaseCTA.swift in Sources */,
 				0CC99CB0B44F61B4A47B2629 /* RegionHistoryEvent.swift in Sources */,
