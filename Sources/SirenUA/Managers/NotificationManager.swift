@@ -343,6 +343,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             #if os(iOS)
             for i in 0..<pulses {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.35) {
+                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
                     let generator = UINotificationFeedbackGenerator()
                     generator.prepare()
                     generator.notificationOccurred(type)

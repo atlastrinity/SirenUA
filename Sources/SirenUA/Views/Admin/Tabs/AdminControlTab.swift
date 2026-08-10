@@ -196,10 +196,64 @@ struct AdminControlTab: View {
                     .cornerRadius(8)
                 }
             }
+            // Connection Diagnostics Panel for Admin Console
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "network")
+                        .foregroundColor(.purple)
+                    Text("Діагностика з'єднання та серверів")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Button(action: {
+                        viewModel.triggerHaptic()
+                        Task { await viewModel.performDiagnostics() }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.cyan)
+                    }
+                }
+                
+                VStack(spacing: 8) {
+                    adminStatusRow(name: "Основний сервер тривог", status: viewModel.alertsStatus)
+                    adminStatusRow(name: "Аналітичний сервер загроз", status: viewModel.threatsStatus)
+                    adminStatusRow(name: "Аналізатор ШІ (Gemini)", status: viewModel.geminiStatus)
+                }
+            }
             .padding(14)
             .background(ChartColorTheme.cardBg)
             .cornerRadius(12)
         }
         .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private func adminStatusRow(name: String, status: String) -> some View {
+        HStack {
+            Text(name)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.8))
+            Spacer()
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(statusColor(status))
+                    .frame(width: 8, height: 8)
+                Text(status)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(statusColor(status))
+            }
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.03))
+        .cornerRadius(6)
+    }
+
+    private func statusColor(_ status: String) -> Color {
+        switch status.uppercased() {
+        case "ONLINE", "READY", "OK": return .green
+        case "CHECKING", "PENDING":  return .yellow
+        default:                    return .red
+        }
     }
 }

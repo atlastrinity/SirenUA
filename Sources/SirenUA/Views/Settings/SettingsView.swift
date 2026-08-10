@@ -184,8 +184,8 @@ struct SettingsView: View {
                         mapCard
                         premiumCard
                         regionsCard
-                        diagnosticsCard
                         if adminAuthenticated {
+                            diagnosticsCard
                             adminDashboardCard
                             mockScenariosCard
                         }
