@@ -158,11 +158,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
                 notifLogger.debug("Foreground notification sound suppressed (within \(throttle)s)")
                 completionHandler([.banner, .badge, .list])
-            } else {
-                if notification.request.content.sound != nil {
-                    self.lastPlayedTime = now
-                }
+            } else if notification.request.content.sound != nil {
+                self.lastPlayedTime = now
                 completionHandler([.banner, .sound, .badge, .list])
+            } else {
+                completionHandler([.banner, .badge, .list])
             }
         }
     }
@@ -343,7 +343,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             #if os(iOS)
             for i in 0..<pulses {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.35) {
-                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
                     let generator = UINotificationFeedbackGenerator()
                     generator.prepare()
                     generator.notificationOccurred(type)
