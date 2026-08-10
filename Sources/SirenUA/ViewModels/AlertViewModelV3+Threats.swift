@@ -66,7 +66,13 @@ extension AlertViewModelV3 {
             if let isActive = threat.is_active {
                 alerts[index].isActive = isActive
                 alerts[index].level = isActive ? 3 : 0
-                alerts[index].description = isActive ? "Повітряна тривога!" : "Немає тривоги"
+                if isActive {
+                    alerts[index].description = "Повітряна тривога!"
+                } else if newThreatLevel != nil {
+                    alerts[index].description = "Загроза"
+                } else {
+                    alerts[index].description = "Немає тривоги"
+                }
 
                 // Fire official siren sound (siren.wav) on transition to active state
                 if !isFirstThreatFetch && !isFirstFetch {
@@ -225,7 +231,13 @@ extension AlertViewModelV3 {
         if let isActive = threat.is_active {
             alerts[index].isActive = isActive
             alerts[index].level = isActive ? 3 : 0
-            alerts[index].description = isActive ? "Повітряна тривога!" : "Немає тривоги"
+            if isActive {
+                alerts[index].description = "Повітряна тривога!"
+            } else if newThreatLevel != nil {
+                alerts[index].description = "Загроза"
+            } else {
+                alerts[index].description = "Немає тривоги"
+            }
 
             if !isFirstThreatFetch && !isFirstFetch {
                 if !wasActive && isActive {
@@ -295,16 +307,31 @@ extension AlertViewModelV3 {
 
             let isAlertNow = state.alertnow
             let wasActive = alerts[index].isActive
-            alerts[index].isActive = isAlertNow
-            alerts[index].level = isAlertNow ? 3 : 0
-            alerts[index].description = isAlertNow ? "Повітряна тривога!" : "Немає тривоги"
+
+            // OR-merge: Live API підтверджує тривогу, але НЕ скасовує якщо Threat API вже
+            // поставив isActive=true (is_active: true). Це усуває race condition між двома
+            // джерелами даних — якщо хоч одне каже "тривога" — область червона.
+            let threatAlreadyActive = alerts[index].isActive && alerts[index].level == 3
+            let effectiveActive = isAlertNow || threatAlreadyActive
+
+            alerts[index].isActive = effectiveActive
+            alerts[index].level = effectiveActive ? 3 : 0
+
+            if effectiveActive {
+                alerts[index].description = "Повітряна тривога!"
+            } else if alerts[index].threatLevel != nil || !alerts[index].activeThreats.isEmpty {
+                alerts[index].description = "Загроза"
+            } else {
+                alerts[index].description = "Немає тривоги"
+            }
+
             alerts[index].lastChanged = state.changed
 
             guard !isFirstFetch else { continue }
-            if !wasActive && isAlertNow {
+            if !wasActive && effectiveActive {
                 NotificationManager.shared.sendAlertNotification(for: regionName)
                 newlyAlertedRegionName = regionName
-            } else if wasActive && !isAlertNow {
+            } else if wasActive && !effectiveActive {
                 NotificationManager.shared.sendClearNotification(for: regionName)
             }
         }
