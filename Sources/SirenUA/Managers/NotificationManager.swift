@@ -371,7 +371,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             let now = Date()
             let throttle = isCritical ? Self.soundThrottleCritical : Self.soundThrottleNormal
             let playSoundForThis: Bool
-            if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
+            if soundName.isEmpty {
+                playSoundForThis = false
+            } else if let last = self.lastPlayedTime, now.timeIntervalSince(last) < throttle {
                 playSoundForThis = false
                 notifLogger.debug("Notification sound for \(regionName) throttled (within \(throttle)s)")
             } else {
