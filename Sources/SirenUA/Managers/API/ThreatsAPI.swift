@@ -18,7 +18,7 @@ extension NetworkManager {
         }
 
         var request = makeRequest(url: url, agent: Self.premiumAgent)
-        request.timeoutInterval = 15.0   // 15s timeout for reliable connection to threat server
+        request.timeoutInterval = 30.0   // 30s timeout to allow Render cold starts and cellular latency
         threatsLogger.info("Fetching threats from \(urlString)")
 
         let data = try await fetch(request: request)
