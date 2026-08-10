@@ -9,11 +9,10 @@ struct RegionPolygonsLayer: MapContent {
     let lastAlertedRegionName: String?
 
     var body: some MapContent {
-        // Polygons for safe regions (Clean Deep Midnight Blue)
+        // Polygons for safe regions (Clean Deep Midnight Blue with Kyiv-style Cyan Stroke)
         ForEach(safeRegions) { region in
-            let isKyivCity = region.nameUK == "м. Київ"
-            let strokeColor = isKyivCity ? Color.cyan.opacity(0.85) : Color.cyan.opacity(0.20)
-            let strokeWidth: CGFloat = isKyivCity ? 1.2 : 0.35
+            let strokeColor = Color.cyan.opacity(0.85)
+            let strokeWidth: CGFloat = 1.2
 
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
@@ -25,10 +24,9 @@ struct RegionPolygonsLayer: MapContent {
 
         // Polygons for threat zones (Vibrant Juicy Yellow / Orange Glow)
         ForEach(activeThreatRegions) { region in
-            let isKyivCity = region.nameUK == "м. Київ"
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let fillColor: Color = threatColor.opacity(0.62)
-            let strokeWidth: CGFloat = isKyivCity ? 1.4 : 0.75
+            let strokeWidth: CGFloat = 1.2
 
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
@@ -40,10 +38,9 @@ struct RegionPolygonsLayer: MapContent {
 
         // Polygons for official active alert regions (Vivid Bright Red Glow)
         ForEach(activeAlertRegions) { region in
-            let isKyivCity = region.nameUK == "м. Київ"
             let isLastAlerted = region.nameUK == lastAlertedRegionName
             let redFill = isLastAlerted ? Color(red: 0.96, green: 0.11, blue: 0.16).opacity(0.68) : Color(red: 0.91, green: 0.13, blue: 0.19).opacity(0.58)
-            let strokeWidth: CGFloat = isKyivCity ? 1.5 : 0.45
+            let strokeWidth: CGFloat = 1.2
 
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
