@@ -139,20 +139,6 @@ struct FlyingThreatMapOverlay: MapContent {
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 6. Intermediate Detection Checkpoint Threat Object Badge
-        Annotation(coordinate: trajectory.lastCheckpointCoordinate) {
-            TrajectoryFlowChevronView(
-                angle: trajectory.lastCheckpointAngle,
-                threatIcon: threatIconName(for: threatType),
-                threatLabel: threatLabel.isEmpty ? "Виявлено" : threatLabel,
-                opacity: 0.95
-            )
-            .scaleEffect(zoomScale)
-            .allowsHitTesting(false)
-        } label: {
-            EmptyView()
-        }
-
         // 7. Target Region Destination Flying Threat Badge
         Annotation(coordinate: alert.coordinate) {
             FlyingThreatMarkerView(
