@@ -159,17 +159,17 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             let title = notification.request.content.title.lowercased()
             let body = notification.request.content.body.lowercased()
 
-            let isClear = title.contains("відбій") || body.contains("відбій")
-            let isAlarm = title.contains("тривога") || body.contains("тривога")
-            let isThreat = title.contains("загроза") || title.contains("каб") || title.contains("шахед") || title.contains("ракета") || body.contains("загроза")
+            let isThreat = title.contains("⚠️") || title.contains("загроза") || title.contains("шахед") || title.contains("ракета") || title.contains("каб") || title.contains("бпла") || title.contains("балистика") || body.contains("загроза") || body.contains("шахед") || body.contains("ракета") || body.contains("каб")
+            let isClear = title.contains("🟢") || title.contains("відбій") || body.contains("відбій")
+            let isAlarm = title.contains("🚨") || title.contains("тривога") || body.contains("тривога")
 
             let shouldPlaySound: Bool
-            if isClear {
+            if isThreat {
+                shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
+            } else if isClear {
                 shouldPlaySound = NotificationSettings.shared.shouldPlayClearSound
             } else if isAlarm {
                 shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
-            } else if isThreat {
-                shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
             } else {
                 shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
             }
