@@ -282,9 +282,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 interruptionLevel: level, relevanceScore: 1.0, isCritical: isCrit)
 
         triggerHaptic(.warning, pulses: 4)
-        if isCrit, #available(iOS 16.0, *) {
-            CriticalAlertManager.shared.sendCriticalAlert(region: regionName, isActive: true)
-        }
     }
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
