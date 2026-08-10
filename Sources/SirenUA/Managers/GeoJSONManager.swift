@@ -141,13 +141,21 @@ final class GeoJSONManager: ObservableObject {
                 let extracted = extractCoordinates(from: polygon)
                 let simplified = simplifyCoordinates(extracted)
                 coords.append(simplified)
-                mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
+                if let interior = polygon.interiorPolygons, !interior.isEmpty {
+                    mkPolys.append(polygon)
+                } else {
+                    mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
+                }
             } else if let multi = geometry as? MKMultiPolygon {
                 for polygon in multi.polygons {
                     let extracted = extractCoordinates(from: polygon)
                     let simplified = simplifyCoordinates(extracted)
                     coords.append(simplified)
-                    mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
+                    if let interior = polygon.interiorPolygons, !interior.isEmpty {
+                        mkPolys.append(polygon)
+                    } else {
+                        mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
+                    }
                 }
             }
         }
