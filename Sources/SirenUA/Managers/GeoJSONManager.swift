@@ -110,18 +110,44 @@ final class GeoJSONManager: ObservableObject {
         return (nameEn, nameUk)
     }
 
+    private nonisolated static func simplifyCoordinates(_ coords: [CLLocationCoordinate2D], minDistanceSq: Double = 0.0000006) -> [CLLocationCoordinate2D] {
+        guard coords.count > 4 else { return coords }
+        var result: [CLLocationCoordinate2D] = []
+        result.reserveCapacity(coords.count / 3)
+        
+        var last = coords[0]
+        result.append(last)
+        
+        for i in 1..<(coords.count - 1) {
+            let pt = coords[i]
+            let dLat = pt.latitude - last.latitude
+            let dLon = pt.longitude - last.longitude
+            let distSq = dLat * dLat + dLon * dLon
+            if distSq >= minDistanceSq {
+                result.append(pt)
+                last = pt
+            }
+        }
+        result.append(coords[coords.count - 1])
+        return result
+    }
+
     private nonisolated static func extractPolygons(from feature: MKGeoJSONFeature) -> ([[CLLocationCoordinate2D]], [MKPolygon]) {
         var coords: [[CLLocationCoordinate2D]] = []
         var mkPolys: [MKPolygon] = []
 
         for geometry in feature.geometry {
             if let polygon = geometry as? MKPolygon {
-                coords.append(extractCoordinates(from: polygon))
-                mkPolys.append(polygon)
+                let extracted = extractCoordinates(from: polygon)
+                let simplified = simplifyCoordinates(extracted)
+                coords.append(simplified)
+                mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
             } else if let multi = geometry as? MKMultiPolygon {
                 for polygon in multi.polygons {
-                    coords.append(extractCoordinates(from: polygon))
-                    mkPolys.append(polygon)
+                    let extracted = extractCoordinates(from: polygon)
+                    let simplified = simplifyCoordinates(extracted)
+                    coords.append(simplified)
+                    mkPolys.append(MKPolygon(coordinates: simplified, count: simplified.count))
                 }
             }
         }

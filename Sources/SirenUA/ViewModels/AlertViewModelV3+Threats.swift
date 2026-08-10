@@ -327,6 +327,9 @@ extension AlertViewModelV3 {
         case "cruise_missile": threatName = "Загроза крилатих ракет"
         case "kab":            threatName = "Загроза КАБ"
         case "mig31k":         threatName = "Зліт МіГ-31К (Кинджал)"
+        case "tu95":           threatName = "Зліт Ту-95МС (крилаті ракети)"
+        case "tu22m3":         threatName = "Зліт Ту-22М3 (ракети Х-22/Х-32)"
+        case "iskander":       threatName = "Загроза Іскандер-М"
         default:               threatName = "Повітряна загроза"
         }
         let indicator: String

@@ -35,43 +35,14 @@ struct ThreatMapContent: MapContent {
     }
 
     var body: some MapContent {
-        // Polygons for safe regions (Clean Deep Midnight Blue)
-        ForEach(safeRegions) { region in
-            ForEach(region.identifiablePolygons) { item in
-                MapPolygon(item.polygon)
-                    .stroke(Color.cyan.opacity(0.20), lineWidth: 0.35)
-                    .foregroundStyle(Color(red: 0.04, green: 0.14, blue: 0.38).opacity(0.32))
-                    .mapOverlayLevel(level: .aboveRoads)
-            }
-        }
-
-        // Polygons for threat zones (Vibrant Juicy Yellow / Orange Glow)
-        ForEach(activeThreatRegions) { region in
-            let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
-            let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
-            let fillOpacity: Double = confidence >= 85 ? 0.65 : (confidence >= 60 ? 0.52 : 0.40)
-            let fillColor: Color = threatColor.opacity(fillOpacity)
-            
-            ForEach(region.identifiablePolygons) { item in
-                MapPolygon(item.polygon)
-                    .stroke(threatColor.opacity(0.50), lineWidth: 0.45)
-                    .foregroundStyle(fillColor)
-                    .mapOverlayLevel(level: .aboveRoads)
-            }
-        }
-
-        // Polygons for official active alert regions (Vivid Bright Red Glow)
-        ForEach(activeAlertRegions) { region in
-            let isLastAlerted = region.nameUK == lastAlertedRegionName
-            let redFill = isLastAlerted ? Color(red: 0.96, green: 0.11, blue: 0.16).opacity(0.68) : Color(red: 0.91, green: 0.13, blue: 0.19).opacity(0.58)
-            
-            ForEach(region.identifiablePolygons) { item in
-                MapPolygon(item.polygon)
-                    .stroke(Color.red.opacity(0.55), lineWidth: 0.45)
-                    .foregroundStyle(redFill)
-                    .mapOverlayLevel(level: .aboveRoads)
-            }
-        }
+        // Isolated static polygon layer (safe, threat, and active alert region fills)
+        RegionPolygonsLayer(
+            safeRegions: safeRegions,
+            activeThreatRegions: activeThreatRegions,
+            activeAlertRegions: activeAlertRegions,
+            alertsDict: alertsDict,
+            lastAlertedRegionName: lastAlertedRegionName
+        )
         
         // User Location Marker
         Annotation("Моє місцезнаходження", coordinate: currentUserCoordinate) {
@@ -118,6 +89,56 @@ struct ThreatMapContent: MapContent {
         if let route = route {
             MapPolyline(route)
                 .stroke(.blue, lineWidth: 5)
+        }
+    }
+}
+
+// MARK: - Region Polygons Isolated MapContent
+
+struct RegionPolygonsLayer: MapContent {
+    let safeRegions: [RegionPolygon]
+    let activeThreatRegions: [RegionPolygon]
+    let activeAlertRegions: [RegionPolygon]
+    let alertsDict: [String: AlertRegion]
+    let lastAlertedRegionName: String?
+
+    var body: some MapContent {
+        // Polygons for safe regions (Clean Deep Midnight Blue)
+        ForEach(safeRegions) { region in
+            ForEach(region.identifiablePolygons) { item in
+                MapPolygon(item.polygon)
+                    .stroke(Color.cyan.opacity(0.20), lineWidth: 0.35)
+                    .foregroundStyle(Color(red: 0.04, green: 0.14, blue: 0.38).opacity(0.32))
+                    .mapOverlayLevel(level: .aboveRoads)
+            }
+        }
+
+        // Polygons for threat zones (Vibrant Juicy Yellow / Orange Glow)
+        ForEach(activeThreatRegions) { region in
+            let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
+            let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
+            let fillOpacity: Double = confidence >= 85 ? 0.65 : (confidence >= 60 ? 0.52 : 0.40)
+            let fillColor: Color = threatColor.opacity(fillOpacity)
+            
+            ForEach(region.identifiablePolygons) { item in
+                MapPolygon(item.polygon)
+                    .stroke(threatColor.opacity(0.50), lineWidth: 0.45)
+                    .foregroundStyle(fillColor)
+                    .mapOverlayLevel(level: .aboveRoads)
+            }
+        }
+
+        // Polygons for official active alert regions (Vivid Bright Red Glow)
+        ForEach(activeAlertRegions) { region in
+            let isLastAlerted = region.nameUK == lastAlertedRegionName
+            let redFill = isLastAlerted ? Color(red: 0.96, green: 0.11, blue: 0.16).opacity(0.68) : Color(red: 0.91, green: 0.13, blue: 0.19).opacity(0.58)
+            
+            ForEach(region.identifiablePolygons) { item in
+                MapPolygon(item.polygon)
+                    .stroke(Color.red.opacity(0.55), lineWidth: 0.45)
+                    .foregroundStyle(redFill)
+                    .mapOverlayLevel(level: .aboveRoads)
+            }
         }
     }
 }
@@ -218,35 +239,30 @@ struct FlyingThreatMapOverlay: MapContent {
         let customOrigin = alert.currentThreat?.originCoordinate
         let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
 
-        // 0. Comet Outer Dust Coma (16 smooth gradient sub-polyline segments)
-        ForEach(0..<trajectory.cometTailSegments.count, id: \.self) { idx in
-            let seg = trajectory.cometTailSegments[idx]
-            MapPolyline(coordinates: seg.points)
-                .stroke(
-                    color.opacity(seg.outerOpacity),
-                    style: StrokeStyle(lineWidth: seg.outerWidth, lineCap: .round, lineJoin: .round)
-                )
-                .mapOverlayLevel(level: .aboveLabels)
-        }
+        // MARK: - Tapering Tail (3-Layer Streamlined GPU Render)
+        let n = trajectory.fullPoints.count
 
-        // 1. Sleek Dark Base Isolation Layer (Single Polyline pass, 48 smooth points)
-        MapPolyline(coordinates: trajectory.fullPoints)
-            .stroke(Color.black.opacity(0.70), style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
+        // 1. Wide Diffuse Outer Glow Tail (0%→70%)
+        MapPolyline(coordinates: Array(trajectory.fullPoints.prefix(max(2, n * 70 / 100))))
+            .stroke(
+                color.opacity(0.22),
+                style: StrokeStyle(lineWidth: 11.0, lineCap: .round, lineJoin: .round)
+            )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 2. Continuous Solid Neon Core Path (Single Polyline pass, 48 smooth points)
+        // 2. High-Contrast Core Trajectory Line (0%→100%)
         MapPolyline(coordinates: trajectory.fullPoints)
             .stroke(
-                Color(red: 1.0, green: 0.92, blue: 0.0).opacity(0.92),
+                Color(red: 1.0, green: 0.92, blue: 0.0).opacity(0.95),
                 style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
             )
             .mapOverlayLevel(level: .aboveLabels)
 
-        // 3. Concentrated White Laser Focus Head (Single Polyline pass, 16 smooth points)
-        MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(max(2, trajectory.fullPoints.count / 3))))
+        // 3. Focused White Hot-Spot Target Head (35%→100%)
+        MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(max(2, n * 35 / 100))))
             .stroke(
-                Color.white,
-                style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
+                Color.white.opacity(0.92),
+                style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
             )
             .mapOverlayLevel(level: .aboveLabels)
 
@@ -308,26 +324,10 @@ struct TrajectoryFlowArrow {
     let opacity: Double
 }
 
-// MARK: - Comet Tail Segment
-
-struct CometTailSegment {
-    let points: [CLLocationCoordinate2D]
-    // Outer dust coma
-    let outerWidth: CGFloat
-    let outerOpacity: Double
-    // Mid warm glow
-    let midWidth: CGFloat
-    let midOpacity: Double
-    // Inner hot core
-    let coreWidth: CGFloat
-    let coreOpacity: Double
-}
-
-// MARK: - Trajectory Calculator (Comet Tail)
+// MARK: - Trajectory Calculator
 
 struct TrajectoryPath {
     let fullPoints: [CLLocationCoordinate2D]
-    let cometTailSegments: [CometTailSegment]
     let flowArrows: [TrajectoryFlowArrow]
     let lastCheckpointCoordinate: CLLocationCoordinate2D
     let lastCheckpointAngle: Double
@@ -400,6 +400,11 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         curvature = 0.20
         cycles = 2.5      // 2.5 tactical waypoint weaves
         waveAmplitude = 0.045
+    case "tu22m3":
+        // Ту-22М3: надзвукова Х-22/Х-32 — майже пряма балістична дуга, мінімальне відхилення
+        curvature = -0.18
+        cycles = 1.2      // Supersonic — minor terminal correction only
+        waveAmplitude = 0.015
     case "ballistic", "iskander":
         curvature = -0.15
         cycles = 1.5      // Minor terminal trajectory wobble
@@ -446,6 +451,16 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
             // Cruise missile / Tu-95: project to Caspian Sea / East border
             startLat = max(48.5, target.latitude + 0.8)
             startLon = max(39.2, target.longitude + 3.2)
+        case "tu22m3":
+            // Ту-22М3: Шайковка (54.22, 34.36) або Моздок (43.78, 44.60)
+            // Для північних цілей — Шайковка, для південних — Моздок
+            if target.latitude > 48.5 {
+                startLat = 54.22  // Shaykovka
+                startLon = 34.36
+            } else {
+                startLat = 43.78  // Mozdok
+                startLon = 44.60
+            }
         case "ballistic", "iskander":
             // Ballistic: project to Belgorod / Kursk / Savasleyka North-East border
             startLat = max(50.5, target.latitude + 0.8)
@@ -500,45 +515,6 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         fullPoints.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
     }
 
-    // MARK: - Comet Tail Generation (16 smooth multi-point sub-polylines)
-    let wMax = distance * 0.055  // Maximum coma width at tail origin
-    var cometSegments: [CometTailSegment] = []
-    let numSegments = 16
-    let pointsPerSeg = steps / numSegments // 3 points per sub-polyline segment
-
-    for segIdx in 0..<numSegments {
-        let startPointIdx = segIdx * pointsPerSeg
-        let endPointIdx = min(steps, (segIdx + 1) * pointsPerSeg)
-        let segPoints = Array(fullPoints[startPointIdx...endPointIdx])
-
-        let t0 = Double(startPointIdx) / Double(steps)
-        let t1 = Double(endPointIdx) / Double(steps)
-
-        let w0 = wMax * pow(1.0 - t0, 1.6)
-        let w1 = wMax * pow(1.0 - t1, 1.6)
-        let wAvg = (w0 + w1) * 0.5
-
-        let progress = t0
-        let outerOpacity = 0.28 * pow(1.0 - progress, 0.7)
-        let midOpacity   = 0.42 * pow(1.0 - progress, 1.0)
-        let coreOpacity  = 0.18 + 0.72 * pow(progress, 0.8)
-
-        let outerPxRaw = CGFloat(wAvg * 420.0 / distance)
-        let outerPx = max(4.0, min(22.0, outerPxRaw))
-        let midPx   = max(2.0, min(12.0, outerPx * 0.52))
-        let corePx  = max(1.2, min(5.0,  outerPx * 0.22))
-
-        cometSegments.append(CometTailSegment(
-            points: segPoints,
-            outerWidth: outerPx,
-            outerOpacity: outerOpacity,
-            midWidth: midPx,
-            midOpacity: midOpacity,
-            coreWidth: corePx,
-            coreOpacity: coreOpacity
-        ))
-    }
-
     // Directional flow arrows at ~25%, ~50%, and ~75% along trajectory
     var flowArrows: [TrajectoryFlowArrow] = []
     let arrowStepIndices = [12, 24, 36]
@@ -566,7 +542,6 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
 
     return TrajectoryPath(
         fullPoints: fullPoints,
-        cometTailSegments: cometSegments,
         flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
         lastCheckpointAngle: angleDeg
