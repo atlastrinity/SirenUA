@@ -116,13 +116,11 @@ struct RegionPolygonsLayer: MapContent {
         // Polygons for threat zones (Vibrant Juicy Yellow / Orange Glow)
         ForEach(activeThreatRegions) { region in
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
-            let confidence = alertsDict[region.nameUK]?.threatConfidence ?? 75
-            let fillOpacity: Double = confidence >= 85 ? 0.65 : (confidence >= 60 ? 0.52 : 0.40)
-            let fillColor: Color = threatColor.opacity(fillOpacity)
+            let fillColor: Color = threatColor.opacity(0.62)
             
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
-                    .stroke(threatColor.opacity(0.50), lineWidth: 0.45)
+                    .stroke(threatColor.opacity(0.85), lineWidth: 0.75)
                     .foregroundStyle(fillColor)
                     .mapOverlayLevel(level: .aboveRoads)
             }
@@ -430,10 +428,41 @@ func calculateTrajectory(target: CLLocationCoordinate2D, threatType: String?, cu
         return sqrt(dLat * dLat + dLon * dLon)
     }()
 
-    if let origin = customOrigin, originDistanceKm > 20.0 {
-        // Use explicit custom origin coordinates if they represent a distinct origin point
+    // Regional capital centroids list — used to identify regional transit fallbacks
+    let regionalCenters: [(Double, Double)] = [
+        (49.2331, 28.4682), (50.7412, 25.3201), (48.4647, 35.0462), (48.0159, 37.8028),
+        (50.2547, 28.6587), (48.6208, 22.2879), (47.8388, 35.1396), (48.9226, 24.7111),
+        (50.0500, 30.1500), (50.4501, 30.5234), (48.5079, 32.2623), (48.5740, 39.3078),
+        (49.8397, 24.0297), (46.9750, 31.9946), (46.4825, 30.7233), (49.5883, 34.5514),
+        (50.6199, 26.2516), (50.9077, 34.7981), (49.5535, 25.5948), (49.9935, 36.2304),
+        (46.6354, 32.6169), (49.4230, 26.9871), (49.4444, 32.0598), (48.2915, 25.9352),
+        (51.4982, 31.2893)
+    ]
+
+    let isRegionalCentroid: Bool = {
+        guard let origin = customOrigin else { return false }
+        for (cLat, cLon) in regionalCenters {
+            let dLat = (origin.latitude - cLat) * 111.0
+            let dLon = (origin.longitude - cLon) * 111.0 * cos(cLat * .pi / 180.0)
+            if sqrt(dLat * dLat + dLon * dLon) < 25.0 {
+                return true
+            }
+        }
+        return false
+    }()
+
+    if let origin = customOrigin, originDistanceKm > 20.0, !isRegionalCentroid {
+        // Real external launch site (e.g. Shaykovka, Mozdok, Primorsko-Akhtarsk)
         startLat = origin.latitude
         startLon = origin.longitude
+    } else if let origin = customOrigin, originDistanceKm > 20.0, isRegionalCentroid {
+        // Transit origin: origin is a regional centroid (e.g. Dnipro city center).
+        // Extrapolate backwards through the transit centroid to launch corridor / border!
+        let dLat = target.latitude - origin.latitude
+        let dLon = target.longitude - origin.longitude
+        let scale = max(1.5, 160.0 / max(10.0, originDistanceKm))
+        startLat = origin.latitude - dLat * scale
+        startLon = origin.longitude - dLon * scale
     } else {
         // Otherwise, extrapolate origin back to state border / sea entry corridor
         switch threatType {

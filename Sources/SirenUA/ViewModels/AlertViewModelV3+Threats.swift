@@ -37,6 +37,7 @@ extension AlertViewModelV3 {
     }
 
     func applyThreats(_ threatData: [String: ThreatInfo]) {
+        objectWillChange.send()
         for index in alerts.indices {
             let regionName = alerts[index].name
             // Крим завжди червоний — не оновлюємо з сервера
@@ -283,6 +284,7 @@ extension AlertViewModelV3 {
     }
 
     func applyLiveAlerts(_ liveData: [String: AerialAlertState]) {
+        objectWillChange.send()
         var newlyAlertedRegionName: String?
 
         for index in alerts.indices {

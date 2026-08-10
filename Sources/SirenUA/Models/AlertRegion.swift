@@ -82,7 +82,8 @@ struct AlertRegion: Identifiable, Codable, Equatable {
             case 3: return .red
             default: return .red
             }
-        } else if let threat = threatLevel {
+        } else if threatLevel != nil || !activeThreats.isEmpty {
+            let threat = threatLevel ?? activeThreats.first?.level ?? "low"
             let isExpired = displayETA == "в області"
             
             switch threat {
