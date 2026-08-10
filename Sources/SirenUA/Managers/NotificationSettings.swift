@@ -34,9 +34,6 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
     @Published var criticalAlertsEnabled: Bool {
         didSet {
             UserDefaults.standard.set(criticalAlertsEnabled, forKey: Keys.criticalAlertsEnabled)
-            if criticalAlertsEnabled && muteAlarmsSound {
-                muteAlarmsSound = false
-            }
             settingsLogger.info("criticalAlertsEnabled changed: \(self.criticalAlertsEnabled)")
         }
     }
@@ -44,9 +41,6 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
     @Published var muteAlarmsSound: Bool {
         didSet {
             UserDefaults.standard.set(muteAlarmsSound, forKey: Keys.muteAlarmsSound)
-            if muteAlarmsSound && criticalAlertsEnabled {
-                criticalAlertsEnabled = false
-            }
             settingsLogger.info("muteAlarmsSound changed: \(self.muteAlarmsSound)")
         }
     }

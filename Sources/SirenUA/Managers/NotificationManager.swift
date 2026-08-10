@@ -272,25 +272,26 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     func sendAlertNotification(for regionName: String, title: String = "🚨 Увага! Повітряна тривога!") {
         let body = "Повітряна тривога в: \(regionName). Прямуйте в укриття!"
 
-        let isCrit = hasCriticalAlerts && NotificationSettings.shared.criticalAlertsEnabled && NotificationSettings.shared.shouldPlayAlarmSound
-        let level: UNNotificationInterruptionLevel = isCrit ? .critical : .timeSensitive
+        // criticalAlertsEnabled тепер означає "пробиває DND" (.timeSensitive), а не iOS Critical Alert
+        let shouldBypassDND = NotificationSettings.shared.isCriticalAlertsEnabled
+        let level: UNNotificationInterruptionLevel = shouldBypassDND ? .timeSensitive : .active
 
         let fullTitle = "🚨 Повітряна тривога — \(regionName)"
         let soundName = NotificationSettings.shared.shouldPlayAlarmSound ? "siren.wav" : ""
 
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: level, relevanceScore: 1.0, isCritical: isCrit)
+                interruptionLevel: level, relevanceScore: 1.0, isCritical: false)
 
         triggerHaptic(.warning, pulses: 4)
     }
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
                                 confidence: Int = 75, isCritical: Bool = false) {
-        let effectiveIsCritical = isCritical && NotificationSettings.shared.criticalAlertsEnabled && NotificationSettings.shared.shouldPlayThreatSound
+        let effectiveTimeSensitive = isCritical && NotificationSettings.shared.isCriticalAlertsEnabled
         let level: UNNotificationInterruptionLevel
         let relevance: Double
 
-        if effectiveIsCritical || confidence >= 85 {
+        if effectiveTimeSensitive || confidence >= 85 {
             level = .timeSensitive
             relevance = 0.8
         } else if confidence >= 60 {
@@ -301,7 +302,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
             relevance = 0.4
         }
 
-        let soundName = NotificationSettings.shared.shouldPlayThreatSound ? (effectiveIsCritical ? "siren.wav" : "warning.wav") : ""
+        let soundName = NotificationSettings.shared.shouldPlayThreatSound ? (isCritical ? "siren.wav" : "warning.wav") : ""
 
         var fullTitle = title
         if !title.contains(regionName) {
@@ -309,7 +310,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         }
 
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: level, relevanceScore: relevance, isCritical: effectiveIsCritical)
+                interruptionLevel: level, relevanceScore: relevance, isCritical: false)
 
         triggerHaptic(confidence >= 85 ? .error : .warning, pulses: 3)
     }
@@ -423,13 +424,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         content.interruptionLevel = item.interruptionLevel
         content.relevanceScore = item.relevanceScore
         
-        // Sound configuration: set custom/critical sound if not muted, or nil if muted
+        // Sound: always use named sound file, never defaultCritical
+        // The server no longer sends critical push, so we handle sound purely client-side
         if !item.soundName.isEmpty {
-            if item.isCritical {
-                content.sound = UNNotificationSound.defaultCritical
-            } else {
-                content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
-            }
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
         } else {
             content.sound = nil
         }
