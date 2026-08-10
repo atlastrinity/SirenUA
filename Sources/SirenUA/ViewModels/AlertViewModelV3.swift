@@ -120,10 +120,8 @@ final class AlertViewModelV3: ObservableObject {
             ("Чернівецька область",        48.2915, 25.9352),
             ("Чернігівська область",       51.4982, 31.2893)
         ]
-        let permanentlyActiveSet: Set<String> = ["Автономна Республіка Крим", "АР Крим", "Луганська область"]
-
         alerts = regions.enumerated().map { index, region in
-            let isPermActive = permanentlyActiveSet.contains(region.0)
+            let isPermActive = RegionConstants.isPermanentlyActive(region.0)
             return AlertRegion(
                 id: index,
                 name: region.0,
