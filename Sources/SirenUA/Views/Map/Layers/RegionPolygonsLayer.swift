@@ -55,6 +55,7 @@ struct RegionPolygonsLayer: MapContent {
             let strokeColor = Color.cyan.opacity(0.70)
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
+                    .foregroundStyle(Color.clear)
                     .stroke(strokeColor, lineWidth: thinStrokeWidth)
                     .mapOverlayLevel(level: .aboveRoads)
             }
@@ -65,6 +66,7 @@ struct RegionPolygonsLayer: MapContent {
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
+                    .foregroundStyle(Color.clear)
                     .stroke(threatColor.opacity(0.95), lineWidth: thinStrokeWidth)
                     .mapOverlayLevel(level: .aboveRoads)
             }
@@ -74,6 +76,7 @@ struct RegionPolygonsLayer: MapContent {
         ForEach(activeAlertRegions) { region in
             ForEach(region.identifiablePolygons) { item in
                 MapPolygon(item.polygon)
+                    .foregroundStyle(Color.clear)
                     .stroke(Color.red.opacity(0.95), lineWidth: thinStrokeWidth)
                     .mapOverlayLevel(level: .aboveRoads)
             }
