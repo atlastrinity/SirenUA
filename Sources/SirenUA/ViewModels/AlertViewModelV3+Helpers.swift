@@ -59,13 +59,6 @@ extension AlertViewModelV3 {
     }
 
     func getThreatTypeDescriptionShort(_ type: String) -> String {
-        switch type {
-        case "mig31k":         return "МіГ-31К (Кинджал)"
-        case "shahed":         return "Загроза БпЛА"
-        case "cruise_missile": return "Крилаті ракети"
-        case "kab":            return "Загроза КАБ"
-        case "ballistic":      return "Балістика"
-        default:               return "Загроза з повітря"
-        }
+        ThreatConstants.title(for: type)
     }
 }

@@ -109,4 +109,42 @@ public enum ThreatConstants {
         default: return 300.0
         }
     }
+
+    // 7. Опис у родовому відмінку для повідомлень
+    public static func genitiveDescription(for threatType: String?) -> String {
+        guard let threatType = threatType?.lowercased() else { return "повітряної атаки" }
+        switch threatType {
+        case mig31k:         return "атаки аеробалістичними ракетами Кинджал"
+        case shahed:         return "ударних безпілотників Шахед"
+        case cruiseMissile: return "крилатих ракет"
+        case kab:            return "ударів керованими авіабомбами (КАБ)"
+        case ballistic:      return "балістичних ракет"
+        default:               return "повітряної атаки"
+        }
+    }
+
+    // 8. Формування заголовка сповіщення про загрозу
+    public static func notificationTitle(for threatType: String?, confidence: Int, region: String) -> String {
+        let threatName: String
+        switch threatType?.lowercased() {
+        case ballistic:      threatName = "Балістична загроза"
+        case shahed:         threatName = "Загроза БпЛА Shahed"
+        case cruiseMissile: threatName = "Загроза крилатих ракет"
+        case kab:            threatName = "Загроза КАБ"
+        case mig31k:         threatName = "Зліт МіГ-31К (Кинджал)"
+        case tu95:           threatName = "Зліт Ту-95МС (крилаті ракети)"
+        case tu22m3:         threatName = "Зліт Ту-22М3 (ракети Х-22/Х-32)"
+        case iskander:       threatName = "Загроза Іскандер-М"
+        default:               threatName = "Повітряна загроза"
+        }
+        let indicator: String
+        if confidence >= 85 {
+            indicator = "🔴 Висока ймовірність"
+        } else if confidence >= 60 {
+            indicator = "🟠 Ймовірна загроза"
+        } else {
+            indicator = "🟡 Можлива загроза"
+        }
+        return "\(indicator): \(threatName) (\(region))"
+    }
 }

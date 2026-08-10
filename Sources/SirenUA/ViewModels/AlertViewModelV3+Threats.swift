@@ -9,21 +9,15 @@ extension AlertViewModelV3 {
 
     /// Fetches full threat state from server via GET /api/threats.
     /// Called on: init, every 30s (polling), and on FCM push trigger.
+    /// Сервер вже включає `is_active` (офіційні тривоги) — окремий запит до ubilling не потрібен.
+    /// Якщо Threat API недоступний — fallback до `fetchLiveAlerts()` (ubilling).
     func fetchThreatState() async {
         guard !isFetching else { return }
         isFetching = true
 
         do {
-            async let threatsTask = networkManager.fetchThreats(serverURL: threatServerURL)
-            async let liveAlertsTask = networkManager.fetchLiveAlerts()
-
-            let threats = try await threatsTask
-            let liveAlerts = try? await liveAlertsTask
-
+            let threats = try await networkManager.fetchThreats(serverURL: threatServerURL)
             applyThreats(threats)
-            if let liveAlerts, !liveAlerts.isEmpty {
-                applyLiveAlerts(liveAlerts)
-            }
 
             updateStats()
             updateLastAlertedRegion()
@@ -32,6 +26,7 @@ extension AlertViewModelV3 {
         } catch {
             vmLogger.error("Error fetching threats: \(error.localizedDescription)")
             isFetching = false
+            // Fallback: якщо Threat API недоступний — отримуємо хоча б офіційні тривоги
             await fetchLiveAlerts()
         }
     }
@@ -92,8 +87,8 @@ extension AlertViewModelV3 {
                         vmLogger.info("Skipping notification for predictive low-confidence threat in \(regionName) (\(confidence)%)")
                         continue
                     }
-                    let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                    let title = buildThreatTitle(type: threat.type, confidence: confidence, region: regionName)
+                    let typeDesc = ThreatConstants.genitiveDescription(for: threat.type)
+                    let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: regionName)
                     var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
                     if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
                     NotificationManager.shared.sendThreatNotification(
@@ -253,8 +248,8 @@ extension AlertViewModelV3 {
                 let confidence = threat.confidence ?? 75
                 let isPredictive = threat.is_predictive ?? false
                 if isPredictive && confidence < 50 { return }
-                let typeDesc = getThreatTypeDescription(threat.type ?? "")
-                let title = buildThreatTitle(type: threat.type, confidence: confidence, region: region)
+                let typeDesc = ThreatConstants.genitiveDescription(for: threat.type)
+                let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: region)
                 var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
                 if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
                 NotificationManager.shared.sendThreatNotification(
@@ -342,42 +337,5 @@ extension AlertViewModelV3 {
         } else if lastAlertedRegionName == nil || !(alerts.first(where: { $0.name == lastAlertedRegionName })?.isActive ?? false) {
             updateLastAlertedRegion()
         }
-    }
-
-    // MARK: Threat type helpers
-
-    func getThreatTypeDescription(_ type: String) -> String {
-        switch type {
-        case "mig31k":         return "атаки аеробалістичними ракетами Кинджал"
-        case "shahed":         return "ударних безпілотників Шахед"
-        case "cruise_missile": return "крилатих ракет"
-        case "kab":            return "ударів керованими авіабомбами (КАБ)"
-        case "ballistic":      return "балістичних ракет"
-        default:               return "повітряної атаки"
-        }
-    }
-
-    func buildThreatTitle(type: String?, confidence: Int, region: String) -> String {
-        let threatName: String
-        switch type {
-        case "ballistic":      threatName = "Балістична загроза"
-        case "shahed":         threatName = "Загроза БпЛА Shahed"
-        case "cruise_missile": threatName = "Загроза крилатих ракет"
-        case "kab":            threatName = "Загроза КАБ"
-        case "mig31k":         threatName = "Зліт МіГ-31К (Кинджал)"
-        case "tu95":           threatName = "Зліт Ту-95МС (крилаті ракети)"
-        case "tu22m3":         threatName = "Зліт Ту-22М3 (ракети Х-22/Х-32)"
-        case "iskander":       threatName = "Загроза Іскандер-М"
-        default:               threatName = "Повітряна загроза"
-        }
-        let indicator: String
-        if confidence >= 85 {
-            indicator = "🔴 Висока ймовірність"
-        } else if confidence >= 60 {
-            indicator = "🟠 Ймовірна загроза"
-        } else {
-            indicator = "🟡 Можлива загроза"
-        }
-        return "\(indicator): \(threatName) (\(region))"
     }
 }
