@@ -13,11 +13,33 @@ struct NotificationsSettingsCard: View {
         self.onHaptic = onHaptic
     }
 
+    private var soundAlarmsBinding: Binding<Bool> {
+        Binding(
+            get: { !settings.muteAlarmsSound },
+            set: { settings.muteAlarmsSound = !$0 }
+        )
+    }
+
+    private var soundClearBinding: Binding<Bool> {
+        Binding(
+            get: { !settings.muteClearSound },
+            set: { settings.muteClearSound = !$0 }
+        )
+    }
+
+    private var soundThreatsBinding: Binding<Bool> {
+        Binding(
+            get: { !settings.muteThreatsSound },
+            set: { settings.muteThreatsSound = !$0 }
+        )
+    }
+
     public var body: some View {
         SettingsCard(title: "Сповіщення та Звуки", icon: "bell.fill", iconColor: .siBlue) {
+            // Головний вимикач сповіщень
             StyledToggleRow(
                 title: "Увімкнути сповіщення",
-                subtitle: "Push-повідомлення про тривоги",
+                subtitle: "Push-повідомлення про тривоги та загрози",
                 icon: "bell.fill",
                 iconColor: .siBlue,
                 isOn: $settings.notificationsEnabled
@@ -25,66 +47,87 @@ struct NotificationsSettingsCard: View {
             .onChange(of: settings.notificationsEnabled) { _, _ in onHaptic(.light) }
             
             StyledDivider()
-            
-            StyledToggleRow(
-                title: "Критичні сповіщення",
-                subtitle: "Пробивати режим «Не турбувати»",
-                icon: "exclamationmark.triangle.fill",
-                iconColor: .red,
-                isOn: $settings.criticalAlertsEnabled
-            )
-            .disabled(!settings.notificationsEnabled)
-            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: settings.criticalAlertsEnabled) { _, _ in onHaptic(.light) }
-            
-            StyledDivider()
 
-            // Офіційній блок: Тривога та Відбій у витонченій напіврамці
-            VStack(spacing: 0) {
-                StyledToggleRow(
-                    title: "Без звуку для тривоги",
-                    subtitle: "Вимкнути звук сирени при офіційній тривозі",
-                    icon: "bell.slash.fill",
-                    iconColor: .red,
-                    isOn: $settings.muteAlarmsSound
+            // Офіційний блок: Critical Alert + Тривога + Відбій у єдиному скляному контейнері
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ОФІЦІЙНІ СИГНАЛИ ТА CRITICAL ALERT")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.siBlue)
+                        .tracking(0.5)
+                    
+                    Text("Критичні сповіщення діють виключно для офіційної тривоги та відбою")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                .padding(.horizontal, 4)
+                .padding(.top, 4)
+
+                VStack(spacing: 0) {
+                    // 1. Критичні сповіщення
+                    StyledToggleRow(
+                        title: "Критичні сповіщення",
+                        subtitle: "Пробивати режим «Не турбувати» для тривоги й відбою",
+                        icon: "exclamationmark.triangle.fill",
+                        iconColor: .siBlue,
+                        isOn: $settings.criticalAlertsEnabled
+                    )
+                    .disabled(!settings.notificationsEnabled)
+                    .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+                    .onChange(of: settings.criticalAlertsEnabled) { _, _ in onHaptic(.light) }
+
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                        .padding(.vertical, 8)
+
+                    // 2. Звук офіційної тривоги
+                    StyledToggleRow(
+                        title: "Звук тривоги",
+                        subtitle: "Звуковий сигнал сирени при оголошенні тривоги",
+                        icon: "bell.badge.fill",
+                        iconColor: .siBlue,
+                        isOn: soundAlarmsBinding
+                    )
+                    .disabled(!settings.notificationsEnabled)
+                    .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+                    .onChange(of: settings.muteAlarmsSound) { _, _ in onHaptic(.light) }
+
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                        .padding(.vertical, 8)
+
+                    // 3. Звук відбою тривоги
+                    StyledToggleRow(
+                        title: "Звук відбою",
+                        subtitle: "Звуковий сигнал vidbiy.wav при закінченні тривоги",
+                        icon: "speaker.wave.2.fill",
+                        iconColor: .siBlue,
+                        isOn: soundClearBinding
+                    )
+                    .disabled(!settings.notificationsEnabled)
+                    .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+                    .onChange(of: settings.muteClearSound) { _, _ in onHaptic(.light) }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.white.opacity(0.04))
                 )
-                .disabled(!settings.notificationsEnabled)
-                .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
-                .onChange(of: settings.muteAlarmsSound) { _, _ in onHaptic(.light) }
-
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                    .padding(.vertical, 8)
-
-                StyledToggleRow(
-                    title: "Без звуку для відбою",
-                    subtitle: "Вимкнути звук при завершенні небезпеки",
-                    icon: "speaker.slash.fill",
-                    iconColor: .green,
-                    isOn: $settings.muteClearSound
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.siBlue.opacity(0.25), lineWidth: 1)
                 )
-                .disabled(!settings.notificationsEnabled)
-                .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
-                .onChange(of: settings.muteClearSound) { _, _ in onHaptic(.light) }
             }
-            .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.white.opacity(0.03))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            )
 
             StyledDivider()
 
+            // 4. Звук ШІ-загроз
             StyledToggleRow(
-                title: "Без звуку для загроз",
-                subtitle: "Вимкнути звук ШІ-попереджень про КАБи та дрони",
-                icon: "speaker.slash.circle.fill",
-                iconColor: .siOrange,
-                isOn: $settings.muteThreatsSound
+                title: "Звук ШІ-загроз",
+                subtitle: "Звукові попередження про КАБи, ракети та БпЛА",
+                icon: "speaker.wave.1.fill",
+                iconColor: .siBlue,
+                isOn: soundThreatsBinding
             )
             .disabled(!settings.notificationsEnabled)
             .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
@@ -92,11 +135,12 @@ struct NotificationsSettingsCard: View {
 
             StyledDivider()
 
+            // 5. Вібрація
             StyledToggleRow(
                 title: "Вібрація",
-                subtitle: "Вібрувати при тривогах, загрозах та відбої",
+                subtitle: "Вібраційний відгук для всіх типів подій",
                 icon: "iphone.radiowaves.left.and.right",
-                iconColor: .purple,
+                iconColor: .siBlue,
                 isOn: $settings.vibrationEnabled
             )
             .disabled(!settings.notificationsEnabled)
