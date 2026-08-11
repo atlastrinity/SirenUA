@@ -51,7 +51,6 @@ targets:
         aps-environment: production
         com.apple.security.application-groups:
           - group.com.sirenua.shared
-        com.apple.developer.usernotifications.critical-alerts: true
     settings:
       base:
         INFOPLIST_FILE: Sources/SirenUANotificationService/Info.plist
