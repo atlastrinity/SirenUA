@@ -355,8 +355,9 @@ final class MapViewModel: ObservableObject {
     }
     
     func centerMapOnAlerts(alerts: [AlertRegion], isPremium: Bool, lastAlertedRegionName: String?, regions: [RegionPolygon], animated: Bool = true) {
-        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
+        let shared = UserDefaults(suiteName: "group.com.sirenua.shared")
+        let allTracked = shared?.object(forKey: "allRegionsTracked") as? Bool ?? true
+        let trackedString = shared?.string(forKey: "trackedRegionsString") ?? ""
         let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
         
         let isRegionFiltered: (String) -> Bool = { name in

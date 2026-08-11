@@ -7,9 +7,10 @@ extension ContentView {
     // MARK: Filter helpers
 
     func isRegionFiltered(_ name: String) -> Bool {
-        let allTracked = UserDefaults.standard.object(forKey: "allRegionsTracked") as? Bool ?? true
-        let trackedString = UserDefaults.standard.object(forKey: "trackedRegionsString") as? String ?? ""
-        let trackedList = trackedString.components(separatedBy: ";")
+        let shared = UserDefaults(suiteName: "group.com.sirenua.shared")
+        let allTracked = shared?.object(forKey: "allRegionsTracked") as? Bool ?? true
+        let trackedString = shared?.string(forKey: "trackedRegionsString") ?? ""
+        let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
         return allTracked || trackedList.contains(name)
     }
 
