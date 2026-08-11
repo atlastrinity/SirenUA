@@ -86,8 +86,9 @@ final class NotificationService: UNNotificationServiceExtension {
             shouldPlaySound = !(shared?.bool(forKey: "muteAlarmsSound") ?? false)
         }
 
-        // 4. Critical alerts toggle → interruption level
+        // 4. Vibration & Critical alerts toggles
         let criticalEnabled = shared?.object(forKey: "criticalAlertsEnabled") as? Bool ?? true
+        let vibrationEnabled = shared?.object(forKey: "vibrationEnabled") as? Bool ?? true
 
         // 5. Встановити звук та interruption level
         if shouldPlaySound {
@@ -105,11 +106,16 @@ final class NotificationService: UNNotificationServiceExtension {
                 content.interruptionLevel = .timeSensitive
                 nseLogger.info("NSE: \(eventType) → timeSensitive sound: \(soundFile)")
             }
+        } else if vibrationEnabled {
+            // Звук вимкнений користувачем, але вібрація увімкнена → використовуємо system default (iOS активує вібромотор)
+            content.sound = UNNotificationSound.default
+            content.interruptionLevel = .timeSensitive
+            nseLogger.info("NSE: \(eventType) → sound muted, vibration enabled (UNNotificationSound.default)")
         } else {
-            // Звук вимкнений користувачем для цього типу подій
+            // Звук та вібрація вимкнені повністю
             content.sound = nil
-            content.interruptionLevel = .active
-            nseLogger.info("NSE: \(eventType) → sound muted by user toggle")
+            content.interruptionLevel = .passive
+            nseLogger.info("NSE: \(eventType) → sound and vibration disabled")
         }
 
         contentHandler(content)
