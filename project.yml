@@ -10,6 +10,11 @@ targets:
       - path: Sources/SirenUA
     entitlements:
       path: Sources/SirenUA/SirenUA.entitlements
+      properties:
+        aps-environment: production
+        com.apple.security.application-groups:
+          - group.com.sirenua.shared
+        com.apple.developer.usernotifications.critical-alerts: true
     attributes:
       SystemCapabilities:
         com.apple.Push:
@@ -42,6 +47,11 @@ targets:
       - path: Sources/SirenUA/clearance.wav
     entitlements:
       path: Sources/SirenUANotificationService/SirenUANotificationService.entitlements
+      properties:
+        aps-environment: production
+        com.apple.security.application-groups:
+          - group.com.sirenua.shared
+        com.apple.developer.usernotifications.critical-alerts: true
     settings:
       base:
         INFOPLIST_FILE: Sources/SirenUANotificationService/Info.plist
