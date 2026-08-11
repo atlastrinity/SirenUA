@@ -86,12 +86,45 @@ final class NotificationService: UNNotificationServiceExtension {
             shouldPlaySound = !(shared?.bool(forKey: "muteAlarmsSound") ?? false)
         }
 
+        // 3a. Дедуплікація та пріоритетизація звуків для багатьох областей
+        // Запобігає обриванню поточної сирени однаковими або нижчими за пріоритетом пушами при ввімкнених усіх областях.
+        let now = Date().timeIntervalSince1970
+        let lastSoundType = shared?.string(forKey: "lastSoundEventType") ?? ""
+        let lastSoundTime = shared?.double(forKey: "lastSoundTimestamp") ?? 0.0
+        let timeSinceLastSound = now - lastSoundTime
+
+        var allowSoundPlayback = shouldPlaySound
+
+        if shouldPlaySound && timeSinceLastSound < 15.0 {
+            if eventType == lastSoundType {
+                // 1. Однаковий тип події (наприклад, alarm -> alarm для 2-ї області через 2 секунди)
+                // Не перебиваємо сирену, яка ще грає! Сповіщення з'явиться на екрані тихим (або з вібро), не обриваючи аудіо.
+                allowSoundPlayback = false
+                nseLogger.info("NSE: Suppressing duplicate \(eventType) sound (played \(Int(timeSinceLastSound))s ago)")
+            } else if lastSoundType == "alarm" && (eventType == "threat" || eventType == "clear") {
+                // 2. Офіційна тривога має вищий пріоритет за тактичну загрозу або відбій
+                // Не дозволяємо threat або clear обривати активну сирену тривоги (протягом 15 сек).
+                allowSoundPlayback = false
+                nseLogger.info("NSE: Suppressing \(eventType) sound while alarm is active (\(Int(timeSinceLastSound))s ago)")
+            } else if lastSoundType == "threat" && eventType == "clear" && timeSinceLastSound < 5.0 {
+                // 3. Загроза має вищий пріоритет за відбій (протягом 5 сек)
+                allowSoundPlayback = false
+                nseLogger.info("NSE: Suppressing clear sound while threat is active (\(Int(timeSinceLastSound))s ago)")
+            }
+        }
+
+        if allowSoundPlayback {
+            // Записуємо інформацію про поточний звук в App Group для наступних пушів
+            shared?.set(eventType, forKey: "lastSoundEventType")
+            shared?.set(now, forKey: "lastSoundTimestamp")
+        }
+
         // 4. Vibration & Critical alerts toggles
         let criticalEnabled = shared?.object(forKey: "criticalAlertsEnabled") as? Bool ?? true
         let vibrationEnabled = shared?.object(forKey: "vibrationEnabled") as? Bool ?? true
 
         // 5. Встановити звук та interruption level
-        if shouldPlaySound {
+        if allowSoundPlayback {
             let soundFile = (data["sound_file"] as? String) ?? defaultSoundFile(for: eventType)
 
             if criticalEnabled {
@@ -107,10 +140,10 @@ final class NotificationService: UNNotificationServiceExtension {
                 nseLogger.info("NSE: \(eventType) → timeSensitive sound: \(soundFile)")
             }
         } else if vibrationEnabled {
-            // Звук вимкнений користувачем, але вібрація увімкнена → використовуємо system default (iOS активує вібромотор)
+            // Звук вимкнений користувачем або задедуплікований, але вібрація увімкнена → використовуємо system default (вібро без обриву аудіо)
             content.sound = UNNotificationSound.default
             content.interruptionLevel = .timeSensitive
-            nseLogger.info("NSE: \(eventType) → sound muted, vibration enabled (UNNotificationSound.default)")
+            nseLogger.info("NSE: \(eventType) → sound muted/deduplicated, vibration enabled")
         } else {
             // Звук та вібрація вимкнені повністю
             content.sound = nil
