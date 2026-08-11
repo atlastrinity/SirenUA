@@ -64,10 +64,20 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                         notifLogger.error("Fallback permission request error: \(err.localizedDescription)")
                     } else {
                         notifLogger.info("Notification permission (standard): \(granted ? "granted" : "denied")")
+                        if granted {
+                            DispatchQueue.main.async {
+                                UIApplication.shared.registerForRemoteNotifications()
+                            }
+                        }
                     }
                 }
             } else {
                 notifLogger.info("Notification permission: \(granted ? "granted" : "denied")")
+                if granted {
+                    DispatchQueue.main.async {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
             }
             
             UNUserNotificationCenter.current().getNotificationSettings { settings in
