@@ -1,6 +1,5 @@
 import Foundation
 import UserNotifications
-import AVFoundation
 import AudioToolbox
 import UIKit
 import FirebaseMessaging
@@ -22,17 +21,12 @@ struct PendingNotification {
 
 // MARK: - NotificationManager
 
-final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVAudioPlayerDelegate, @unchecked Sendable {
+final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
 
     static let shared = NotificationManager()
 
-        /// Track the region name when user taps a push notification
-        var pendingTappedRegion: String? = nil
-
-        private var audioPlayer: AVAudioPlayer?
-        private var audioPlaybackQueue: [URL] = []
-        private var isAudioPlaying: Bool = false
-        private let audioQueueLock = NSLock()
+    /// Track the region name when user taps a push notification
+    var pendingTappedRegion: String? = nil
 
     /// Serial queue for notification delivery to prevent overlap
     private var notificationQueue: [PendingNotification] = []
@@ -48,36 +42,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     /// If false, we fallback to .timeSensitive which still bypasses Focus mode.
     private(set) var hasCriticalAlerts: Bool = false
 
-    // MARK: - Firebase Topic Mapping
-
-    private let topicMapping: [String: String] = [
-        "Вінницька область":        "region_vinnytsia",
-        "Волинська область":         "region_volyn",
-        "Дніпропетровська область":  "region_dnipro",
-        "Донецька область":          "region_donetsk",
-        "Житомирська область":       "region_zhytomyr",
-        "Закарпатська область":      "region_zakarpattya",
-        "Запорізька область":        "region_zaporizhzhya",
-        "Івано-Франківська область": "region_if",
-        "Київська область":          "region_kyiv_oblast",
-        "м. Київ":                   "region_kyiv_city",
-        "Кіровоградська область":    "region_kirovohrad",
-        "Луганська область":         "region_luhansk",
-        "Львівська область":         "region_lviv",
-        "Миколаївська область":      "region_mykolaiv",
-        "Одеська область":           "region_odesa",
-        "Полтавська область":        "region_poltava",
-        "Рівненська область":        "region_rivne",
-        "Сумська область":           "region_sumy",
-        "Тернопільська область":     "region_ternopil",
-        "Харківська область":        "region_kharkiv",
-        "Херсонська область":        "region_kherson",
-        "Хмельницька область":       "region_khmelnytskyi",
-        "Черкаська область":         "region_cherkasy",
-        "Чернівецька область":       "region_chernivtsi",
-        "Чернігівська область":      "region_chernihiv"
-    ]
-
     // MARK: - Init
 
     private override init() {
@@ -88,7 +52,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
     // MARK: - Authorization
 
     func requestAuthorization() {
-        guard notificationsEnabled else { return }
+        guard NotificationSettings.shared.isNotificationsEnabled else { return }
         
         // First, try requesting WITH criticalAlert
         // This will succeed only if the entitlement is provisioned by Apple
@@ -249,7 +213,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
                 
                 let notifsEnabled = NotificationSettings.shared.notificationsEnabled
 
-                for (region, topic) in self.topicMapping {
+                for (region, topic) in RegionRegistry.topicMapping {
                     let shouldSubscribe = notifsEnabled && NotificationSettings.shared.isTracked(region)
                     if shouldSubscribe {
                         do {
@@ -335,30 +299,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
 
     // MARK: - Private helpers
 
-    private var notificationsEnabled: Bool {
-        NotificationSettings.shared.isNotificationsEnabled
-    }
-
-    private var criticalAlertsEnabled: Bool {
-        NotificationSettings.shared.isCriticalAlertsEnabled
-    }
-
-    private var muteAlarmsSound: Bool {
-        NotificationSettings.shared.isMuteAlarmsSound
-    }
-
-    private var muteThreatsSound: Bool {
-        NotificationSettings.shared.isMuteThreatsSound
-    }
-
-    private var muteClearSound: Bool {
-        NotificationSettings.shared.isMuteClearSound
-    }
-
-    private var vibrationEnabled: Bool {
-        NotificationSettings.shared.isVibrationEnabled
-    }
-
     private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType, pulses: Int = 3) {
         guard NotificationSettings.shared.shouldVibrate else { return }
         DispatchQueue.main.async {
@@ -375,15 +315,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, AVA
         }
     }
 
-    private func shouldNotify(for regionName: String) -> Bool {
-        NotificationSettings.shared.isTracked(regionName)
-    }
-
     private func enqueue(title: String, body: String, soundName: String, regionName: String,
                          interruptionLevel: UNNotificationInterruptionLevel = .active,
                          relevanceScore: Double = 0.5, isCritical: Bool = false) {
-        guard notificationsEnabled else { return }
-        guard shouldNotify(for: regionName) else { return }
+        guard NotificationSettings.shared.isNotificationsEnabled else { return }
+        guard NotificationSettings.shared.isTracked(regionName) else { return }
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }

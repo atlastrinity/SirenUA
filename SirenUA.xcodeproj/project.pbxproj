@@ -37,7 +37,7 @@
 		70F0E935C5B499A74D89BBD8 /* warning.wav in Resources */ = {isa = PBXBuildFile; fileRef = EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */; };
 		76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */; };
 		77911458D26F128B6595C4CB /* AdminErrorsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE58E39146F997321AEBD3B /* AdminErrorsTab.swift */; };
-		81679A36A0C498A8F3AD0B26 /* CriticalAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C84D82D0834D6540E612184 /* CriticalAlertManager.swift */; };
+		AA1111111111111111111101 /* RegionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1111111111111111111102 /* RegionRegistry.swift */; };
 		83057B5FDFB3876C6B2842B4 /* HistoryAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4BEC6E3AD19979050C66D29 /* HistoryAPI.swift */; };
 		835749ACCAA2AB2C0F25ED6C /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E64D5D56FBB6E54F397F43 /* AdminDashboardView.swift */; };
 		855C6AB6373E40BE550CEC83 /* ThreatMapContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */; };
@@ -111,7 +111,7 @@
 		013689DDFEEE1910227FD2A8 /* AdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViewModel.swift; sourceTree = "<group>"; };
 		0339979594E28EFDB0679230 /* SirenUA.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUA.entitlements; sourceTree = "<group>"; };
 		06F0F73C781ABB4E72AA6837 /* ContentView+MapLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MapLayers.swift"; sourceTree = "<group>"; };
-		0C84D82D0834D6540E612184 /* CriticalAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertManager.swift; sourceTree = "<group>"; };
+		AA1111111111111111111102 /* RegionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionRegistry.swift; sourceTree = "<group>"; };
 		0E949423A90B5821D63FE831 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		1827FA12485C38287F9CCFC0 /* ShelterDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterDetailView.swift; sourceTree = "<group>"; };
 		18EBAD5E8706EFEEC0F927B6 /* ShelterItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterItem.swift; sourceTree = "<group>"; };
@@ -286,10 +286,17 @@
 			path = Admin;
 			sourceTree = "<group>";
 		};
+		AA1111111111111111111103 /* Constants */ = {
+			isa = PBXGroup;
+			children = (
+				AA1111111111111111111102 /* RegionRegistry.swift */,
+			);
+			path = Constants;
+			sourceTree = "<group>";
+		};
 		52B7DE3CC22AF8B6DE6F6AEC /* Managers */ = {
 			isa = PBXGroup;
 			children = (
-				0C84D82D0834D6540E612184 /* CriticalAlertManager.swift */,
 				37DC6491EE57F52BE4F83350 /* GeoJSONManager.swift */,
 				BA1658C6134027D3CF2D1A69 /* LocationManager.swift */,
 				6A7320EDE140411A78D11980 /* NetworkManager.swift */,
@@ -388,6 +395,7 @@
 				8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */,
 				53632C2C3EF10CCFEBFEFEF9 /* vidbiy.wav */,
 				EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */,
+				AA1111111111111111111103 /* Constants */,
 				01C864D3E698924C5997267C /* Extensions */,
 				52B7DE3CC22AF8B6DE6F6AEC /* Managers */,
 				92CDF90F8B611D085C282E7B /* Models */,
@@ -588,7 +596,7 @@
 				C37E95BAEB97843727AB03F4 /* ContentView+Sheets.swift in Sources */,
 				0196EDF012A22A8A171121CC /* ContentView+Theme.swift in Sources */,
 				2A94AC072C1E2729A4E8654E /* ContentView.swift in Sources */,
-				81679A36A0C498A8F3AD0B26 /* CriticalAlertManager.swift in Sources */,
+				AA1111111111111111111101 /* RegionRegistry.swift in Sources */,
 				BE18B9E804D468156CDDACEA /* ErrorView.swift in Sources */,
 				9DA940DA1E27D917919A12DB /* GeoJSONManager.swift in Sources */,
 				83057B5FDFB3876C6B2842B4 /* HistoryAPI.swift in Sources */,

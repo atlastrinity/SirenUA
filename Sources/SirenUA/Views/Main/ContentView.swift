@@ -94,17 +94,8 @@ struct ContentView: View {
         return regions[index]
     }
 
-    private let allRegionsList = [
-        "Вінницька область",    "Волинська область",       "Дніпропетровська область",
-        "Донецька область",     "Житомирська область",     "Закарпатська область",
-        "Запорізька область",   "Івано-Франківська область","Київська область",
-        "м. Київ",              "Кіровоградська область",  "Луганська область",
-        "Львівська область",    "Миколаївська область",    "Одеська область",
-        "Полтавська область",   "Рівненська область",      "Сумська область",
-        "Тернопільська область","Харківська область",      "Херсонська область",
-        "Хмельницька область",  "Черкаська область",       "Чернівецька область",
-        "Чернігівська область"
-    ]
+    // MARK: Region list — uses centralized RegionRegistry
+    private var allRegionsList: [String] { RegionRegistry.allRegions }
 
     private var trackedRegionsSet: Set<String> {
         Set(trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
@@ -517,7 +508,6 @@ struct ContentView: View {
                 confidence: primaryThreatConfidence,
                 eta: primaryThreatETA,
                 isTrackedOnly: !allRegionsTracked,
-                allRegionsList: allRegionsList,
                 trackedRegionsSet: trackedRegionsSet,
                 allRegionsTracked: allRegionsTracked,
                 onOpenRegionPicker: { showRegionPickerSheet = true },

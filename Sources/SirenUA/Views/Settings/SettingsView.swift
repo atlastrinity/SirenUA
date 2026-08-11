@@ -35,27 +35,9 @@ struct SettingsView: View {
     @State private var alertsServerStatus:  ServerStatus = .checking
     @State private var threatsServerStatus: ServerStatus = .checking
     @State private var geminiServerStatus:  ServerStatus = .checking
-    // MARK: Region list
-    private let allRegionsList = [
-        "Вінницька область",    "Волинська область",       "Дніпропетровська область",
-        "Донецька область",     "Житомирська область",     "Закарпатська область",
-        "Запорізька область",   "Івано-Франківська область","Київська область",
-        "м. Київ",              "Кіровоградська область",  "Луганська область",
-        "Львівська область",    "Миколаївська область",    "Одеська область",
-        "Полтавська область",   "Рівненська область",      "Сумська область",
-        "Тернопільська область","Харківська область",      "Херсонська область",
-        "Хмельницька область",  "Черкаська область",       "Чернівецька область",
-        "Чернігівська область"
-    ]
+    // MARK: Region list — uses centralized RegionRegistry
+    private var allRegionsList: [String] { RegionRegistry.allRegions }
 
-    // MARK: Region helpers
-    private func isTracked(_ name: String) -> Bool {
-        settings.isTracked(name)
-    }
-
-    private func setTracked(_ name: String, isOn: Bool) {
-        settings.setTracked(name, isOn: isOn)
-    }
 
     // MARK: Haptics
     private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
@@ -311,7 +293,6 @@ struct SettingsView: View {
         RegionTrackingCard(
             settings: settings,
             isRegionsExpanded: $isRegionsExpanded,
-            allRegionsList: allRegionsList,
             onHaptic: { style in haptic(style) }
         )
     }

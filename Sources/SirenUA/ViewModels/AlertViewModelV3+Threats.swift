@@ -2,9 +2,6 @@ import Foundation
 
 // MARK: - AlertViewModelV3 Threat Fetching & Applying
 
-/// Регіони, які завжди червоні (тимчасово окуповані території) — сервер не надсилає для них окремих сповіщень
-private let permanentlyActiveRegions: Set<String> = ["Автономна Республіка Крим", "АР Крим", "Крим", "Луганська область", "Луганська обл."]
-
 extension AlertViewModelV3 {
 
     /// Fetches full threat state from server via GET /api/threats.
@@ -105,7 +102,7 @@ extension AlertViewModelV3 {
     // MARK: Push handling
 
     func applySingleThreat(region: String, threat: ThreatInfo) {
-        if permanentlyActiveRegions.contains(region) { return }
+        if RegionRegistry.isPermanentlyActive(region) { return }
         guard let index = alerts.firstIndex(where: { $0.name == region }) else { return }
         let oldThreatLevel = alerts[index].threatLevel
         let newThreatLevel = threat.level == "none" ? nil : threat.level

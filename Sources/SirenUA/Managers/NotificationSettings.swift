@@ -7,6 +7,24 @@ private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Notific
 
 // MARK: - NotificationSettings
 
+/// Центральне сховище налаштувань сповіщень та відстежуваних регіонів.
+///
+/// Архітектура: сервер надсилає однаковий потік подій для всіх регіонів,
+/// а клієнт самостійно фільтрує їх на основі цих налаштувань:
+///
+/// **6 тогглів сповіщень:**
+/// 1. `notificationsEnabled` — головний вимикач push-повідомлень
+/// 2. `criticalAlertsEnabled` — пробивання режиму «Не турбувати» (.timeSensitive)
+/// 3. `muteAlarmsSound` — вимкнення звуку для офіційних тривог
+/// 4. `muteThreatsSound` — вимкнення звуку для ШІ-попереджень (загрози)
+/// 5. `muteClearSound` — вимкнення звуку для відбою тривоги
+/// 6. `vibrationEnabled` — вібрація при будь-яких подіях
+///
+/// **Регіони:**
+/// - `allRegionsTracked` — відстежувати всі регіони України
+/// - `trackedRegionsString` — список обраних регіонів (розділені ";")
+///
+/// Thread-safe nonisolated getters доступні з будь-якого потоку через `UserDefaults`.
 final class NotificationSettings: ObservableObject, @unchecked Sendable {
     static let shared = NotificationSettings()
 

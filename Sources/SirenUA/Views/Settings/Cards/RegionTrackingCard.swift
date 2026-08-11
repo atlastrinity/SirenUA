@@ -3,8 +3,10 @@ import SwiftUI
 struct RegionTrackingCard: View {
     @ObservedObject var settings: NotificationSettings
     @Binding var isRegionsExpanded: Bool
-    let allRegionsList: [String]
     let onHaptic: (UIImpactFeedbackGenerator.FeedbackStyle) -> Void
+
+    /// Канонічний список регіонів з єдиного реєстру
+    private var allRegionsList: [String] { RegionRegistry.allRegions }
 
     var body: some View {
         SettingsCard(title: "Відслідковувані регіони", icon: "mappin.and.ellipse", iconColor: ChartColorTheme.active) {

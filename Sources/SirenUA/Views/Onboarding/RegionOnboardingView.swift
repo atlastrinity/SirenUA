@@ -3,23 +3,13 @@ import UIKit
 
 struct RegionOnboardingView: View {
     @AppStorage("onboardingCompleted")       private var onboardingCompleted       = false
-    @AppStorage("allRegionsTracked")         private var allRegionsTracked         = false
-    @AppStorage("trackedRegionsString")      private var trackedRegionsString      = ""
+    @ObservedObject private var settings = NotificationSettings.shared
     
     @State private var localTrackedList: Set<String> = []
     @State private var searchText = ""
     
-    private let allRegionsList = [
-        "Вінницька область",    "Волинська область",       "Дніпропетровська область",
-        "Донецька область",     "Житомирська область",     "Закарпатська область",
-        "Запорізька область",   "Івано-Франківська область","Київська область",
-        "м. Київ",              "Кіровоградська область",  "Луганська область",
-        "Львівська область",    "Миколаївська область",    "Одеська область",
-        "Полтавська область",   "Рівненська область",      "Сумська область",
-        "Тернопільська область","Харківська область",      "Херсонська область",
-        "Хмельницька область",  "Черкаська область",       "Чернівецька область",
-        "Чернігівська область"
-    ]
+    /// Канонічний список регіонів з єдиного реєстру
+    private var allRegionsList: [String] { RegionRegistry.allRegions }
     
     private var themeColor: Color {
         Color(red: 0.20, green: 0.52, blue: 0.98) // siBlue
@@ -86,17 +76,17 @@ struct RegionOnboardingView: View {
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            allRegionsTracked.toggle()
+                            settings.allRegionsTracked.toggle()
                         }
                     }) {
                         HStack(spacing: 14) {
                             ZStack {
                                 Circle()
-                                    .fill(allRegionsTracked ? themeColor.opacity(0.15) : Color.white.opacity(0.05))
+                                    .fill(settings.allRegionsTracked ? themeColor.opacity(0.15) : Color.white.opacity(0.05))
                                     .frame(width: 44, height: 44)
                                 Image(systemName: "globe.europe.africa.fill")
                                     .font(.system(size: 18))
-                                    .foregroundColor(allRegionsTracked ? themeColor : .white.opacity(0.6))
+                                    .foregroundColor(settings.allRegionsTracked ? themeColor : .white.opacity(0.6))
                             }
                             
                             VStack(alignment: .leading, spacing: 2) {
@@ -110,16 +100,16 @@ struct RegionOnboardingView: View {
                             
                             Spacer()
                             
-                            Image(systemName: allRegionsTracked ? "checkmark.circle.fill" : "circle")
+                            Image(systemName: settings.allRegionsTracked ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(allRegionsTracked ? themeColor : .white.opacity(0.2))
+                                .foregroundColor(settings.allRegionsTracked ? themeColor : .white.opacity(0.2))
                         }
                         .padding(14)
                         .background(Color.white.opacity(0.03))
                         .cornerRadius(16)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(allRegionsTracked ? themeColor.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1)
+                                .stroke(settings.allRegionsTracked ? themeColor.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -128,7 +118,7 @@ struct RegionOnboardingView: View {
                     .padding(.bottom, 12)
                     
                     // Option 2: Custom region picker list
-                    if !allRegionsTracked {
+                    if !settings.allRegionsTracked {
                         // Search bar
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -201,10 +191,10 @@ struct RegionOnboardingView: View {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         
                         // Save tracked regions
-                        if allRegionsTracked {
-                            trackedRegionsString = allRegionsList.joined(separator: ";")
+                        if settings.allRegionsTracked {
+                            settings.trackedRegionsString = allRegionsList.joined(separator: ";")
                         } else {
-                            trackedRegionsString = Array(localTrackedList).joined(separator: ";")
+                            settings.trackedRegionsString = Array(localTrackedList).joined(separator: ";")
                         }
                         
                         // Sync FCM subscriptions
@@ -222,12 +212,12 @@ struct RegionOnboardingView: View {
                             .padding(.vertical, 15)
                             .background(
                                 // Disable button if not tracking all and no regions selected
-                                (allRegionsTracked || !localTrackedList.isEmpty) ? themeColor : Color.gray.opacity(0.3)
+                                (settings.allRegionsTracked || !localTrackedList.isEmpty) ? themeColor : Color.gray.opacity(0.3)
                             )
                             .cornerRadius(14)
-                            .shadow(color: (allRegionsTracked || !localTrackedList.isEmpty) ? themeColor.opacity(0.3) : .clear, radius: 10, x: 0, y: 5)
+                            .shadow(color: (settings.allRegionsTracked || !localTrackedList.isEmpty) ? themeColor.opacity(0.3) : .clear, radius: 10, x: 0, y: 5)
                     }
-                    .disabled(!allRegionsTracked && localTrackedList.isEmpty)
+                    .disabled(!settings.allRegionsTracked && localTrackedList.isEmpty)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .padding(.top, 10)
@@ -237,8 +227,8 @@ struct RegionOnboardingView: View {
         }
         .onAppear {
             // Load current tracked regions if any, or default to some regions (like Kyiv)
-            if !trackedRegionsString.isEmpty {
-                localTrackedList = Set(trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
+            if !settings.trackedRegionsString.isEmpty {
+                localTrackedList = Set(settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
             } else {
                 // Pre-select Kyiv region for convenience
                 localTrackedList = ["Київська область", "м. Київ"]

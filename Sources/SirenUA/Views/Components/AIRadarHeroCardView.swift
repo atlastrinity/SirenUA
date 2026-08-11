@@ -9,7 +9,6 @@ struct AIRadarHeroCardView: View {
     let confidence: Int?
     let eta: String?
     let isTrackedOnly: Bool
-    let allRegionsList: [String]
     let trackedRegionsSet: Set<String>
     let allRegionsTracked: Bool
     var onSelectAllRegions: (() -> Void)? = nil
