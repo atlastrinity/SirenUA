@@ -17,6 +17,7 @@ targets:
     dependencies:
       - package: Firebase
         product: FirebaseMessaging
+      - target: SirenUANotificationService
     settings:
       base:
         INFOPLIST_FILE: Sources/SirenUA/Info.plist
@@ -26,6 +27,30 @@ targets:
         CODE_SIGNING_REQUIRED: "YES"
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  SirenUANotificationService:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources/SirenUANotificationService
+    # Sound files must be in the extension bundle for iOS to play them on lock screen
+    resources:
+      - path: Sources/SirenUA/siren.wav
+      - path: Sources/SirenUA/warning.wav
+      - path: Sources/SirenUA/vidbiy.wav
+      - path: Sources/SirenUA/clearance.wav
+    entitlements:
+      path: Sources/SirenUANotificationService/SirenUANotificationService.entitlements
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/SirenUANotificationService/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.sirenua.SirenUA.NotificationService
+        SWIFT_VERSION: 5.0
+        DEVELOPMENT_TEAM: "B7WVJ3B4B7"
+        CODE_SIGNING_REQUIRED: "YES"
+        CODE_SIGN_STYLE: Automatic
+
   SirenUATests:
     type: bundle.unit-test
     platform: iOS
@@ -50,6 +75,7 @@ schemes:
     build:
       targets:
         SirenUA: all
+        SirenUANotificationService: all
     run:
       config: Debug
       storeKitConfiguration: SirenUA.storekit

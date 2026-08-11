@@ -14,7 +14,7 @@ private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Notific
 ///
 /// **6 тогглів сповіщень:**
 /// 1. `notificationsEnabled` — головний вимикач push-повідомлень
-/// 2. `criticalAlertsEnabled` — пробивання режиму «Не турбувати» (.timeSensitive)
+/// 2. `criticalAlertsEnabled` — пробивання режиму «Не турбувати» (.timeSensitive / .critical)
 /// 3. `muteAlarmsSound` — вимкнення звуку для офіційних тривог
 /// 4. `muteThreatsSound` — вимкнення звуку для ШІ-попереджень (загрози)
 /// 5. `muteClearSound` — вимкнення звуку для відбою тривоги
@@ -24,9 +24,27 @@ private let settingsLogger = Logger(subsystem: "com.sirenua", category: "Notific
 /// - `allRegionsTracked` — відстежувати всі регіони України
 /// - `trackedRegionsString` — список обраних регіонів (розділені ";")
 ///
-/// Thread-safe nonisolated getters доступні з будь-якого потоку через `UserDefaults`.
+/// **App Group:**
+/// Налаштування зберігаються в `UserDefaults(suiteName: "group.com.sirenua.shared")`,
+/// щоб вони були доступні NotificationServiceExtension, який iOS запускає
+/// навіть коли додаток вбитий з пам'яті. При першому запуску існуючі значення
+/// мігрують з `UserDefaults.standard` до shared suite.
+///
+/// Thread-safe nonisolated getters доступні з будь-якого потоку через shared `UserDefaults`.
 final class NotificationSettings: ObservableObject, @unchecked Sendable {
     static let shared = NotificationSettings()
+
+    /// App Group suite name — спільне сховище між основним додатком та NSE
+    static let suiteName = "group.com.sirenua.shared"
+
+    /// Shared UserDefaults, доступні і основному додатку, і NotificationServiceExtension
+    private static let sharedDefaults: UserDefaults = {
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            settingsLogger.error("Failed to create shared UserDefaults with suiteName: \(suiteName). Falling back to .standard")
+            return .standard
+        }
+        return defaults
+    }()
 
     // MARK: Keys
     enum Keys {
@@ -38,12 +56,14 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         static let vibrationEnabled = "vibrationEnabled"
         static let allRegionsTracked = "allRegionsTracked"
         static let trackedRegionsString = "trackedRegionsString"
+        /// Migration flag — чи вже мігрували з standard до shared
+        static let didMigrateToAppGroup = "didMigrateToAppGroup_v1"
     }
 
     // MARK: Published Properties
     @Published var notificationsEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(notificationsEnabled, forKey: Keys.notificationsEnabled)
+            Self.sharedDefaults.set(notificationsEnabled, forKey: Keys.notificationsEnabled)
             settingsLogger.info("notificationsEnabled changed: \(self.notificationsEnabled)")
             NotificationManager.shared.syncTopicSubscriptions()
         }
@@ -51,56 +71,60 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
 
     @Published var criticalAlertsEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(criticalAlertsEnabled, forKey: Keys.criticalAlertsEnabled)
+            Self.sharedDefaults.set(criticalAlertsEnabled, forKey: Keys.criticalAlertsEnabled)
             settingsLogger.info("criticalAlertsEnabled changed: \(self.criticalAlertsEnabled)")
         }
     }
 
     @Published var muteAlarmsSound: Bool {
         didSet {
-            UserDefaults.standard.set(muteAlarmsSound, forKey: Keys.muteAlarmsSound)
+            Self.sharedDefaults.set(muteAlarmsSound, forKey: Keys.muteAlarmsSound)
             settingsLogger.info("muteAlarmsSound changed: \(self.muteAlarmsSound)")
         }
     }
 
     @Published var muteThreatsSound: Bool {
         didSet {
-            UserDefaults.standard.set(muteThreatsSound, forKey: Keys.muteThreatsSound)
+            Self.sharedDefaults.set(muteThreatsSound, forKey: Keys.muteThreatsSound)
             settingsLogger.info("muteThreatsSound changed: \(self.muteThreatsSound)")
         }
     }
 
     @Published var muteClearSound: Bool {
         didSet {
-            UserDefaults.standard.set(muteClearSound, forKey: Keys.muteClearSound)
+            Self.sharedDefaults.set(muteClearSound, forKey: Keys.muteClearSound)
             settingsLogger.info("muteClearSound changed: \(self.muteClearSound)")
         }
     }
 
     @Published var vibrationEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(vibrationEnabled, forKey: Keys.vibrationEnabled)
+            Self.sharedDefaults.set(vibrationEnabled, forKey: Keys.vibrationEnabled)
             settingsLogger.info("vibrationEnabled changed: \(self.vibrationEnabled)")
         }
     }
 
     @Published var allRegionsTracked: Bool {
         didSet {
-            UserDefaults.standard.set(allRegionsTracked, forKey: Keys.allRegionsTracked)
+            Self.sharedDefaults.set(allRegionsTracked, forKey: Keys.allRegionsTracked)
             NotificationManager.shared.syncTopicSubscriptions()
         }
     }
 
     @Published var trackedRegionsString: String {
         didSet {
-            UserDefaults.standard.set(trackedRegionsString, forKey: Keys.trackedRegionsString)
+            Self.sharedDefaults.set(trackedRegionsString, forKey: Keys.trackedRegionsString)
             NotificationManager.shared.syncTopicSubscriptions()
         }
     }
 
     // MARK: Init
     nonisolated private init() {
-        let defaults = UserDefaults.standard
+        let defaults = Self.sharedDefaults
+
+        // Migration: перенести існуючі налаштування з standard → shared (одноразово)
+        Self.migrateFromStandardIfNeeded()
+
         self.notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
         self.criticalAlertsEnabled = defaults.object(forKey: Keys.criticalAlertsEnabled) as? Bool ?? true
         self.muteAlarmsSound = defaults.bool(forKey: Keys.muteAlarmsSound)
@@ -111,30 +135,62 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         self.trackedRegionsString = defaults.string(forKey: Keys.trackedRegionsString) ?? ""
     }
 
+    // MARK: Migration
+
+    /// Одноразова міграція з `UserDefaults.standard` до App Group shared suite.
+    /// Зберігає прапор `didMigrateToAppGroup_v1` щоб не повторювати.
+    private static func migrateFromStandardIfNeeded() {
+        let shared = sharedDefaults
+        guard !shared.bool(forKey: Keys.didMigrateToAppGroup) else { return }
+
+        let standard = UserDefaults.standard
+        let keysToMigrate = [
+            Keys.notificationsEnabled,
+            Keys.criticalAlertsEnabled,
+            Keys.muteAlarmsSound,
+            Keys.muteThreatsSound,
+            Keys.muteClearSound,
+            Keys.vibrationEnabled,
+            Keys.allRegionsTracked,
+            Keys.trackedRegionsString,
+        ]
+
+        var migratedCount = 0
+        for key in keysToMigrate {
+            if let value = standard.object(forKey: key) {
+                shared.set(value, forKey: key)
+                migratedCount += 1
+            }
+        }
+
+        shared.set(true, forKey: Keys.didMigrateToAppGroup)
+        settingsLogger.info("✅ Migrated \(migratedCount) settings from standard → App Group shared defaults")
+    }
+
     // MARK: Nonisolated Thread-Safe Getters (Accessible from background threads / NotificationManager)
 
     nonisolated var isNotificationsEnabled: Bool {
-        UserDefaults.standard.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
+        Self.sharedDefaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
     }
 
     nonisolated var isCriticalAlertsEnabled: Bool {
-        UserDefaults.standard.object(forKey: Keys.criticalAlertsEnabled) as? Bool ?? true
+        Self.sharedDefaults.object(forKey: Keys.criticalAlertsEnabled) as? Bool ?? true
     }
 
     nonisolated var isMuteAlarmsSound: Bool {
-        UserDefaults.standard.bool(forKey: Keys.muteAlarmsSound)
+        Self.sharedDefaults.bool(forKey: Keys.muteAlarmsSound)
     }
 
     nonisolated var isMuteThreatsSound: Bool {
-        UserDefaults.standard.bool(forKey: Keys.muteThreatsSound)
+        Self.sharedDefaults.bool(forKey: Keys.muteThreatsSound)
     }
 
     nonisolated var isMuteClearSound: Bool {
-        UserDefaults.standard.bool(forKey: Keys.muteClearSound)
+        Self.sharedDefaults.bool(forKey: Keys.muteClearSound)
     }
 
     nonisolated var isVibrationEnabled: Bool {
-        UserDefaults.standard.object(forKey: Keys.vibrationEnabled) as? Bool ?? true
+        Self.sharedDefaults.object(forKey: Keys.vibrationEnabled) as? Bool ?? true
     }
 
     nonisolated var shouldPlayAlarmSound: Bool {
@@ -154,9 +210,9 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
     }
 
     nonisolated func isTracked(_ regionName: String) -> Bool {
-        let allTracked = UserDefaults.standard.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
+        let allTracked = Self.sharedDefaults.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
         guard !allTracked else { return true }
-        let trackedString = UserDefaults.standard.string(forKey: Keys.trackedRegionsString) ?? ""
+        let trackedString = Self.sharedDefaults.string(forKey: Keys.trackedRegionsString) ?? ""
         guard !trackedString.isEmpty else { return true }
         let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
         return trackedList.contains(regionName)

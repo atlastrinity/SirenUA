@@ -15,7 +15,6 @@ struct PendingNotification {
     let soundName: String
     let interruptionLevel: UNNotificationInterruptionLevel
     let relevanceScore: Double
-    let isCritical: Bool
     let regionName: String
 }
 
@@ -38,9 +37,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     private static let soundThrottleCritical: TimeInterval = 10.0
     private static let soundThrottleNormal: TimeInterval = 20.0
     
-    /// Runtime detection: does the app have Critical Alerts entitlement approved by Apple?
-    /// If false, we fallback to .timeSensitive which still bypasses Focus mode.
-    private(set) var hasCriticalAlerts: Bool = false
+    // Note: Critical alert decisions are now handled by the NotificationServiceExtension (NSE)
+    // which reads user toggles from App Group UserDefaults and sets sound/interruptionLevel
+    // before the push is displayed on the lock screen.
 
     // MARK: - Init
 
@@ -54,15 +53,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     func requestAuthorization() {
         guard NotificationSettings.shared.isNotificationsEnabled else { return }
         
-        // First, try requesting WITH criticalAlert
-        // This will succeed only if the entitlement is provisioned by Apple
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound, .criticalAlert]) { [weak self] granted, error in
+        // Request WITH criticalAlert — succeeds only if the entitlement is provisioned by Apple.
+        // NSE handles the actual critical vs timeSensitive decision per-notification.
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound, .criticalAlert]) { granted, error in
             if let error {
-                // criticalAlert not available — fallback to standard + timeSensitive
                 notifLogger.warning("Critical alert request failed (expected without entitlement): \(error.localizedDescription)")
-                notifLogger.info("Falling back to .timeSensitive for DND bypass")
-                self?.hasCriticalAlerts = false
-                
                 // Re-request without criticalAlert
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, err in
                     if let err {
@@ -72,21 +67,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                     }
                 }
             } else {
-                if granted {
-                    notifLogger.info("✅ Critical Alerts permission GRANTED — full DND bypass enabled")
-                    self?.hasCriticalAlerts = true
-                } else {
-                    notifLogger.info("Notification permission denied by user")
-                    self?.hasCriticalAlerts = false
-                }
+                notifLogger.info("Notification permission: \(granted ? "granted" : "denied")")
             }
             
-            // Check actual authorization status to confirm critical alerts
-            UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
-                let criticalEnabled = settings.criticalAlertSetting == .enabled
-                self?.hasCriticalAlerts = criticalEnabled
-                notifLogger.info("Critical alerts status: \(criticalEnabled ? "ENABLED" : "NOT AVAILABLE")")
-                notifLogger.info("Time sensitive status: \(settings.timeSensitiveSetting == .enabled ? "ENABLED" : "NOT AVAILABLE")")
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                notifLogger.info("Critical alerts: \(settings.criticalAlertSetting == .enabled ? "ENABLED" : "NOT AVAILABLE")")
+                notifLogger.info("Time sensitive: \(settings.timeSensitiveSetting == .enabled ? "ENABLED" : "NOT AVAILABLE")")
             }
         }
     }
@@ -120,22 +106,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 return
             }
 
-            let title = notification.request.content.title.lowercased()
-            let body = notification.request.content.body.lowercased()
-
-            let isThreat = title.contains("⚠️") || title.contains("загроза") || title.contains("шахед") || title.contains("ракета") || title.contains("каб") || title.contains("бпла") || title.contains("балистика") || body.contains("загроза") || body.contains("шахед") || body.contains("ракета") || body.contains("каб")
-            let isClear = title.contains("🟢") || title.contains("відбій") || body.contains("відбій")
-            let isAlarm = title.contains("🚨") || title.contains("тривога") || body.contains("тривога")
+            // Use event_type from data payload (same source as NSE) to avoid duplicating title-parsing
+            let eventType = self.resolveEventType(from: userInfo, title: notification.request.content.title)
 
             let shouldPlaySound: Bool
-            if isThreat {
-                shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
-            } else if isClear {
-                shouldPlaySound = NotificationSettings.shared.shouldPlayClearSound
-            } else if isAlarm {
-                shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
-            } else {
-                shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
+            switch eventType {
+            case "threat": shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
+            case "clear":  shouldPlaySound = NotificationSettings.shared.shouldPlayClearSound
+            default:       shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
             }
 
             let interruptionLevel = notification.request.content.interruptionLevel
@@ -143,8 +121,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             let throttle = isCriticalNotif ? Self.soundThrottleCritical : Self.soundThrottleNormal
             
             let now = Date()
+            // Haptic feedback (only works in foreground)
             if NotificationSettings.shared.shouldVibrate {
-                self.triggerHaptic(isAlarm ? .error : (isClear ? .success : .warning), pulses: isAlarm ? 4 : (isClear ? 2 : 3))
+                let hapticType: UINotificationFeedbackGenerator.FeedbackType = eventType == "alarm" ? .error : (eventType == "clear" ? .success : .warning)
+                let pulses = eventType == "alarm" ? 4 : (eventType == "clear" ? 2 : 3)
+                self.triggerHaptic(hapticType, pulses: pulses)
             }
 
             if !shouldPlaySound {
@@ -248,7 +229,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let soundName = NotificationSettings.shared.shouldPlayAlarmSound ? "siren.wav" : ""
 
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: level, relevanceScore: 1.0, isCritical: false)
+                interruptionLevel: level, relevanceScore: 1.0)
 
         triggerHaptic(.warning, pulses: 4)
     }
@@ -278,7 +259,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         }
 
         enqueue(title: fullTitle, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: level, relevanceScore: relevance, isCritical: false)
+                interruptionLevel: level, relevanceScore: relevance)
 
         triggerHaptic(confidence >= 85 ? .error : .warning, pulses: 3)
     }
@@ -292,7 +273,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let level: UNNotificationInterruptionLevel = shouldBypassDND ? .timeSensitive : .active
 
         enqueue(title: title, body: body, soundName: soundName, regionName: regionName,
-                interruptionLevel: level, relevanceScore: 0.3, isCritical: false)
+                interruptionLevel: level, relevanceScore: 0.3)
 
         triggerHaptic(.success, pulses: 2)
     }
@@ -315,16 +296,31 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         }
     }
 
+    /// Resolves event type from data payload or title (shared logic with NSE).
+    private func resolveEventType(from userInfo: [AnyHashable: Any], title: String) -> String {
+        // Prefer explicit event_type from server data payload
+        if let eventType = userInfo["event_type"] as? String { return eventType }
+        // Fallback: infer from data fields
+        if let isOfficial = userInfo["is_official"] as? String, isOfficial == "true" { return "alarm" }
+        if let level = userInfo["threat_level"] as? String, level == "none" { return "clear" }
+        if let level = userInfo["level"] as? String, level == "none" { return "clear" }
+        // Fallback: infer from title emoji
+        let t = title.lowercased()
+        if t.contains("🟢") || t.contains("відбій") { return "clear" }
+        if t.contains("⚠️") || t.contains("загроза") { return "threat" }
+        return "alarm"
+    }
+
     private func enqueue(title: String, body: String, soundName: String, regionName: String,
                          interruptionLevel: UNNotificationInterruptionLevel = .active,
-                         relevanceScore: Double = 0.5, isCritical: Bool = false) {
+                         relevanceScore: Double = 0.5) {
         guard NotificationSettings.shared.isNotificationsEnabled else { return }
         guard NotificationSettings.shared.isTracked(regionName) else { return }
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let now = Date()
-            let throttle = isCritical ? Self.soundThrottleCritical : Self.soundThrottleNormal
+            let throttle = Self.soundThrottleNormal
             let playSoundForThis: Bool
             if soundName.isEmpty {
                 playSoundForThis = false
@@ -346,7 +342,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                             soundName: playSoundForThis ? soundName : "",
                             interruptionLevel: interruptionLevel,
                             relevanceScore: relevanceScore,
-                            isCritical: isCritical,
                             regionName: regionName
                         ))
             self.processQueue()
@@ -367,8 +362,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         content.interruptionLevel = item.interruptionLevel
         content.relevanceScore = item.relevanceScore
         
-        // Sound: always use named sound file, never defaultCritical
-        // The server no longer sends critical push, so we handle sound purely client-side
+        // Sound: for local (foreground) notifications, use named sound file.
+        // Remote push sound is handled by NotificationServiceExtension (NSE).
         if !item.soundName.isEmpty {
             content.sound = UNNotificationSound(named: UNNotificationSoundName(item.soundName))
         } else {
