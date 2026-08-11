@@ -53,6 +53,26 @@ final class NotificationService: UNNotificationServiceExtension {
             return
         }
 
+        // 2a. Перевірити чи відстежується регіон користувачем (так само як тоггли)
+        var regionName: String? = data["region"] as? String ?? data["regionName"] as? String
+        if regionName == nil, let aps = data["aps"] as? [String: Any],
+           let custom = aps["custom_data"] as? [String: Any] {
+            regionName = custom["region"] as? String
+        }
+
+        let allTracked = shared?.object(forKey: "allRegionsTracked") as? Bool ?? true
+        if !allTracked, let region = regionName, !region.isEmpty {
+            let trackedString = shared?.string(forKey: "trackedRegionsString") ?? ""
+            let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
+            if !trackedList.contains(region) {
+                nseLogger.info("NSE: region \(region) is not tracked by user, delivering silent")
+                content.sound = nil
+                content.interruptionLevel = .passive
+                contentHandler(content)
+                return
+            }
+        }
+
         // 3. Визначити чи грати звук на основі відповідного тогла
         let shouldPlaySound: Bool
         switch eventType {
