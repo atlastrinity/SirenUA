@@ -64,8 +64,8 @@ struct ContentView: View {
         return Date().timeIntervalSince(timestamp) < 60
     }
     
-    @AppStorage("allRegionsTracked") private var allRegionsTracked = true
-    @AppStorage("trackedRegionsString") private var trackedRegionsString = ""
+    @AppStorage("allRegionsTracked", store: UserDefaults(suiteName: "group.com.sirenua.shared")) private var allRegionsTracked = true
+    @AppStorage("trackedRegionsString", store: UserDefaults(suiteName: "group.com.sirenua.shared")) private var trackedRegionsString = ""
     @State private var showRegionPickerSheet = false
     @State private var showBottomOperationalToast = false
 
