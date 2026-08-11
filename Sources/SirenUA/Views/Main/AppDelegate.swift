@@ -23,9 +23,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
         return true
     }
     
-    // Передаємо токен APNs до Firebase
+    // Передаємо токен APNs до Firebase та синхронізуємо підписки
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         Messaging.messaging().apnsToken = deviceToken
+        NotificationManager.shared.syncTopicSubscriptions()
     }
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {

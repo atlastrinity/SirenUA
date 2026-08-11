@@ -188,8 +188,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             guard let self else { return }
             self.syncTask?.cancel()
             self.syncTask = Task {
-                // Debounce: wait 0.5 seconds for subsequent settings updates
-                try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled else { return }
                 
                 let notifsEnabled = NotificationSettings.shared.notificationsEnabled
