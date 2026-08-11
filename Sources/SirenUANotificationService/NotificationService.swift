@@ -73,18 +73,10 @@ final class NotificationService: UNNotificationServiceExtension {
         if shouldPlaySound {
             let soundFile = (data["sound_file"] as? String) ?? defaultSoundFile(for: eventType)
 
-            if criticalEnabled {
-                // Critical alert: пробиває DND + Silent Mode, грає навіть при вимкненому звуку пристрою
-                content.sound = UNNotificationSound.criticalSoundNamed(
-                    UNNotificationSoundName(soundFile), withAudioVolume: 1.0)
-                content.interruptionLevel = .critical
-                nseLogger.info("NSE: \(eventType) → critical sound: \(soundFile)")
-            } else {
-                // TimeSensitive: пробиває Focus, але не Silent Mode
-                content.sound = UNNotificationSound(named: UNNotificationSoundName(soundFile))
-                content.interruptionLevel = .timeSensitive
-                nseLogger.info("NSE: \(eventType) → timeSensitive sound: \(soundFile)")
-            }
+            // UNNotificationSound(named:) гарантовано грає в TestFlight без спец. дозволу від Apple
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(soundFile))
+            content.interruptionLevel = criticalEnabled ? .timeSensitive : .active
+            nseLogger.info("NSE: \(eventType) → sound: \(soundFile), criticalEnabled: \(criticalEnabled)")
         } else {
             // Звук вимкнений користувачем для цього типу подій
             content.sound = nil
