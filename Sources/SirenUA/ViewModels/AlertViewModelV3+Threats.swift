@@ -32,83 +32,28 @@ extension AlertViewModelV3 {
         objectWillChange.send()
         for index in alerts.indices {
             let regionName = alerts[index].name
-            // Крим та Луганщина завжди червоні — не оновлюємо з сервера і не генеруємо сповіщень
-            if RegionConstants.isPermanentlyActive(regionName) { continue }
             guard let threat = threatData[regionName] else { continue }
-
-            let oldThreatLevel = alerts[index].threatLevel
-            let newThreatLevel = threat.level == "none" ? nil : threat.level
-            let wasActive = alerts[index].isActive
-
-            alerts[index].threatLevel = newThreatLevel
-            alerts[index].threatType = threat.type
-            alerts[index].threatDetail = threat.detail
-            alerts[index].threatConfidence = threat.confidence
-            alerts[index].threatETA = threat.eta
-            alerts[index].isThreatPredictive = threat.is_predictive ?? false
-
-            if let activeThreats = threat.active_threats, !activeThreats.isEmpty {
-                alerts[index].activeThreats = activeThreats
-                alerts[index].selectedThreatIndex = activeThreats.count - 1
-            } else {
-                alerts[index].activeThreats = []
-                alerts[index].selectedThreatIndex = 0
-            }
-
-            if let isActive = threat.is_active {
-                alerts[index].isActive = isActive
-                alerts[index].level = isActive ? 3 : 0
-                if isActive {
-                    alerts[index].description = "Повітряна тривога!"
-                } else if newThreatLevel != nil {
-                    alerts[index].description = "Загроза"
-                } else {
-                    alerts[index].description = "Немає тривоги"
-                }
-
-                // Fire official siren sound (siren.wav) on transition to active state
-                if !isFirstThreatFetch && !isFirstFetch {
-                    if !wasActive && isActive {
-                        NotificationManager.shared.sendAlertNotification(for: regionName)
-                    } else if wasActive && !isActive {
-                        NotificationManager.shared.sendClearNotification(for: regionName)
-                    }
-                }
-            }
-
-            if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
-                if !isFirstThreatFetch {
-                    let confidence = threat.confidence ?? 75
-                    let isPredictive = threat.is_predictive ?? false
-                    if isPredictive && confidence < 50 {
-                        vmLogger.info("Skipping notification for predictive low-confidence threat in \(regionName) (\(confidence)%)")
-                        continue
-                    }
-                    let typeDesc = ThreatConstants.genitiveDescription(for: threat.type)
-                    let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: regionName)
-                    var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
-                    if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
-                    NotificationManager.shared.sendThreatNotification(
-                        for: regionName, title: title, body: body,
-                        confidence: confidence, isCritical: confidence >= 85
-                    )
-                }
-            } else if oldThreatLevel != nil && newThreatLevel == nil && !alerts[index].isActive {
-                if !isFirstThreatFetch {
-                    vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering clear notification")
-                    NotificationManager.shared.sendClearNotification(for: regionName)
-                }
-            }
+            applyThreatInfo(regionName: regionName, threat: threat)
         }
-
         isFirstThreatFetch = false
     }
 
     // MARK: Push handling
 
     func applySingleThreat(region: String, threat: ThreatInfo) {
-        if RegionRegistry.isPermanentlyActive(region) { return }
-        guard let index = alerts.firstIndex(where: { $0.name == region }) else { return }
+        objectWillChange.send()
+        applyThreatInfo(regionName: region, threat: threat)
+    }
+
+    // MARK: - Core Threat Processing Helper
+
+    /// Уніфікована обробка даних загрози для конкретного регіону.
+    /// Використовується і при пакетному оновленні (applyThreats), і при поодинокому push (applySingleThreat).
+    private func applyThreatInfo(regionName: String, threat: ThreatInfo) {
+        // Крим та Луганщина завжди червоні — не оновлюємо з сервера і не генеруємо сповіщень
+        if RegionRegistry.isPermanentlyActive(regionName) { return }
+        guard let index = alerts.firstIndex(where: { $0.name == regionName }) else { return }
+
         let oldThreatLevel = alerts[index].threatLevel
         let newThreatLevel = threat.level == "none" ? nil : threat.level
         let wasActive = alerts[index].isActive
@@ -139,33 +84,38 @@ extension AlertViewModelV3 {
                 alerts[index].description = "Немає тривоги"
             }
 
+            // Офіційний сигнал (сирена/відбій)
             if !isFirstThreatFetch && !isFirstFetch {
                 if !wasActive && isActive {
-                    NotificationManager.shared.sendAlertNotification(for: region)
+                    NotificationManager.shared.sendAlertNotification(for: regionName)
                 } else if wasActive && !isActive {
-                    NotificationManager.shared.sendClearNotification(for: region)
+                    NotificationManager.shared.sendClearNotification(for: regionName)
                 }
             }
         }
 
+        // ШІ-загроза (нова / скасована без активної офіційної сирени)
         if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
             if !isFirstThreatFetch {
                 let confidence = threat.confidence ?? 75
                 let isPredictive = threat.is_predictive ?? false
-                if isPredictive && confidence < 50 { return }
+                if isPredictive && confidence < 50 {
+                    vmLogger.info("Skipping notification for predictive low-confidence threat in \(regionName) (\(confidence)%)")
+                    return
+                }
                 let typeDesc = ThreatConstants.genitiveDescription(for: threat.type)
-                let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: region)
+                let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: regionName)
                 var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
                 if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
                 NotificationManager.shared.sendThreatNotification(
-                    for: region, title: title, body: body,
+                    for: regionName, title: title, body: body,
                     confidence: confidence, isCritical: confidence >= 85
                 )
             }
-        } else if oldThreatLevel != nil && newThreatLevel == nil && !alerts[index].isActive {
+        } else if oldThreatLevel != nil && newThreatLevel == nil && !wasActive && !alerts[index].isActive {
             if !isFirstThreatFetch {
-                vmLogger.info("Single threat cleared for \(region) without active alarm — triggering clear notification")
-                NotificationManager.shared.sendClearNotification(for: region)
+                vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering clear notification")
+                NotificationManager.shared.sendClearNotification(for: regionName)
             }
         }
     }
