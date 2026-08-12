@@ -73,18 +73,16 @@ extension AlertViewModelV3 {
             alerts[index].selectedThreatIndex = 0
         }
 
-        if let isActive = threat.is_active {
-            alerts[index].isActive = isActive
-            alerts[index].level = isActive ? 3 : 0
-            if isActive {
-                alerts[index].description = "Повітряна тривога!"
-            } else if newThreatLevel != nil {
-                alerts[index].description = "Загроза"
-            } else {
-                alerts[index].description = "Немає тривоги"
-            }
+        if alerts[index].isActive {
+            alerts[index].description = "Повітряна тривога!"
+        } else if newThreatLevel != nil {
+            alerts[index].description = "Загроза"
+        } else {
+            alerts[index].description = "Немає тривоги"
+        }
 
-            // Офіційний сигнал (сирена/відбій)
+        // Офіційний сигнал (сирена/відбій)
+        if let isActive = threat.is_active {
             if !isFirstThreatFetch && !isFirstFetch {
                 if !wasActive && isActive {
                     NotificationManager.shared.sendAlertNotification(for: regionName)
