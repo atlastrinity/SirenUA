@@ -69,3 +69,8 @@ When the user requests a full cycle (e.g., "build and release a new version"), t
    - Усі сервісні файли сервера повинні використовувати виключно константи `THREAT_*` з `core/threat_types.py` (`THREAT_SHAHED`, `THREAT_BALLISTIC`, `THREAT_MIG31K` тощо).
 9. **Строга фільтрація укриттів (Real Bomb Shelters)**:
    - Логіка пошуку укриттів повинна шукати тільки підземні паркінги, бомбосховища та реальні об'єкти цивільного захисту, строго відсікаючи зупинки транспорту та укриття від дощу.
+10. **Централізована архітектура звуків подій та тогглів сповіщень (Event Sound & Toggle Architecture)**:
+    - **Єдине джерело правди (`EventType.swift`)**: Усі типи подій (`alarm`, `threat`, `clear`) та їх звукові файли (`siren.wav`, `warning.wav`, `vidbiy.wav`) винесені в єдиний enum `EventType`. Файл скомпільований безпосередньо у два таргети (`SirenUA` та `SirenUANotificationService`) через конфіг `project.yml`.
+    - **Розподіл `NotificationManager`**: Менеджер сповіщень декомпонований на 4 модульні розширення (`NotificationManager.swift`, `NotificationManager+Delegate.swift`, `NotificationManager+PublicAPI.swift`, `NotificationManager+Subscriptions.swift`).
+    - **6 тогглів сповіщень**: Головний вимикач, Критичні сповіщення, Звук тривоги, Звук ШІ-загроз, Звук відбою, Вібрація. Автоматично синхронізуються через App Group `group.com.sirenua.shared` між додатком та Extension.
+    - **Автоматичний відбій автономних загроз**: При знятті автономної ШІ-загрози (`oldThreatLevel != nil && newThreatLevel == nil && !wasActive`) клієнт автоматично генерує сповіщення та відтворює звук відбою `vidbiy.wav`.
