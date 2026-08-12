@@ -1,47 +1,6 @@
 import UserNotifications
 import OSLog
 
-// MARK: - EventType (NSE mirror)
-
-/// Дзеркальна копія EventType з основного таргету.
-/// Canonical definition: `SirenUA/Models/EventType.swift`.
-/// NSE — окремий процес і не має доступу до коду основного додатку.
-private enum EventType: String {
-    case alarm   // Офіційна тривога
-    case threat  // ШІ-загроза
-    case clear   // Відбій тривоги
-
-    /// Звуковий файл за замовчуванням
-    var soundFile: String {
-        switch self {
-        case .alarm:  return "siren.wav"
-        case .threat: return "warning.wav"
-        case .clear:  return "vidbiy.wav"
-        }
-    }
-
-    /// Визначити тип події з data payload або title (fallback)
-    static func resolve(from data: [AnyHashable: Any], title: String) -> EventType {
-        if let raw = data["event_type"] as? String, let type = EventType(rawValue: raw) {
-            return type
-        }
-        if let isOfficial = data["is_official"] as? String, isOfficial == "true" {
-            return .alarm
-        }
-        if let level = data["threat_level"] as? String, level == "none" {
-            return .clear
-        }
-        if let level = data["level"] as? String, level == "none" {
-            return .clear
-        }
-        let t = title.lowercased()
-        if t.contains("🟢") || t.contains("відбій") { return .clear }
-        if t.contains("⚠️") || t.contains("загроза") { return .threat }
-        if t.contains("🚨") || t.contains("🔴") || t.contains("тривога") { return .alarm }
-        return .alarm
-    }
-}
-
 // MARK: - NotificationService
 
 /// Notification Service Extension — iOS запускає цей процес при КОЖНОМУ push

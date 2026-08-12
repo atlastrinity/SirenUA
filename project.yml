@@ -39,6 +39,7 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Sources/SirenUANotificationService
+      - path: Sources/SirenUA/Models/EventType.swift
     # Sound files must be in the extension bundle for iOS to play them on lock screen
     resources:
       - path: Sources/SirenUA/siren.wav

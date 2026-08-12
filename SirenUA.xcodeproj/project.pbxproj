@@ -25,8 +25,11 @@
 		24357F6A14642FD92E85A441 /* ThreatIconMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B711A85B223A626CECD96921 /* ThreatIconMarker.swift */; };
 		28DBB4DFDD20D466543F48EC /* EventType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FD3A345D7A3C6D3C7C25D2 /* EventType.swift */; };
 		2A94AC072C1E2729A4E8654E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52577CC4A3DB333AB117FE33 /* ContentView.swift */; };
+		307E6EBF96E30DC37C52E8C4 /* EventType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FD3A345D7A3C6D3C7C25D2 /* EventType.swift */; };
 		3CB3DA25FF0B85362A2CB336 /* MainTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E573AB6532B7D8E07E0D96C2 /* MainTabBarView.swift */; };
+		3D4D10C3B231D4BB81B0D8A6 /* NotificationManager+Delegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5BEA136692ADB62BF70EBF /* NotificationManager+Delegate.swift */; };
 		3FEB076CAE81DF7D859DFAC9 /* AdminChronologyTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D32938646948B52EFBF900 /* AdminChronologyTab.swift */; };
+		4010CED26430FF0CDDA343A8 /* NotificationManager+Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CE742F7BA367F0E82468B4 /* NotificationManager+Subscriptions.swift */; };
 		4315A830BC873F1654AB0FC1 /* RegionPolygonsLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9AF2E195D0D8A85C298246E /* RegionPolygonsLayer.swift */; };
 		447FF66784501A8A47B4B4DF /* RegionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072FBEE04EAFD692F174A987 /* RegionRegistry.swift */; };
 		489D0CBA44F4F7F24F0C13EC /* RegionStatusBadgeAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D20DAE001BC56BFB82998B6 /* RegionStatusBadgeAnnotation.swift */; };
@@ -53,6 +56,7 @@
 		855C6AB6373E40BE550CEC83 /* ThreatMapContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */; };
 		8DE395A72A39F9861D44A3EC /* RegionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34711DC64A7284E773156999 /* RegionHistoryView.swift */; };
 		903993D95B7D33869D8F786E /* SheltersAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6583F76C8A22105AB10D00EC /* SheltersAPI.swift */; };
+		9403E553A5A9E5E41D24A6CD /* NotificationManager+PublicAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A15AB9558470FA36C99BA4 /* NotificationManager+PublicAPI.swift */; };
 		993042062355C64F10210B13 /* TelemetryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D05AA6EF664F667B662B2F /* TelemetryRow.swift */; };
 		9C2604C1882C919AF67F9B06 /* AdminControlTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB44D26EDD0483C6031770D3 /* AdminControlTab.swift */; };
 		9DA940DA1E27D917919A12DB /* GeoJSONManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DC6491EE57F52BE4F83350 /* GeoJSONManager.swift */; };
@@ -135,6 +139,7 @@
 		013689DDFEEE1910227FD2A8 /* AdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViewModel.swift; sourceTree = "<group>"; };
 		01FD3A345D7A3C6D3C7C25D2 /* EventType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventType.swift; sourceTree = "<group>"; };
 		0339979594E28EFDB0679230 /* SirenUA.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUA.entitlements; sourceTree = "<group>"; };
+		06CE742F7BA367F0E82468B4 /* NotificationManager+Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationManager+Subscriptions.swift"; sourceTree = "<group>"; };
 		06F0F73C781ABB4E72AA6837 /* ContentView+MapLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MapLayers.swift"; sourceTree = "<group>"; };
 		072FBEE04EAFD692F174A987 /* RegionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionRegistry.swift; sourceTree = "<group>"; };
 		0E949423A90B5821D63FE831 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
@@ -170,6 +175,7 @@
 		6A7320EDE140411A78D11980 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
 		6C36151A680FC980010F2529 /* MockScenariosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockScenariosCard.swift; sourceTree = "<group>"; };
 		6D3272804A294623673BFD6D /* NotificationsSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSettingsCard.swift; sourceTree = "<group>"; };
+		6D5BEA136692ADB62BF70EBF /* NotificationManager+Delegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationManager+Delegate.swift"; sourceTree = "<group>"; };
 		6F57ADE4A4F6CED1569337FF /* SirenUANotificationService.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUANotificationService.entitlements; sourceTree = "<group>"; };
 		73D05AA6EF664F667B662B2F /* TelemetryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryRow.swift; sourceTree = "<group>"; };
 		7CEFC7F09656C89CEA9E0972 /* BottomDashboardV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomDashboardV4.swift; sourceTree = "<group>"; };
@@ -198,6 +204,7 @@
 		B5E63B1BD30FD14135FBF7A5 /* OperationalMonitoringCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationalMonitoringCardView.swift; sourceTree = "<group>"; };
 		B67D7E51B19A85354D587BD2 /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
 		B711A85B223A626CECD96921 /* ThreatIconMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatIconMarker.swift; sourceTree = "<group>"; };
+		B8A15AB9558470FA36C99BA4 /* NotificationManager+PublicAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationManager+PublicAPI.swift"; sourceTree = "<group>"; };
 		BA1658C6134027D3CF2D1A69 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		BB7B09972E2AF61BEE6C45E7 /* SettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCard.swift; sourceTree = "<group>"; };
 		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -349,6 +356,9 @@
 				BA1658C6134027D3CF2D1A69 /* LocationManager.swift */,
 				6A7320EDE140411A78D11980 /* NetworkManager.swift */,
 				449147BC6A6B83151EBC569C /* NotificationManager.swift */,
+				6D5BEA136692ADB62BF70EBF /* NotificationManager+Delegate.swift */,
+				B8A15AB9558470FA36C99BA4 /* NotificationManager+PublicAPI.swift */,
+				06CE742F7BA367F0E82468B4 /* NotificationManager+Subscriptions.swift */,
 				EA44649C15C5E60CCDEF13AE /* NotificationSettings.swift */,
 				364CAC9A5E17ACF84A36006F /* StoreKitManager.swift */,
 				7E3E0D698143E8B52CC23157 /* API */,
@@ -674,6 +684,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				307E6EBF96E30DC37C52E8C4 /* EventType.swift in Sources */,
 				B30F69FBF2CFE429B2F43374 /* NotificationService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -723,6 +734,9 @@
 				05B43695E2C953D2F55C0F19 /* MockScenariosCard.swift in Sources */,
 				0E50948AD94AF6FB81C85E06 /* NavigationOverlay.swift in Sources */,
 				4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */,
+				3D4D10C3B231D4BB81B0D8A6 /* NotificationManager+Delegate.swift in Sources */,
+				9403E553A5A9E5E41D24A6CD /* NotificationManager+PublicAPI.swift in Sources */,
+				4010CED26430FF0CDDA343A8 /* NotificationManager+Subscriptions.swift in Sources */,
 				D88D51A31BFD78DA3B0C008C /* NotificationManager.swift in Sources */,
 				57D68BCAADEE149BED31BB59 /* NotificationSettings.swift in Sources */,
 				ABC34F5ED9A0F5DA98AB02BC /* NotificationsSettingsCard.swift in Sources */,
