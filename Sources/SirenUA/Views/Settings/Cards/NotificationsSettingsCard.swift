@@ -43,7 +43,7 @@ struct NotificationsSettingsCard: View {
 
     public var body: some View {
         SettingsCard(title: "Сповіщення та Звуки", icon: "bell.fill", iconColor: .siBlue) {
-            // Головний вимикач сповіщень
+            // Головні налаштування сповіщень
             StyledToggleRow(
                 title: "Увімкнути сповіщення",
                 subtitle: "Push-повідомлення про тривоги та загрози",
@@ -52,7 +52,18 @@ struct NotificationsSettingsCard: View {
                 isOn: $settings.notificationsEnabled
             )
             .onChange(of: settings.notificationsEnabled) { _, _ in onHaptic(.light) }
-            
+
+            StyledToggleRow(
+                title: "Вібрація",
+                subtitle: "Вібраційний відгук для всіх типів подій",
+                icon: "iphone.radiowaves.left.and.right",
+                iconColor: .siBlue,
+                isOn: $settings.vibrationEnabled
+            )
+            .disabled(!settings.notificationsEnabled)
+            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+            .onChange(of: settings.vibrationEnabled) { _, _ in onHaptic(.light) }
+
             StyledDivider()
 
             // Офіційний блок: Critical Alert + Тривога + Відбій у єдиному скляному контейнері
@@ -182,20 +193,6 @@ struct NotificationsSettingsCard: View {
                         .stroke(Color.siBlue.opacity(0.25), lineWidth: 1)
                 )
             }
-
-            StyledDivider()
-
-            // 5. Вібрація
-            StyledToggleRow(
-                title: "Вібрація",
-                subtitle: "Вібраційний відгук для всіх типів подій",
-                icon: "iphone.radiowaves.left.and.right",
-                iconColor: .siBlue,
-                isOn: $settings.vibrationEnabled
-            )
-            .disabled(!settings.notificationsEnabled)
-            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: settings.vibrationEnabled) { _, _ in onHaptic(.light) }
         }
     }
 }
