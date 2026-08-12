@@ -1,7 +1,6 @@
 import Foundation
 import UserNotifications
 import UIKit
-import FirebaseMessaging
 import OSLog
 
 let notifLogger = Logger(subsystem: "com.sirenua", category: "Notifications")

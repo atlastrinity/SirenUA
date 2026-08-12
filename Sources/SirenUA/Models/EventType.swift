@@ -9,9 +9,8 @@ import Foundation
 /// - `threat` — ШІ-загроза (КАБ, ракета, БпЛА)
 /// - `clear`  — відбій тривоги
 ///
-/// **Canonical definition** — дзеркальна копія існує в NSE
-/// (`SirenUANotificationService/NotificationService.swift`).
-/// При змінах — синхронізувати обидва місця.
+/// **Shared definition** — включено як спільний файл джерел у проекті `project.yml`
+/// для обох таргетів (`SirenUA` та `SirenUANotificationService`).
 enum EventType: String {
     case alarm   // Офіційна тривога
     case threat  // ШІ-загроза
