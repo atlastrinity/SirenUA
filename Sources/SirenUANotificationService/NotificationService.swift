@@ -91,7 +91,8 @@ final class NotificationService: UNNotificationServiceExtension {
             shouldPlaySound = !(shared?.bool(forKey: "muteThreatClearSound") ?? false)
         }
 
-        // 3a. Дедуплікація та пріоритетизація звуків для багатьох областей
+        // 3a. Дедуплікація, пріоритетизація та перевірка завершення фрази (3.5с)
+        let minVoiceDuration: TimeInterval = 3.5
         let now = Date().timeIntervalSince1970
         let lastSoundType = shared?.string(forKey: "lastSoundEventType") ?? ""
         let lastSoundRegion = shared?.string(forKey: "lastSoundRegion") ?? ""
@@ -104,13 +105,16 @@ final class NotificationService: UNNotificationServiceExtension {
             let currentRegion = regionName ?? ""
             let isSameRegion = (!currentRegion.isEmpty && currentRegion == lastSoundRegion)
 
-            if (eventType == .clear || eventType == .threatClear) && isSameRegion {
-                // ВІДБІЙ ДЛЯ ТІЄЇ Ж ОБЛАСТІ -> ПЕРЕБИВАЄ СИРЕНУ/ЗАГРОЗУ ЦІЄЇ ОБЛАСТІ ТА ГРАЄ VIDBIY.WAV / CLEARANCE.WAV НЕГАЙНО!
+            if timeSinceLastSound < minVoiceDuration {
+                // Мінімальне вікно 3.5с: якщо попередня фраза ще озвучується, не обриваємо її на півслові!
+                allowSoundPlayback = false
+                nseLogger.info("NSE: Suppressing sound (previous voice line still playing: \(timeSinceLastSound)s < 3.5s)")
+            } else if (eventType == .clear || eventType == .threatClear) && isSameRegion {
+                // ВІДБІЙ ДЛЯ ТІЄЇ Ж ОБЛАСТІ -> ПЕРЕБИВАЄ СИРЕНУ/ЗАГРОЗУ ЦІЄЇ ОБЛАСТІ ПІСЛЯ ЗАВЕРШЕННЯ ФРАЗИ!
                 allowSoundPlayback = true
                 nseLogger.info("NSE: Clearance for SAME region (\(currentRegion)) -> Overriding sound for \(eventType.rawValue)")
             } else if eventType.rawValue == lastSoundType {
                 // 1. Однаковий тип події для іншої області (наприклад, alarm -> alarm для чужої області через 2 сек)
-                // Не перебиваємо сирену, яка вже грає! Сповіщення з'явиться на екрані тихим (з вібро).
                 allowSoundPlayback = false
                 nseLogger.info("NSE: Suppressing duplicate \(eventType.rawValue) sound for another region (\(currentRegion))")
             } else if lastSoundType == "alarm" && (eventType == .threat || eventType == .clear || eventType == .threatClear) {
