@@ -163,11 +163,7 @@ extension AlertViewModelV3 {
             let isAlertNow = state.alertnow
             let wasActive = alerts[index].isActive
 
-            // OR-merge: Live API підтверджує тривогу, але НЕ скасовує якщо Threat API вже
-            // поставив isActive=true (is_active: true). Це усуває race condition між двома
-            // джерелами даних — якщо хоч одне каже "тривога" — область червона.
-            let threatAlreadyActive = alerts[index].isActive && alerts[index].level == 3
-            let effectiveActive = isAlertNow || threatAlreadyActive
+            let effectiveActive = isAlertNow
 
             alerts[index].isActive = effectiveActive
             alerts[index].level = effectiveActive ? 3 : 0
