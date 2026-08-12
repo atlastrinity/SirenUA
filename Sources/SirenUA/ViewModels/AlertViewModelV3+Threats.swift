@@ -73,7 +73,11 @@ extension AlertViewModelV3 {
             alerts[index].selectedThreatIndex = 0
         }
 
-        if alerts[index].isActive {
+        let isOfficial = threat.is_active ?? false
+        alerts[index].isActive = isOfficial
+        alerts[index].level = isOfficial ? 3 : 0
+
+        if isOfficial {
             alerts[index].description = "Повітряна тривога!"
         } else if newThreatLevel != nil {
             alerts[index].description = "Загроза"
