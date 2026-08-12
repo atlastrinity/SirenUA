@@ -24,9 +24,13 @@ extension NetworkManager {
         let data = try await fetch(request: request)
 
         do {
-            let decoded = try JSONDecoder().decode(ThreatResponse.self, from: data)
-            threatsLogger.info("Decoded threats for \(decoded.threats.count) regions")
-            return decoded.threats
+            if let decoded = try? JSONDecoder().decode(ThreatResponse.self, from: data) {
+                threatsLogger.info("Decoded wrapped threats for \(decoded.threats.count) regions")
+                return decoded.threats
+            }
+            let directDict = try JSONDecoder().decode([String: ThreatInfo].self, from: data)
+            threatsLogger.info("Decoded threats dict for \(directDict.count) regions")
+            return directDict
         } catch {
             threatsLogger.error("Threat decoding failed: \(error.localizedDescription)")
             throw NetworkError.decodingFailed(error)
