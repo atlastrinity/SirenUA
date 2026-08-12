@@ -1,6 +1,49 @@
 import UserNotifications
 import OSLog
 
+// MARK: - EventType (NSE mirror)
+
+/// Дзеркальна копія EventType з основного таргету.
+/// Canonical definition: `SirenUA/Models/EventType.swift`.
+/// NSE — окремий процес і не має доступу до коду основного додатку.
+private enum EventType: String {
+    case alarm   // Офіційна тривога
+    case threat  // ШІ-загроза
+    case clear   // Відбій тривоги
+
+    /// Звуковий файл за замовчуванням
+    var soundFile: String {
+        switch self {
+        case .alarm:  return "siren.wav"
+        case .threat: return "warning.wav"
+        case .clear:  return "vidbiy.wav"
+        }
+    }
+
+    /// Визначити тип події з data payload або title (fallback)
+    static func resolve(from data: [AnyHashable: Any], title: String) -> EventType {
+        if let raw = data["event_type"] as? String, let type = EventType(rawValue: raw) {
+            return type
+        }
+        if let isOfficial = data["is_official"] as? String, isOfficial == "true" {
+            return .alarm
+        }
+        if let level = data["threat_level"] as? String, level == "none" {
+            return .clear
+        }
+        if let level = data["level"] as? String, level == "none" {
+            return .clear
+        }
+        let t = title.lowercased()
+        if t.contains("🟢") || t.contains("відбій") { return .clear }
+        if t.contains("⚠️") || t.contains("загроза") { return .threat }
+        if t.contains("🚨") || t.contains("🔴") || t.contains("тривога") { return .alarm }
+        return .alarm
+    }
+}
+
+// MARK: - NotificationService
+
 /// Notification Service Extension — iOS запускає цей процес при КОЖНОМУ push
 /// з `mutable-content: 1`, навіть коли основний додаток вбитий з пам'яті.
 ///
@@ -24,6 +67,9 @@ final class NotificationService: UNNotificationServiceExtension {
 
     private let nseLogger = Logger(subsystem: "com.sirenua", category: "NSE")
 
+    /// Throttle для дедуплікації звуків — узгоджений з NotificationManager (15с)
+    private static let soundThrottle: TimeInterval = 15.0
+
     // MARK: - Entry Point
 
     override func didReceive(
@@ -40,8 +86,8 @@ final class NotificationService: UNNotificationServiceExtension {
 
         let data = content.userInfo
 
-        // 1. Визначити тип події
-        let eventType = (data["event_type"] as? String) ?? inferEventType(from: data, title: content.title)
+        // 1. Визначити тип події через canonical EventType enum
+        let eventType = EventType.resolve(from: data, title: content.title)
 
         // 2. Перевірити головний вимикач
         let notifsEnabled = shared?.object(forKey: "notificationsEnabled") as? Bool ?? true
@@ -76,14 +122,12 @@ final class NotificationService: UNNotificationServiceExtension {
         // 3. Визначити чи грати звук на основі відповідного тогла
         let shouldPlaySound: Bool
         switch eventType {
-        case "alarm":
+        case .alarm:
             shouldPlaySound = !(shared?.bool(forKey: "muteAlarmsSound") ?? false)
-        case "threat":
+        case .threat:
             shouldPlaySound = !(shared?.bool(forKey: "muteThreatsSound") ?? false)
-        case "clear":
+        case .clear:
             shouldPlaySound = !(shared?.bool(forKey: "muteClearSound") ?? false)
-        default:
-            shouldPlaySound = !(shared?.bool(forKey: "muteAlarmsSound") ?? false)
         }
 
         // 3a. Дедуплікація та пріоритетизація звуків для багатьох областей
@@ -95,24 +139,24 @@ final class NotificationService: UNNotificationServiceExtension {
 
         var allowSoundPlayback = shouldPlaySound
 
-        if shouldPlaySound && timeSinceLastSound < 15.0 {
+        if shouldPlaySound && timeSinceLastSound < Self.soundThrottle {
             let currentRegion = regionName ?? ""
             let isSameRegion = (!currentRegion.isEmpty && currentRegion == lastSoundRegion)
 
-            if eventType == "clear" && isSameRegion {
+            if eventType == .clear && isSameRegion {
                 // ВІДБІЙ ДЛЯ ТІЄЇ Ж ОБЛАСТІ -> ПЕРЕБИВАЄ СИРЕНУ ЦІЄЇ ОБЛАСТІ ТА ГРАЄ VIDBIY.WAV НЕГАЙНО!
                 allowSoundPlayback = true
                 nseLogger.info("NSE: Clearance for SAME region (\(currentRegion)) -> Overriding alarm with vidbiy.wav")
-            } else if eventType == lastSoundType {
+            } else if eventType.rawValue == lastSoundType {
                 // 1. Однаковий тип події для іншої області (наприклад, alarm -> alarm для чужої області через 2 сек)
                 // Не перебиваємо сирену, яка вже грає! Сповіщення з'явиться на екрані тихим (з вібро).
                 allowSoundPlayback = false
-                nseLogger.info("NSE: Suppressing duplicate \(eventType) sound for another region (\(currentRegion))")
-            } else if lastSoundType == "alarm" && (eventType == "threat" || eventType == "clear") {
+                nseLogger.info("NSE: Suppressing duplicate \(eventType.rawValue) sound for another region (\(currentRegion))")
+            } else if lastSoundType == "alarm" && (eventType == .threat || eventType == .clear) {
                 // 2. Сирена тривоги в одній області не обривається загрозою чи відбоєм іншої області
                 allowSoundPlayback = false
-                nseLogger.info("NSE: Suppressing \(eventType) sound for \(currentRegion) while alarm is active for \(lastSoundRegion)")
-            } else if lastSoundType == "threat" && eventType == "clear" && timeSinceLastSound < 5.0 {
+                nseLogger.info("NSE: Suppressing \(eventType.rawValue) sound for \(currentRegion) while alarm is active for \(lastSoundRegion)")
+            } else if lastSoundType == "threat" && eventType == .clear && timeSinceLastSound < 5.0 {
                 // 3. Загроза має вищий пріоритет за відбій іншої області (протягом 5 сек)
                 allowSoundPlayback = false
                 nseLogger.info("NSE: Suppressing clear sound for \(currentRegion) while threat is active")
@@ -121,7 +165,7 @@ final class NotificationService: UNNotificationServiceExtension {
 
         if allowSoundPlayback {
             // Записуємо інформацію про поточний звук та регіон в App Group
-            shared?.set(eventType, forKey: "lastSoundEventType")
+            shared?.set(eventType.rawValue, forKey: "lastSoundEventType")
             shared?.set(regionName ?? "", forKey: "lastSoundRegion")
             shared?.set(now, forKey: "lastSoundTimestamp")
         }
@@ -132,32 +176,32 @@ final class NotificationService: UNNotificationServiceExtension {
 
         // 5. Встановити звук та interruption level
         if allowSoundPlayback {
-            let soundFile = (data["sound_file"] as? String) ?? defaultSoundFile(for: eventType)
+            let soundFile = (data["sound_file"] as? String) ?? eventType.soundFile
 
-            let isCritical = criticalEnabled && (eventType == "alarm" || eventType == "clear")
+            let isCritical = criticalEnabled && (eventType == .alarm || eventType == .clear)
 
             if isCritical {
                 // Critical alert: пробиває DND + Silent Mode (для офіційних тривог alarm та відбоїв clear)
                 content.sound = UNNotificationSound.criticalSoundNamed(
                     UNNotificationSoundName(soundFile), withAudioVolume: 1.0)
                 content.interruptionLevel = .critical
-                nseLogger.info("NSE: \(eventType) → critical sound: \(soundFile)")
+                nseLogger.info("NSE: \(eventType.rawValue) → critical sound: \(soundFile)")
             } else {
                 // TimeSensitive: пробиває Focus, але не Silent Mode (для ШІ-загроз threat)
                 content.sound = UNNotificationSound(named: UNNotificationSoundName(soundFile))
                 content.interruptionLevel = .timeSensitive
-                nseLogger.info("NSE: \(eventType) → timeSensitive sound: \(soundFile)")
+                nseLogger.info("NSE: \(eventType.rawValue) → timeSensitive sound: \(soundFile)")
             }
         } else if vibrationEnabled {
             // Звук вимкнений користувачем або задедуплікований, але вібрація увімкнена → використовуємо system default (вібро без обриву аудіо)
             content.sound = UNNotificationSound.default
             content.interruptionLevel = .timeSensitive
-            nseLogger.info("NSE: \(eventType) → sound muted/deduplicated, vibration enabled")
+            nseLogger.info("NSE: \(eventType.rawValue) → sound muted/deduplicated, vibration enabled")
         } else {
             // Звук та вібрація вимкнені повністю
             content.sound = nil
             content.interruptionLevel = .passive
-            nseLogger.info("NSE: \(eventType) → sound and vibration disabled")
+            nseLogger.info("NSE: \(eventType.rawValue) → sound and vibration disabled")
         }
 
         contentHandler(content)
@@ -169,40 +213,5 @@ final class NotificationService: UNNotificationServiceExtension {
         if let content = bestAttemptContent, let handler = contentHandler {
             handler(content)
         }
-    }
-
-    // MARK: - Helpers
-
-    /// Звуковий файл за замовчуванням для кожного типу події
-    private func defaultSoundFile(for eventType: String) -> String {
-        switch eventType {
-        case "alarm":  return "siren.wav"
-        case "threat": return "warning.wav"
-        case "clear":  return "vidbiy.wav"
-        default:       return "siren.wav"
-        }
-    }
-
-    /// Fallback визначення типу події, якщо сервер не надіслав `event_type`
-    /// (для сумісності зі старими версіями серверу)
-    private func inferEventType(from data: [AnyHashable: Any], title: String) -> String {
-        // З data payload
-        if let isOfficial = data["is_official"] as? String, isOfficial == "true" {
-            return "alarm"
-        }
-        if let level = data["threat_level"] as? String, level == "none" {
-            return "clear"
-        }
-        if let level = data["level"] as? String, level == "none" {
-            return "clear"
-        }
-
-        // З title (emoji-based)
-        let t = title.lowercased()
-        if t.contains("🟢") || t.contains("відбій") { return "clear" }
-        if t.contains("⚠️") || t.contains("загроза") { return "threat" }
-        if t.contains("🚨") || t.contains("🔴") || t.contains("тривога") { return "alarm" }
-
-        return "alarm"  // Default: treat unknown as alarm (safer)
     }
 }
