@@ -45,7 +45,7 @@ struct RegionStatusBadgeAnnotation: MapContent {
                             if let conf = alert.threatConfidence {
                                 Text("⚙️ \(conf)%")
                                     .font(.system(size: 7, weight: .bold))
-                                    .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                                    .foregroundColor(conf >= 85 ? Color(red: 0.96, green: 0.75, blue: 0.05) : (conf >= 60 ? Color(red: 0.98, green: 0.84, blue: 0.12) : Color(red: 0.98, green: 0.90, blue: 0.35)))
                             }
                             if let eta = alert.displayETA, !eta.isEmpty {
                                 Text(eta)

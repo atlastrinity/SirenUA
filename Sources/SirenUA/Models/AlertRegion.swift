@@ -84,19 +84,18 @@ struct AlertRegion: Identifiable, Codable, Equatable {
             }
         } else if threatLevel != nil || !activeThreats.isEmpty {
             let threat = threatLevel ?? activeThreats.first?.level ?? "low"
-            let isExpired = displayETA == "в області"
             
+            // Загрози без офіційної тривоги (isActive == false) — ВИКЛЮЧНО жовта гама
+            // Від світло-жовтого для низьких/прогнозних до темнішого інтенсивного жовтого (Amber) для високих загроз
             switch threat {
-            case "critical":
-                return .red
-            case "high":
-                return isExpired ? .red : .orange
+            case "critical", "high":
+                return Color(red: 0.96, green: 0.75, blue: 0.05) // Інтенсивний темніший жовтий (Deep Amber Yellow)
             case "medium":
-                return isExpired ? .orange : .yellow
+                return Color(red: 0.98, green: 0.84, blue: 0.12) // Помірний яскравій жовтий
             case "low":
-                return .yellow // Keep low threat yellow to represent low-severity and predictive zones clearly
+                return Color(red: 0.98, green: 0.90, blue: 0.35) // Світло-жовтий
             default:
-                return .yellow
+                return Color(red: 0.98, green: 0.84, blue: 0.12)
             }
         }
         return .blue
