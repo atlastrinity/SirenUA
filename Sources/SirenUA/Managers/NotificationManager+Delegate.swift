@@ -29,6 +29,14 @@ extension NotificationManager {
                let custom = aps["custom_data"] as? [String: Any] {
                 regionName = custom["region"] as? String
             }
+
+            // Миттєво сигналізуємо ViewModel оновити та перемалювати карту
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ThreatDataUpdated"),
+                object: nil,
+                userInfo: userInfo
+            )
+
             if let region = regionName, !NotificationSettings.shared.isTracked(region) {
                 completionHandler([])
                 return
