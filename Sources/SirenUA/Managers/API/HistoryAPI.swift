@@ -26,7 +26,7 @@ extension NetworkManager {
         }
 
         var request = makeRequest(url: url, agent: Self.premiumAgent)
-        request.timeoutInterval = 10.0
+        request.timeoutInterval = 30.0  // 30s timeout to allow Render cold starts and DB queries
         historyLogger.info("Fetching history for \(region) date=\(date ?? "today")")
 
         let data = try await fetch(request: request)
