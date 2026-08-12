@@ -58,44 +58,17 @@ extension NotificationManager {
                 self.triggerHaptic(hapticType, pulses: pulses)
             }
 
-            // Дедуплікація, пріоритетизація та перевірка завершення фрази (3.5с), гармонізовано з NSE
-            let minVoiceDuration: TimeInterval = 3.5
+            // Перевірка дозволу на відтворення звуку через централізовану політику (NotificationSoundPolicy)
             let shared = UserDefaults(suiteName: NotificationSettings.suiteName)
-            let lastSoundType = shared?.string(forKey: "lastSoundEventType") ?? ""
-            let lastSoundRegion = shared?.string(forKey: "lastSoundRegion") ?? ""
-            let lastSoundTime = shared?.double(forKey: "lastSoundTimestamp") ?? 0.0
-            let timeSinceLastSound = now.timeIntervalSince1970 - lastSoundTime
-
-            var allowSoundPlayback = shouldPlaySound
-
-            if shouldPlaySound && timeSinceLastSound < Self.soundThrottle {
-                let currentRegion = regionName ?? ""
-                let isSameRegion = (!currentRegion.isEmpty && currentRegion == lastSoundRegion)
-
-                if timeSinceLastSound < minVoiceDuration {
-                    // Мінімальне вікно 3.5с: якщо попередня фраза ще озвучується, не обриваємо її на півслові!
-                    allowSoundPlayback = false
-                    notifLogger.info("Foreground: Suppressing sound (previous voice line still playing: \(timeSinceLastSound)s < 3.5s)")
-                } else if (eventType == .clear || eventType == .threatClear) && isSameRegion {
-                    // ВІДБІЙ ДЛЯ ТІЄЇ Ж ОБЛАСТІ -> ПЕРЕБИВАЄ СИРЕНУ/ЗАГРОЗУ ЦІЄЇ ОБЛАСТІ ПІСЛЯ ЗАВЕРШЕННЯ ФРАЗИ!
-                    allowSoundPlayback = true
-                    notifLogger.info("Foreground: Clearance for SAME region (\(currentRegion)) -> Overriding sound for \(eventType.rawValue)")
-                } else if eventType.rawValue == lastSoundType {
-                    allowSoundPlayback = false
-                    notifLogger.info("Foreground: Suppressing duplicate \(eventType.rawValue) sound for another region (\(currentRegion))")
-                } else if lastSoundType == "alarm" && (eventType == .threat || eventType == .clear || eventType == .threatClear) {
-                    allowSoundPlayback = false
-                    notifLogger.info("Foreground: Suppressing \(eventType.rawValue) sound for \(currentRegion) while alarm is active for \(lastSoundRegion)")
-                } else if lastSoundType == "threat" && (eventType == .clear || eventType == .threatClear) && timeSinceLastSound < 5.0 {
-                    allowSoundPlayback = false
-                    notifLogger.info("Foreground: Suppressing clear sound for \(currentRegion) while threat is active")
-                }
-            }
+            let allowSoundPlayback = NotificationSoundPolicy.shouldAllowPlayback(
+                for: eventType,
+                regionName: regionName,
+                shouldPlaySoundByUser: shouldPlaySound,
+                sharedDefaults: shared,
+                now: now
+            )
 
             if allowSoundPlayback && notification.request.content.sound != nil {
-                shared?.set(eventType.rawValue, forKey: "lastSoundEventType")
-                shared?.set(regionName ?? "", forKey: "lastSoundRegion")
-                shared?.set(now.timeIntervalSince1970, forKey: "lastSoundTimestamp")
                 self.lastPlayedTime = now
                 completionHandler([.banner, .sound, .badge, .list])
             } else {

@@ -91,49 +91,13 @@ final class NotificationService: UNNotificationServiceExtension {
             shouldPlaySound = !(shared?.bool(forKey: "muteThreatClearSound") ?? false)
         }
 
-        // 3a. Дедуплікація, пріоритетизація та перевірка завершення фрази (3.5с)
-        let minVoiceDuration: TimeInterval = 3.5
-        let now = Date().timeIntervalSince1970
-        let lastSoundType = shared?.string(forKey: "lastSoundEventType") ?? ""
-        let lastSoundRegion = shared?.string(forKey: "lastSoundRegion") ?? ""
-        let lastSoundTime = shared?.double(forKey: "lastSoundTimestamp") ?? 0.0
-        let timeSinceLastSound = now - lastSoundTime
-
-        var allowSoundPlayback = shouldPlaySound
-
-        if shouldPlaySound && timeSinceLastSound < Self.soundThrottle {
-            let currentRegion = regionName ?? ""
-            let isSameRegion = (!currentRegion.isEmpty && currentRegion == lastSoundRegion)
-
-            if timeSinceLastSound < minVoiceDuration {
-                // Мінімальне вікно 3.5с: якщо попередня фраза ще озвучується, не обриваємо її на півслові!
-                allowSoundPlayback = false
-                nseLogger.info("NSE: Suppressing sound (previous voice line still playing: \(timeSinceLastSound)s < 3.5s)")
-            } else if (eventType == .clear || eventType == .threatClear) && isSameRegion {
-                // ВІДБІЙ ДЛЯ ТІЄЇ Ж ОБЛАСТІ -> ПЕРЕБИВАЄ СИРЕНУ/ЗАГРОЗУ ЦІЄЇ ОБЛАСТІ ПІСЛЯ ЗАВЕРШЕННЯ ФРАЗИ!
-                allowSoundPlayback = true
-                nseLogger.info("NSE: Clearance for SAME region (\(currentRegion)) -> Overriding sound for \(eventType.rawValue)")
-            } else if eventType.rawValue == lastSoundType {
-                // 1. Однаковий тип події для іншої області (наприклад, alarm -> alarm для чужої області через 2 сек)
-                allowSoundPlayback = false
-                nseLogger.info("NSE: Suppressing duplicate \(eventType.rawValue) sound for another region (\(currentRegion))")
-            } else if lastSoundType == "alarm" && (eventType == .threat || eventType == .clear || eventType == .threatClear) {
-                // 2. Сирена тривоги в одній області не обривається загрозою чи відбоєм іншої області
-                allowSoundPlayback = false
-                nseLogger.info("NSE: Suppressing \(eventType.rawValue) sound for \(currentRegion) while alarm is active for \(lastSoundRegion)")
-            } else if lastSoundType == "threat" && (eventType == .clear || eventType == .threatClear) && timeSinceLastSound < 5.0 {
-                // 3. Загроза має вищий пріоритет за відбій іншої області (протягом 5 сек)
-                allowSoundPlayback = false
-                nseLogger.info("NSE: Suppressing clear sound for \(currentRegion) while threat is active")
-            }
-        }
-
-        if allowSoundPlayback {
-            // Записуємо інформацію про поточний звук та регіон в App Group
-            shared?.set(eventType.rawValue, forKey: "lastSoundEventType")
-            shared?.set(regionName ?? "", forKey: "lastSoundRegion")
-            shared?.set(now, forKey: "lastSoundTimestamp")
-        }
+        // 3a. Дедуплікація, пріоритетизація та вікно виголошення фрази (через NotificationSoundPolicy)
+        let allowSoundPlayback = NotificationSoundPolicy.shouldAllowPlayback(
+            for: eventType,
+            regionName: regionName,
+            shouldPlaySoundByUser: shouldPlaySound,
+            sharedDefaults: shared
+        )
 
         // 4. Vibration & Critical alerts toggles
         let criticalEnabled = shared?.object(forKey: "criticalAlertsEnabled") as? Bool ?? true
