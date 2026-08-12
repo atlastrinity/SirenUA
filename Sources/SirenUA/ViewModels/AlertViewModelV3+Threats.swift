@@ -93,6 +93,11 @@ extension AlertViewModelV3 {
                         confidence: confidence, isCritical: confidence >= 85
                     )
                 }
+            } else if oldThreatLevel != nil && newThreatLevel == nil && !alerts[index].isActive {
+                if !isFirstThreatFetch {
+                    vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering clear notification")
+                    NotificationManager.shared.sendClearNotification(for: regionName)
+                }
             }
         }
 
@@ -156,6 +161,11 @@ extension AlertViewModelV3 {
                     for: region, title: title, body: body,
                     confidence: confidence, isCritical: confidence >= 85
                 )
+            }
+        } else if oldThreatLevel != nil && newThreatLevel == nil && !alerts[index].isActive {
+            if !isFirstThreatFetch {
+                vmLogger.info("Single threat cleared for \(region) without active alarm — triggering clear notification")
+                NotificationManager.shared.sendClearNotification(for: region)
             }
         }
     }
