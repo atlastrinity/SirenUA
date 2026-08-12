@@ -114,8 +114,8 @@ extension AlertViewModelV3 {
             }
         } else if oldThreatLevel != nil && newThreatLevel == nil && !wasActive && !alerts[index].isActive {
             if !isFirstThreatFetch {
-                vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering clear notification")
-                NotificationManager.shared.sendClearNotification(for: regionName)
+                vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering threat clear notification")
+                NotificationManager.shared.sendThreatClearNotification(for: regionName)
             }
         }
     }

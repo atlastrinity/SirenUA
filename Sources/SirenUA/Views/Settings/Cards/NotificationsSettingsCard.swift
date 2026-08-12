@@ -34,6 +34,13 @@ struct NotificationsSettingsCard: View {
         )
     }
 
+    private var soundThreatClearBinding: Binding<Bool> {
+        Binding(
+            get: { !settings.muteThreatClearSound },
+            set: { settings.muteThreatClearSound = !$0 }
+        )
+    }
+
     public var body: some View {
         SettingsCard(title: "Сповіщення та Звуки", icon: "bell.fill", iconColor: .siBlue) {
             // Головний вимикач сповіщень
@@ -98,8 +105,8 @@ struct NotificationsSettingsCard: View {
 
                     // 3. Звук відбою тривоги
                     StyledToggleRow(
-                        title: "Звук відбою",
-                        subtitle: "Звуковий сигнал vidbiy.wav при закінченні тривоги",
+                        title: "Звук відбою тривоги",
+                        subtitle: "Звуковий сигнал vidbiy.wav при закінченні офіційної тривоги",
                         icon: "speaker.wave.2.fill",
                         iconColor: .siBlue,
                         isOn: soundClearBinding
@@ -121,17 +128,34 @@ struct NotificationsSettingsCard: View {
 
             StyledDivider()
 
-            // 4. Звук ШІ-загроз
-            StyledToggleRow(
-                title: "Звук ШІ-загроз",
-                subtitle: "Звукові попередження про КАБи, ракети та БпЛА",
-                icon: "speaker.wave.1.fill",
-                iconColor: .siBlue,
-                isOn: soundThreatsBinding
-            )
-            .disabled(!settings.notificationsEnabled)
-            .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
-            .onChange(of: settings.muteThreatsSound) { _, _ in onHaptic(.light) }
+            // 4. Звуки ШІ-загроз
+            VStack(spacing: 8) {
+                StyledToggleRow(
+                    title: "Звук ШІ-загроз",
+                    subtitle: "Звукові попередження warning.wav про КАБы, ракети та БпЛА",
+                    icon: "speaker.wave.1.fill",
+                    iconColor: .siBlue,
+                    isOn: soundThreatsBinding
+                )
+                .disabled(!settings.notificationsEnabled)
+                .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+                .onChange(of: settings.muteThreatsSound) { _, _ in onHaptic(.light) }
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.vertical, 4)
+
+                StyledToggleRow(
+                    title: "Звук відбою загроз",
+                    subtitle: "Звуковий сигнал clearance.wav при скасуванні ШІ-загрози",
+                    icon: "speaker.wave.2.bubble.left.fill",
+                    iconColor: .siBlue,
+                    isOn: soundThreatClearBinding
+                )
+                .disabled(!settings.notificationsEnabled)
+                .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
+                .onChange(of: settings.muteThreatClearSound) { _, _ in onHaptic(.light) }
+            }
 
             StyledDivider()
 

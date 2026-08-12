@@ -53,6 +53,7 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         static let muteAlarmsSound = "muteAlarmsSound"
         static let muteThreatsSound = "muteThreatsSound"
         static let muteClearSound = "muteClearSound"
+        static let muteThreatClearSound = "muteThreatClearSound"
         static let vibrationEnabled = "vibrationEnabled"
         static let allRegionsTracked = "allRegionsTracked"
         static let trackedRegionsString = "trackedRegionsString"
@@ -97,6 +98,13 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         }
     }
 
+    @Published var muteThreatClearSound: Bool {
+        didSet {
+            Self.sharedDefaults.set(muteThreatClearSound, forKey: Keys.muteThreatClearSound)
+            settingsLogger.info("muteThreatClearSound changed: \(self.muteThreatClearSound)")
+        }
+    }
+
     @Published var vibrationEnabled: Bool {
         didSet {
             Self.sharedDefaults.set(vibrationEnabled, forKey: Keys.vibrationEnabled)
@@ -130,6 +138,7 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         self.muteAlarmsSound = defaults.bool(forKey: Keys.muteAlarmsSound)
         self.muteThreatsSound = defaults.bool(forKey: Keys.muteThreatsSound)
         self.muteClearSound = defaults.bool(forKey: Keys.muteClearSound)
+        self.muteThreatClearSound = defaults.bool(forKey: Keys.muteThreatClearSound)
         self.vibrationEnabled = defaults.object(forKey: Keys.vibrationEnabled) as? Bool ?? true
         self.allRegionsTracked = defaults.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
         self.trackedRegionsString = defaults.string(forKey: Keys.trackedRegionsString) ?? ""
@@ -150,6 +159,7 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
             Keys.muteAlarmsSound,
             Keys.muteThreatsSound,
             Keys.muteClearSound,
+            Keys.muteThreatClearSound,
             Keys.vibrationEnabled,
             Keys.allRegionsTracked,
             Keys.trackedRegionsString,
@@ -189,6 +199,10 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         Self.sharedDefaults.bool(forKey: Keys.muteClearSound)
     }
 
+    nonisolated var isMuteThreatClearSound: Bool {
+        Self.sharedDefaults.bool(forKey: Keys.muteThreatClearSound)
+    }
+
     nonisolated var isVibrationEnabled: Bool {
         Self.sharedDefaults.object(forKey: Keys.vibrationEnabled) as? Bool ?? true
     }
@@ -203,6 +217,10 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
 
     nonisolated var shouldPlayClearSound: Bool {
         isNotificationsEnabled && !isMuteClearSound
+    }
+
+    nonisolated var shouldPlayThreatClearSound: Bool {
+        isNotificationsEnabled && !isMuteThreatClearSound
     }
 
     nonisolated var shouldVibrate: Bool {

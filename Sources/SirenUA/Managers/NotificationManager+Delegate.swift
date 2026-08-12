@@ -39,9 +39,10 @@ extension NotificationManager {
 
             let shouldPlaySound: Bool
             switch eventType {
-            case .threat: shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
-            case .clear:  shouldPlaySound = NotificationSettings.shared.shouldPlayClearSound
-            case .alarm:  shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
+            case .threat:      shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
+            case .clear:       shouldPlaySound = NotificationSettings.shared.shouldPlayClearSound
+            case .alarm:       shouldPlaySound = NotificationSettings.shared.shouldPlayAlarmSound
+            case .threatClear: shouldPlaySound = NotificationSettings.shared.shouldPlayThreatClearSound
             }
 
             let now = Date()
@@ -50,9 +51,9 @@ extension NotificationManager {
                 let hapticType: UINotificationFeedbackGenerator.FeedbackType
                 let pulses: Int
                 switch eventType {
-                case .alarm:  hapticType = .error;   pulses = 4
-                case .clear:  hapticType = .success; pulses = 2
-                case .threat: hapticType = .warning; pulses = 3
+                case .alarm:               hapticType = .error;   pulses = 4
+                case .clear, .threatClear: hapticType = .success; pulses = 2
+                case .threat:              hapticType = .warning; pulses = 3
                 }
                 self.triggerHaptic(hapticType, pulses: pulses)
             }

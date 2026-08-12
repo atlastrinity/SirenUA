@@ -46,6 +46,17 @@ extension NotificationManager {
         triggerHaptic(.success, pulses: 2)
     }
 
+    func sendThreatClearNotification(for regionName: String) {
+        let title = "🟢 Відбій загрози — \(regionName)"
+        let body  = "Загрозу нейтралізовано в: \(regionName)."
+        let config = soundConfig(for: .threatClear)
+
+        enqueue(title: title, body: body, soundName: config.soundName, regionName: regionName,
+                interruptionLevel: config.level, relevanceScore: 0.3)
+
+        triggerHaptic(.success, pulses: 2)
+    }
+
     // MARK: - Sound Configuration Helper
 
     /// Єдина точка визначення звуку та interruption level для типу події.
@@ -60,9 +71,10 @@ extension NotificationManager {
         // 1. Перевірка тогла мʼюту для відповідного типу події
         let shouldPlay: Bool
         switch eventType {
-        case .alarm:  shouldPlay = settings.shouldPlayAlarmSound
-        case .threat: shouldPlay = settings.shouldPlayThreatSound
-        case .clear:  shouldPlay = settings.shouldPlayClearSound
+        case .alarm:       shouldPlay = settings.shouldPlayAlarmSound
+        case .threat:      shouldPlay = settings.shouldPlayThreatSound
+        case .clear:       shouldPlay = settings.shouldPlayClearSound
+        case .threatClear: shouldPlay = settings.shouldPlayThreatClearSound
         }
 
         // 2. Звуковий файл — завжди з EventType.soundFile (єдине джерело правди)
@@ -77,7 +89,7 @@ extension NotificationManager {
         case .alarm:
             level = bypassDND ? .timeSensitive : .active
             relevance = 1.0
-        case .clear:
+        case .clear, .threatClear:
             level = bypassDND ? .timeSensitive : .active
             relevance = 0.3
         case .threat:
