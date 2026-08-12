@@ -4,7 +4,7 @@ import Foundation
 extension AlertViewModelV3 {
 
     func updateLastAlertedRegion() {
-        let active = alerts.filter { $0.isActive }
+        let active = alerts.filter { $0.isActive && !RegionRegistry.isPermanentlyActive($0.name) }
         if let last = active.max(by: { ($0.lastChanged ?? "") < ($1.lastChanged ?? "") }) {
             if lastAlertedRegionName != last.name {
                 lastAlertedRegionName = last.name
@@ -23,15 +23,12 @@ extension AlertViewModelV3 {
     }
 
     func updateStats() {
-        activeAlerts = alerts.filter { $0.isActive }.count
-        maxLevel = alerts.filter { $0.isActive }.map { $0.level }.max() ?? 0
+        let activeList = alerts.filter { $0.isActive && !RegionRegistry.isPermanentlyActive($0.name) }
+        activeAlerts = activeList.count
+        maxLevel = activeList.map { $0.level }.max() ?? 0
     }
 
     func refreshAlerts() {
-        Task { await fetchThreatState() }
-    }
-
-    func refreshThreats() {
         Task { await fetchThreatState() }
     }
 
@@ -42,20 +39,9 @@ extension AlertViewModelV3 {
         updateLastAlertedRegion()
     }
 
-    func filterAlerts(by isActive: Bool) { showAllAlerts = isActive }
-    func selectAlert(_ alert: AlertRegion) { selectedAlert = alert }
-    func dismissAlert() { selectedAlert = nil }
-
     func getFilteredAlerts() -> [AlertRegion] {
-        showAllAlerts ? alerts : alerts.filter { $0.isActive }
-    }
-
-    func getInactiveAlerts() -> [AlertRegion] {
-        alerts.filter { !$0.isActive }
-    }
-
-    func getActiveAlertsByLevel(_ level: Int) -> [AlertRegion] {
-        alerts.filter { $0.isActive && $0.level == level }
+        let base = alerts.filter { !RegionRegistry.isPermanentlyActive($0.name) }
+        return showAllAlerts ? base : base.filter { $0.isActive }
     }
 
     func getThreatTypeDescriptionShort(_ type: String) -> String {

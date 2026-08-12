@@ -24,12 +24,13 @@ struct AlertListOverlayView: View {
     }
 
     private var sortedAlerts: [AlertRegion] {
+        let baseAlerts = alerts.filter { !RegionRegistry.isPermanentlyActive($0.name) }
         let filtered: [AlertRegion]
         switch effectiveFilterMode {
         case .activeOnly:
-            filtered = alerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) }
+            filtered = baseAlerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) }
         case .last24Hours:
-            filtered = alerts.filter { region in
+            filtered = baseAlerts.filter { region in
                 // 1. Currently active alert or threat zone
                 if region.isActive || (isPremium && region.threatLevel != nil) {
                     return true
@@ -45,7 +46,7 @@ struct AlertListOverlayView: View {
                 return false
             }
         case .all:
-            filtered = alerts
+            filtered = baseAlerts
         }
 
         return filtered.sorted { a, b in
@@ -55,20 +56,20 @@ struct AlertListOverlayView: View {
         }
     }
 
-    private func isWithinLast24Hours(_ dateString: String?) -> Bool {
-        guard let str = dateString, !str.isEmpty else { return false }
-        
-        let formatters = [
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm:ss",
-            "HH:mm"
-        ]
-        
-        for format in formatters {
+    private static let dateFormatters: [DateFormatter] = {
+        ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss", "HH:mm"].map { format in
             let f = DateFormatter()
             f.dateFormat = format
             f.timeZone = TimeZone(identifier: "Europe/Kiev")
-            if format == "HH:mm" {
+            return f
+        }
+    }()
+
+    private func isWithinLast24Hours(_ dateString: String?) -> Bool {
+        guard let str = dateString, !str.isEmpty else { return false }
+        
+        for f in Self.dateFormatters {
+            if f.dateFormat == "HH:mm" {
                 if f.date(from: str) != nil {
                     return true // HH:mm is today's time
                 }

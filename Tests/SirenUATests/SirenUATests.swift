@@ -381,4 +381,70 @@ final class SirenUATests: XCTestCase {
         defaults.set(true, forKey: "vibrationEnabled")
         XCTAssertTrue(defaults.bool(forKey: "vibrationEnabled"))
     }
+
+    func testPremiumGatekeeperCanAccess() async {
+        await MainActor.run {
+            let gatekeeper = PremiumGatekeeper.shared
+            
+            // Force premium status off for test
+            UserDefaults.standard.set(true, forKey: "debugPremiumMuted")
+            UserDefaults.standard.set(false, forKey: "debugPremiumEnabled")
+            gatekeeper.updatePremiumStatus()
+            XCTAssertFalse(gatekeeper.canAccess(.chronology))
+            XCTAssertFalse(gatekeeper.canAccess(.yellowZones))
+            XCTAssertFalse(gatekeeper.canAccess(.trajectories))
+            XCTAssertFalse(gatekeeper.canAccess(.threatToggles))
+            XCTAssertFalse(gatekeeper.canAccess(.threatDetails))
+            
+            // Force premium status on for test
+            UserDefaults.standard.set(false, forKey: "debugPremiumMuted")
+            UserDefaults.standard.set(true, forKey: "debugPremiumEnabled")
+            gatekeeper.updatePremiumStatus()
+            XCTAssertTrue(gatekeeper.canAccess(.chronology))
+            XCTAssertTrue(gatekeeper.canAccess(.yellowZones))
+            XCTAssertTrue(gatekeeper.canAccess(.trajectories))
+            XCTAssertTrue(gatekeeper.canAccess(.threatToggles))
+            XCTAssertTrue(gatekeeper.canAccess(.threatDetails))
+        }
+    }
+
+    func testYellowZonePolicyFilterActiveThreatRegions() {
+        let threatRegion = AlertRegion(
+            id: 1,
+            name: "Київська область",
+            isActive: false,
+            level: 2,
+            description: "БпЛА",
+            coordinate: CLLocationCoordinate2D(latitude: 50.45, longitude: 30.52),
+            threatLevel: "medium",
+            threatType: "shahed"
+        )
+        let regionPoly = RegionPolygon(
+            id: "kyiv",
+            name: "Kyiv Oblast",
+            nameUK: "Київська область",
+            polygons: [],
+            mkPolygons: [],
+            identifiablePolygons: [],
+            center: CLLocationCoordinate2D(latitude: 50.45, longitude: 30.52)
+        )
+        let alertsDict = ["Київська область": threatRegion]
+
+        // Non-premium filter should return empty array
+        let nonPremiumResult = YellowZonePolicy.filterActiveThreatRegions(
+            allRegions: [regionPoly],
+            alertsDict: alertsDict,
+            isPremium: false
+        )
+        XCTAssertTrue(nonPremiumResult.isEmpty)
+
+        // Premium filter should return threat region
+        let premiumResult = YellowZonePolicy.filterActiveThreatRegions(
+            allRegions: [regionPoly],
+            alertsDict: alertsDict,
+            isPremium: true
+        )
+        XCTAssertEqual(premiumResult.count, 1)
+        XCTAssertEqual(premiumResult.first?.nameUK, "Київська область")
+    }
 }

@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 import OSLog
 
 private let logger = Logger(subsystem: "com.sirenua", category: "PremiumCard")
@@ -17,25 +19,24 @@ struct PremiumSettingsCard: View {
         self.onHaptic = onHaptic
     }
 
-    public var body: some View {
-        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: Color.yellow) {
+    var body: some View {
+        SettingsCard(title: "SirenUA Premium", icon: "crown.fill", iconColor: Color.siGold) {
             if storeManager.isPremium {
-                HStack(spacing: 10) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(ChartColorTheme.confirmed)
-                        .font(.title3)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Premium Активовано")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
-                        Text("Всі функції розблоковано")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-                    Spacer()
-                }
+                activePremiumHeader
+
                 StyledDivider()
+
+                VStack(spacing: 8) {
+                    ForEach(PremiumFeature.allCases) { feature in
+                        PremiumFeatureRow(feature: feature)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                StyledDivider()
+
                 Button(action: {
+                    onHaptic(.medium)
                     storeManager.debugResetPremium()
                 }) {
                     HStack {
@@ -44,6 +45,7 @@ struct PremiumSettingsCard: View {
                     }
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(ChartColorTheme.overestimated)
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.vertical, 4)
             } else {
@@ -52,22 +54,47 @@ struct PremiumSettingsCard: View {
         }
     }
 
+    private var activePremiumHeader: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(ChartColorTheme.confirmed.opacity(0.15))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundColor(ChartColorTheme.confirmed)
+                    .font(.title3)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Premium Активовано")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+                Text("Всі 6 преміум можливостей активні")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            Spacer()
+        }
+    }
+
     private var premiumUpgradeView: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Розширені можливості:")
+            Text("Переваги Premium підписки:")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.white.opacity(0.6))
 
             VStack(spacing: 8) {
-                premiumFeatureRow(icon: "antenna.radiowaves.left.and.right", text: "Моніторинг загроз (Сервер)", color: ChartColorTheme.accent)
-                premiumFeatureRow(icon: "eye.fill",                          text: "Деталізація загроз",         color: ChartColorTheme.active)
+                ForEach(PremiumFeature.allCases) { feature in
+                    PremiumFeatureRow(feature: feature)
+                }
             }
 
             if let product = storeManager.storeProducts.first(where: { $0.id == "com.sirenua.premium.monthly" }) {
                 Button(action: {
+                    onHaptic(.medium)
                     isPurchasing = true
                     Task {
-                        do { _ = try await storeManager.purchase(product) }
+                        do { _ = try await PremiumGatekeeper.shared.startPurchase(using: storeManager) }
                         catch { logger.error("Purchase failed: \(error.localizedDescription)") }
                         isPurchasing = false
                     }
@@ -84,14 +111,16 @@ struct PremiumSettingsCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+                    .background(Color.siGold)
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
+                    .shadow(color: Color.siGold.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .disabled(isPurchasing)
 
                 Button("Відновити покупки") {
-                    Task { await storeManager.restorePurchases() }
+                    onHaptic(.light)
+                    Task { await PremiumGatekeeper.shared.restorePurchases(using: storeManager) }
                 }
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(ChartColorTheme.accent)
@@ -101,9 +130,9 @@ struct PremiumSettingsCard: View {
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.4))
             }
-            
+
             StyledDivider()
-            
+
             Button(action: {
                 onHaptic(.medium)
                 storeManager.debugEnablePremium()
@@ -118,22 +147,5 @@ struct PremiumSettingsCard: View {
             }
             .padding(.vertical, 4)
         }
-    }
-
-    private func premiumFeatureRow(icon: String, text: String, color: Color) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 13))
-                .foregroundColor(color)
-                .frame(width: 20)
-            Text(text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.85))
-            Spacer()
-        }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 10)
-        .background(color.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

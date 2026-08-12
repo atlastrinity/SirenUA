@@ -159,7 +159,7 @@ extension AlertViewModelV3 {
         for index in alerts.indices {
             let regionName = alerts[index].name
             // Крим та Луганщина завжди червоні — не оновлюємо з офіційних тривог
-            if RegionConstants.isPermanentlyActive(regionName) { continue }
+            if RegionRegistry.isPermanentlyActive(regionName) { continue }
             guard let state = liveData[regionName] else { continue }
 
             let isAlertNow = state.alertnow

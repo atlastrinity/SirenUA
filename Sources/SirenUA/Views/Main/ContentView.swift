@@ -64,9 +64,9 @@ struct ContentView: View {
         return Date().timeIntervalSince(timestamp) < 60
     }
     
-    @AppStorage("allRegionsTracked", store: UserDefaults(suiteName: "group.com.sirenua.shared")) private var allRegionsTracked = true
-    @AppStorage("trackedRegionsString", store: UserDefaults(suiteName: "group.com.sirenua.shared")) private var trackedRegionsString = ""
-    @State private var showRegionPickerSheet = false
+    @AppStorage("allRegionsTracked", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var allRegionsTracked = true
+    @AppStorage("trackedRegionsString", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var trackedRegionsString = ""
+    @State var showRegionPickerSheet = false
     @State private var showBottomOperationalToast = false
 
     private func isRegionTracked(_ name: String) -> Bool {
@@ -77,7 +77,7 @@ struct ContentView: View {
     }
 
     private var trackedAlerts: [AlertRegion] {
-        return viewModel.alerts.filter { isRegionTracked($0.name) }
+        return viewModel.alerts.filter { isRegionTracked($0.name) && !RegionRegistry.isPermanentlyActive($0.name) }
     }
 
     @State private var currentHeroEventIndex = 0
@@ -88,7 +88,7 @@ struct ContentView: View {
     }
 
     private var primaryThreatRegion: AlertRegion? {
-        let regions = activeThreatTrackedRegions
+        let regions = activeThreatTrackedRegions.filter { !RegionRegistry.isPermanentlyActive($0.name) }
         guard !regions.isEmpty else { return nil }
         let index = currentHeroEventIndex % regions.count
         return regions[index]
@@ -136,7 +136,7 @@ struct ContentView: View {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
-    private func handleConfirmRegionSelection() {
+    func handleConfirmRegionSelection() {
         NotificationManager.shared.syncTopicSubscriptions()
         let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
         if !allRegionsTracked && list.count == 1 {
@@ -180,11 +180,6 @@ struct ContentView: View {
         primaryThreatRegion?.displayETA
     }
 
-    private func getShortThreatDesc(_ type: String?) -> String {
-        guard let type = type else { return "Загроза" }
-        return viewModel.getThreatTypeDescriptionShort(type)
-    }
-
     private func handleRegionSelection(_ region: AlertRegion) {
         mapViewModel.selectedRegionForDetail = region
     }
@@ -214,7 +209,6 @@ struct ContentView: View {
                     timeRefreshTrigger: timeRefreshTrigger,
                     currentUserCoordinate: currentUserCoordinate,
                     zoomScale: mapViewModel.elementZoomScale,
-                    getThreatTypeDescriptionShort: getShortThreatDesc,
                     onRegionSelected: handleRegionSelection
                 )
             }
@@ -337,23 +331,32 @@ struct ContentView: View {
         .sheet(item: $mapViewModel.activeSheet) { item in
             sheetContent(for: item)
         }
-        .sheet(item: $mapViewModel.selectedRegionForDetail) { region in
-            AlertRegionDetailView(region: region)
-                .environmentObject(viewModel)
-        }
-        .sheet(item: $mapViewModel.selectedRegionForHistory) { region in
-            NavigationStack {
-                RegionHistoryView(regionName: region.name, themeColor: region.color)
-                    .environmentObject(viewModel)
-            }
-        }
-        .sheet(isPresented: $showRegionPickerSheet) {
-            RegionSelectionSheet(
-                allRegionsTracked: $allRegionsTracked,
-                trackedRegionsString: $trackedRegionsString,
-                onConfirm: { handleConfirmRegionSelection() }
-            )
-        }
+        .background(
+            Color.clear
+                .sheet(item: $mapViewModel.selectedRegionForDetail) { region in
+                    AlertRegionDetailView(region: region)
+                        .environmentObject(viewModel)
+                }
+        )
+        .background(
+            Color.clear
+                .sheet(item: $mapViewModel.selectedRegionForHistory) { region in
+                    NavigationStack {
+                        RegionHistoryView(regionName: region.name, themeColor: region.color)
+                            .environmentObject(viewModel)
+                    }
+                }
+        )
+        .background(
+            Color.clear
+                .sheet(isPresented: $showRegionPickerSheet) {
+                    RegionSelectionSheet(
+                        allRegionsTracked: $allRegionsTracked,
+                        trackedRegionsString: $trackedRegionsString,
+                        onConfirm: { handleConfirmRegionSelection() }
+                    )
+                }
+        )
         .tabHandlers(mapViewModel: mapViewModel)
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
@@ -431,27 +434,32 @@ struct ContentView: View {
             onboardingCompleted: $onboardingCompleted
         )
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
-        .onAppear {
-            locationManager.requestPermission()
-            viewModel.markLastAlertAsViewed()
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
+        .onAppear(perform: handleOnAppear)
+        .onReceive(refreshTimer) { _ in handleTimerTick() }
+    }
 
-            if let pending = NotificationManager.shared.pendingTappedRegion {
-                if let region = viewModel.alerts.first(where: { $0.name == pending }) {
-                    mapViewModel.selectedRegionForDetail = region
-                }
-                NotificationManager.shared.pendingTappedRegion = nil
-            }
+    private func handleOnAppear() {
+        locationManager.requestPermission()
+        viewModel.markLastAlertAsViewed()
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                triggerMapCenter()
+        if let pending = NotificationManager.shared.pendingTappedRegion {
+            if let region = viewModel.alerts.first(where: { $0.name == pending }) {
+                mapViewModel.selectedRegionForDetail = region
             }
+            NotificationManager.shared.pendingTappedRegion = nil
         }
-        .onReceive(refreshTimer) { _ in
-            timeRefreshTrigger = Date()
-            if activeThreatTrackedRegions.count > 1 {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    currentHeroEventIndex = (currentHeroEventIndex + 1) % activeThreatTrackedRegions.count
-                }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            triggerMapCenter()
+        }
+    }
+
+    private func handleTimerTick() {
+        timeRefreshTrigger = Date()
+        if activeThreatTrackedRegions.count > 1 {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                currentHeroEventIndex = (currentHeroEventIndex + 1) % activeThreatTrackedRegions.count
             }
         }
     }

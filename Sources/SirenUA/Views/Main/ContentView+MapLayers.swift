@@ -27,28 +27,18 @@ extension ContentView {
     }
 
     var activeThreatRegions: [RegionPolygon] {
-        geoManager.regions
-            .filter { region in
-                guard let alert = alertsDict[region.nameUK] else { return false }
-                return !alert.isActive && (alert.threatLevel != nil || !alert.activeThreats.isEmpty)
-            }
-            .sorted { r1, r2 in
-                if r1.nameUK == "м. Київ" { return false }
-                if r2.nameUK == "м. Київ" { return true }
-                return r1.nameUK < r2.nameUK
-            }
+        YellowZonePolicy.filterActiveThreatRegions(
+            allRegions: geoManager.regions,
+            alertsDict: alertsDict,
+            isPremium: viewModel.isPremium
+        )
     }
 
     var safeRegions: [RegionPolygon] {
-        geoManager.regions
-            .filter { region in
-                guard let alert = alertsDict[region.nameUK] else { return true }
-                return !alert.isActive && alert.threatLevel == nil && alert.activeThreats.isEmpty
-            }
-            .sorted { r1, r2 in
-                if r1.nameUK == "м. Київ" { return false }
-                if r2.nameUK == "м. Київ" { return true }
-                return r1.nameUK < r2.nameUK
-            }
+        YellowZonePolicy.filterSafeRegions(
+            allRegions: geoManager.regions,
+            alertsDict: alertsDict,
+            isPremium: viewModel.isPremium
+        )
     }
 }

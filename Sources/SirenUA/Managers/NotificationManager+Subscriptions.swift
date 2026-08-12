@@ -15,21 +15,28 @@ extension NotificationManager {
                 
                 let notifsEnabled = NotificationSettings.shared.notificationsEnabled
 
-                for (region, topic) in RegionRegistry.topicMapping {
-                    let shouldSubscribe = notifsEnabled && NotificationSettings.shared.isTracked(region)
-                    if shouldSubscribe {
-                        do {
-                            try await Messaging.messaging().subscribe(toTopic: topic)
-                            notifLogger.debug("Subscribed to \(topic)")
-                        } catch {
-                            notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
+                await withTaskGroup(of: Void.self) { group in
+                    for (region, topic) in RegionRegistry.topicMapping {
+                        if RegionRegistry.isPermanentlyActive(region) {
+                            continue
                         }
-                    } else {
-                        do {
-                            try await Messaging.messaging().unsubscribe(fromTopic: topic)
-                            notifLogger.debug("Unsubscribed from \(topic)")
-                        } catch {
-                            notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
+                        let shouldSubscribe = notifsEnabled && NotificationSettings.shared.isTracked(region)
+                        group.addTask {
+                            if shouldSubscribe {
+                                do {
+                                    try await Messaging.messaging().subscribe(toTopic: topic)
+                                    notifLogger.debug("Subscribed to \(topic)")
+                                } catch {
+                                    notifLogger.warning("Subscribe to \(topic) failed: \(error.localizedDescription)")
+                                }
+                            } else {
+                                do {
+                                    try await Messaging.messaging().unsubscribe(fromTopic: topic)
+                                    notifLogger.debug("Unsubscribed from \(topic)")
+                                } catch {
+                                    notifLogger.warning("Unsubscribe from \(topic) failed: \(error.localizedDescription)")
+                                }
+                            }
                         }
                     }
                 }

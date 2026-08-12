@@ -23,7 +23,7 @@ struct RegionHistoryView: View {
     }
     
     private var isPremium: Bool {
-        storeManager.isPremium
+        PremiumGatekeeper.shared.canAccess(.chronology)
     }
     
     private var dateFormatter: DateFormatter {
@@ -106,59 +106,9 @@ struct RegionHistoryView: View {
     // MARK: - Premium Locked View
     
     private var premiumLockedView: some View {
-        VStack(spacing: 24) {
+        VStack {
             Spacer()
-            
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.yellow, .orange],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            
-            Text("Хронологія подій\nдоступна з Premium")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-            
-            Text("Переглядайте повну історію загроз, аналітику руху та хронологію подій для кожної області.")
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-                .padding(.horizontal, 32)
-            
-            Button(action: {
-                Task {
-                    if let product = storeManager.storeProducts.first(where: { $0.id.contains("monthly") }) ?? storeManager.storeProducts.first {
-                        _ = try? await storeManager.purchase(product)
-                    }
-                }
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 16))
-                    Text("Підключити Premium")
-                        .font(.system(size: 16, weight: .bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [.yellow, .orange],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .foregroundStyle(.black)
-                .cornerRadius(16)
-            }
-            .padding(.horizontal, 40)
-            
+            PremiumLockedView(feature: .chronology)
             Spacer()
         }
     }

@@ -18,7 +18,7 @@ struct AlertRegionDetailView: View {
     }
     
     private var isPremium: Bool {
-        storeManager.isPremium
+        PremiumGatekeeper.shared.canAccess(.threatDetails)
     }
 
     private var hasAnyThreat: Bool {
@@ -206,8 +206,8 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Multi-threat selector
-                    if region.activeThreats.count > 1 {
+                    // Multi-threat selector (Premium only)
+                    if isPremium && region.activeThreats.count > 1 {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: "list.bullet.rectangle.fill")
@@ -299,13 +299,19 @@ struct AlertRegionDetailView: View {
                             )
                     )
 
-                    // Card 1: Що відомо про загрозу (Завжди доступно для безпеки користувача)
-                    if let detail = effectiveThreatDetail, !detail.isEmpty {
+                    // Card 1: Що відомо про загрозу (Premium only)
+                    if isPremium, let detail = effectiveThreatDetail, !detail.isEmpty {
                         ThreatDetailCard(
                             detail: detail,
                             threat: selectedThreat,
                             themeColor: themeColor,
                             timeRefreshTrigger: timeRefreshTrigger
+                        )
+                    } else if !isPremium && (effectiveThreatDetail != nil || isThreatActive) {
+                        PremiumPurchaseCTA(
+                            storeManager: storeManager,
+                            title: "Оперативна деталізація загрози та аналітика ШІ доступні з Premium підпискою",
+                            feature: .threatDetails
                         )
                     } else if liveRegion.isActive {
                         VStack(alignment: .leading, spacing: 12) {
@@ -545,6 +551,10 @@ struct AlertRegionDetailView: View {
             .preferredColorScheme(.dark)
         }
         .onAppear {
+            if RegionRegistry.isPermanentlyActive(region.name) {
+                dismiss()
+                return
+            }
             selectedThreatIndex = max(0, liveRegion.activeThreats.count - 1)
         }
         .onChange(of: liveRegion.activeThreats) { oldValue, newValue in

@@ -9,9 +9,6 @@ import OSLog
 
 let vmLogger = Logger(subsystem: "com.sirenua", category: "AlertViewModel")
 
-/// Backward-compatibility alias: RegionConstants → RegionRegistry (єдиний реєстр у Constants/RegionRegistry.swift)
-public typealias RegionConstants = RegionRegistry
-
 // MARK: - AlertViewModelV3
 // Logic extensions live in ViewModels/:
 //   AlertViewModelV3+Threats.swift  — fetchThreatState, applyThreats, fetchLiveAlerts, applyLiveAlerts
@@ -23,15 +20,11 @@ final class AlertViewModelV3: ObservableObject {
     @Published var activeAlerts: Int = 0
     @Published var maxLevel: Int = 0
     @Published var showAllAlerts: Bool = true
-    @Published var selectedAlert: AlertRegion?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var lastAlertedRegionName: String?
     @Published var lastViewedTimestamp: Date?
-    @Published var isPremium: Bool = {
-        if UserDefaults.standard.bool(forKey: "debugPremiumMuted") { return false }
-        return true
-    }()
+    @Published var isPremium: Bool = PremiumGatekeeper.shared.isPremium
 
     let networkManager = NetworkManager()
     var refreshTask: Task<Void, Never>?
@@ -47,7 +40,6 @@ final class AlertViewModelV3: ObservableObject {
         NetworkManager.serverURL
     }
 
-    var premiumObserver: NSObjectProtocol? = nil
     var fcmObserver: NSObjectProtocol? = nil
     var foregroundObserver: NSObjectProtocol? = nil
 
@@ -61,17 +53,14 @@ final class AlertViewModelV3: ObservableObject {
 
         Task { await fetchThreatState() }
 
-        premiumObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self else { return }
-            Task { @MainActor in
-                let current = UserDefaults.standard.bool(forKey: "premiumEnabled")
-                if self.isPremium != current { self.isPremium = current }
+        PremiumGatekeeper.shared.$isPremium
+            .receive(on: RunLoop.main)
+            .sink { [weak self] status in
+                if self?.isPremium != status {
+                    self?.isPremium = status
+                }
             }
-        }
+            .store(in: &cancellables)
 
         #if os(iOS)
         foregroundObserver = NotificationCenter.default.addObserver(
@@ -88,7 +77,6 @@ final class AlertViewModelV3: ObservableObject {
 
     deinit {
         refreshTask?.cancel()
-        if let premiumObserver { NotificationCenter.default.removeObserver(premiumObserver) }
         if let fcmObserver     { NotificationCenter.default.removeObserver(fcmObserver) }
         if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
     }
@@ -124,7 +112,7 @@ final class AlertViewModelV3: ObservableObject {
             ("Чернігівська область",       51.4982, 31.2893)
         ]
         alerts = regions.enumerated().map { index, region in
-            let isPermActive = RegionConstants.isPermanentlyActive(region.0)
+            let isPermActive = RegionRegistry.isPermanentlyActive(region.0)
             return AlertRegion(
                 id: index,
                 name: region.0,

@@ -366,7 +366,7 @@ final class MapViewModel: ObservableObject {
         
         // Враховуємо ВСІ активні тривоги (ЧЕРВОНІ) та ВСІ активні загрози/прогнози (ЖОВТІ) без винятку!
         let activeTrackedAlerts = alerts.filter { $0.isActive && isRegionFiltered($0.name) }
-        let activeTrackedThreats = alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
+        let activeTrackedThreats = isPremium ? alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) } : []
         let relevantAlerts = activeTrackedAlerts + activeTrackedThreats
         let activeNames = Set(relevantAlerts.map { $0.name })
         let activeRegions = regions.filter { activeNames.contains($0.nameUK) }

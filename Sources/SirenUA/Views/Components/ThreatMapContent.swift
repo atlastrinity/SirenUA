@@ -15,7 +15,6 @@ struct ThreatMapContent: MapContent {
     let timeRefreshTrigger: Date
     let currentUserCoordinate: CLLocationCoordinate2D
     var zoomScale: CGFloat = 1.0
-    let getThreatTypeDescriptionShort: (String) -> String
     let onRegionSelected: (AlertRegion) -> Void
 
     var flyingThreatAlerts: [AlertRegion] {
@@ -63,8 +62,8 @@ struct ThreatMapContent: MapContent {
             if shouldShowFlyingThreat(for: alert) {
                 FlyingThreatMapOverlay(
                     alert: alert,
+                    isPremium: isPremium,
                     zoomScale: zoomScale,
-                    getThreatTypeDescriptionShort: getThreatTypeDescriptionShort,
                     onRegionSelected: onRegionSelected
                 )
             } else {
@@ -72,7 +71,7 @@ struct ThreatMapContent: MapContent {
                     alert: alert,
                     timeRefreshTrigger: timeRefreshTrigger,
                     zoomScale: zoomScale,
-                    getThreatTypeDescriptionShort: getThreatTypeDescriptionShort,
+                    isPremium: isPremium,
                     onRegionSelected: onRegionSelected
                 )
             }
@@ -91,6 +90,12 @@ struct ThreatMapContent: MapContent {
                 .stroke(.blue, lineWidth: 5)
         }
     }
+
+    private func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
+        let isPredictive = alert.isThreatPredictive || (alert.currentThreat?.is_predictive ?? false)
+        let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty) || isPredictive
+        return (alert.isActive || isPredictive) && hasThreatData
+    }
 }
 
 
@@ -99,63 +104,47 @@ struct ThreatMapContent: MapContent {
 
 struct FlyingThreatMapOverlay: MapContent {
     let alert: AlertRegion
+    let isPremium: Bool
     var zoomScale: CGFloat = 1.0
-    let getThreatTypeDescriptionShort: (String) -> String
     let onRegionSelected: (AlertRegion) -> Void
 
     var body: some MapContent {
-        let threatType = alert.currentThreat?.type ?? alert.threatType
-        let threatLabel = alert.currentThreat?.threatLabel ?? getThreatTypeDescriptionShort(threatType ?? "")
-        let confidence = alert.currentThreat?.confidence ?? alert.threatConfidence
-        let eta = alert.currentThreat?.dynamicETA ?? alert.displayETA
-        let color = alert.color
-        let customOrigin = alert.currentThreat?.originCoordinate
-        let trajectory = calculateTrajectory(target: alert.coordinate, threatType: threatType, customOrigin: customOrigin)
+        if !RegionRegistry.isPermanentlyActive(alert.name) {
+            let threatType = alert.currentThreat?.type ?? alert.threatType
+            let threatLabel = alert.currentThreat?.threatLabel ?? ThreatConstants.title(for: threatType ?? "")
+            let confidence = alert.currentThreat?.confidence ?? alert.threatConfidence
+            let eta = alert.currentThreat?.dynamicETA ?? alert.displayETA
+            let color = alert.color
+            let customOrigin = alert.currentThreat?.originCoordinate
 
-        // MARK: - Tapering Tail (3-Layer Streamlined GPU Render)
-        let n = trajectory.fullPoints.count
-
-        // 1. Wide Diffuse Outer Glow Tail (0%→70%)
-        MapPolyline(coordinates: Array(trajectory.fullPoints.prefix(max(2, n * 70 / 100))))
-            .stroke(
-                color.opacity(0.22),
-                style: StrokeStyle(lineWidth: 11.0, lineCap: .round, lineJoin: .round)
-            )
-            .mapOverlayLevel(level: .aboveLabels)
-
-        // 2. High-Contrast Core Trajectory Line (0%→100%)
-        MapPolyline(coordinates: trajectory.fullPoints)
-            .stroke(
-                Color(red: 1.0, green: 0.92, blue: 0.0).opacity(0.95),
-                style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
-            )
-            .mapOverlayLevel(level: .aboveLabels)
-
-        // 3. Focused White Hot-Spot Target Head (35%→100%)
-        MapPolyline(coordinates: Array(trajectory.fullPoints.suffix(max(2, n * 35 / 100))))
-            .stroke(
-                Color.white.opacity(0.92),
-                style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
-            )
-            .mapOverlayLevel(level: .aboveLabels)
-
-        // 7. Target Region Destination Flying Threat Badge
-        Annotation(coordinate: alert.coordinate) {
-            FlyingThreatMarkerView(
-                regionName: alert.name,
+            // MARK: - Trajectory flight vector overlay (gated by Premium)
+            PremiumTrajectoryOverlay(
+                targetCoordinate: alert.coordinate,
                 threatType: threatType,
-                threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
-                confidence: confidence,
-                eta: eta,
+                customOrigin: customOrigin,
                 color: color,
-                isPredictive: alert.isThreatPredictive
+                isPremium: isPremium
             )
-            .scaleEffect(zoomScale)
-            .onTapGesture {
-                onRegionSelected(alert)
+
+            // Target Region Destination Flying Threat Badge
+            Annotation(coordinate: alert.coordinate) {
+                FlyingThreatMarkerView(
+                    regionName: alert.name,
+                    threatType: threatType,
+                    threatLabel: threatLabel.isEmpty ? "Загроза" : threatLabel,
+                    confidence: confidence,
+                    eta: eta,
+                    color: color,
+                    isPredictive: alert.isThreatPredictive,
+                    isPremium: isPremium
+                )
+                .scaleEffect(zoomScale)
+                .onTapGesture {
+                    onRegionSelected(alert)
+                }
+            } label: {
+                EmptyView()
             }
-        } label: {
-            EmptyView()
         }
     }
 }

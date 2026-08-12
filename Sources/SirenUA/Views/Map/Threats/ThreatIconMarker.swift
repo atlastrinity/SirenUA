@@ -71,6 +71,7 @@ public struct FlyingThreatMarkerView: View {
     public let eta: String?
     public let color: Color
     public let isPredictive: Bool
+    public let isPremium: Bool
     
     @State private var isPulsing = false
     
@@ -81,7 +82,8 @@ public struct FlyingThreatMarkerView: View {
         confidence: Int?,
         eta: String?,
         color: Color,
-        isPredictive: Bool
+        isPredictive: Bool,
+        isPremium: Bool = false
     ) {
         self.regionName = regionName
         self.threatType = threatType
@@ -90,6 +92,7 @@ public struct FlyingThreatMarkerView: View {
         self.eta = eta
         self.color = color
         self.isPredictive = isPredictive
+        self.isPremium = isPremium
     }
 
     public var iconName: String {
@@ -98,71 +101,75 @@ public struct FlyingThreatMarkerView: View {
     
     public var body: some View {
         VStack(spacing: 3) {
-            ZStack {
-                // Radar pulse animation
-                Circle()
-                    .stroke(color, lineWidth: 2)
-                    .frame(width: 38, height: 38)
-                    .scaleEffect(isPulsing ? 1.5 : 0.9)
-                    .opacity(isPulsing ? 0.0 : 0.8)
-                    .animation(
-                        .easeOut(duration: 1.5).repeatForever(autoreverses: false),
-                        value: isPulsing
-                    )
-
-                // Weapon Badge Background
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [color, color.opacity(0.75)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            if isPremium {
+                ZStack {
+                    // Radar pulse animation
+                    Circle()
+                        .stroke(color, lineWidth: 2)
+                        .frame(width: 38, height: 38)
+                        .scaleEffect(isPulsing ? 1.5 : 0.9)
+                        .opacity(isPulsing ? 0.0 : 0.8)
+                        .animation(
+                            .easeOut(duration: 1.5).repeatForever(autoreverses: false),
+                            value: isPulsing
                         )
-                    )
-                    .frame(width: 28, height: 28)
-                    .shadow(color: color.opacity(0.8), radius: 8, x: 0, y: 2)
 
-                // Icon
-                Image(systemName: iconName)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
-            }
-            .onAppear {
-                isPulsing = true
+                    // Weapon Badge Background
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.75)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 28, height: 28)
+                        .shadow(color: color.opacity(0.8), radius: 8, x: 0, y: 2)
+
+                    // Icon
+                    Image(systemName: iconName)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .onAppear {
+                    isPulsing = true
+                }
             }
 
-            // Visual Flying Tag ("Полтавська область • 🔴 ЛЕТИТЬ: БпЛА • 92%")
+            // Visual Flying Tag ("Полтавська область")
             VStack(spacing: 2) {
                 Text(regionName)
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 4, height: 4)
-                    
-                    Text(threatLabel.uppercased())
-                        .font(.system(size: 8, weight: .black, design: .rounded))
-                        .foregroundColor(.yellow)
-                        .lineLimit(1)
-                    
-                    if let conf = confidence {
-                        Text("\(conf)%")
-                            .font(.system(size: 7, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 3)
-                            .padding(.vertical, 1)
-                            .background(Color.black.opacity(0.4))
-                            .clipShape(Capsule())
-                    }
-                    
-                    if let etaStr = eta, !etaStr.isEmpty {
-                        Text(etaStr)
-                            .font(.system(size: 7, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                if isPremium {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 4, height: 4)
+                        
+                        Text(threatLabel.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .rounded))
+                            .foregroundColor(.yellow)
                             .lineLimit(1)
+                        
+                        if let conf = confidence {
+                            Text("\(conf)%")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 3)
+                                .padding(.vertical, 1)
+                                .background(Color.black.opacity(0.4))
+                                .clipShape(Capsule())
+                        }
+                        
+                        if let etaStr = eta, !etaStr.isEmpty {
+                            Text(etaStr)
+                                .font(.system(size: 7, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                                .lineLimit(1)
+                        }
                     }
                 }
             }

@@ -145,8 +145,9 @@ final class StoreKitManager: ObservableObject {
         
         storeLogger.info("Entitlements status updated: premium=\(hasActivePremium)")
         
-        // Sync with UserDefaults for backward compatibility
+        // Sync with UserDefaults and PremiumGatekeeper for backward compatibility
         UserDefaults.standard.set(hasActivePremium, forKey: "premiumEnabled")
+        PremiumGatekeeper.shared.updatePremiumStatus()
     }
     
     // Restore Purchases

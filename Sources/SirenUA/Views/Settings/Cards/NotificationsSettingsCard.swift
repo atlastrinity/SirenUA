@@ -2,8 +2,11 @@ import SwiftUI
 import UIKit
 
 struct NotificationsSettingsCard: View {
+    @EnvironmentObject private var storeManager: StoreKitManager
     @ObservedObject var settings: NotificationSettings
     let onHaptic: (UIImpactFeedbackGenerator.FeedbackStyle) -> Void
+
+    @State private var showPaywallSheet: Bool = false
 
     init(
         settings: NotificationSettings,
@@ -142,12 +145,28 @@ struct NotificationsSettingsCard: View {
             // Локальні загрози: Звук загрози + Звук відбою загрози у єдиному скляному контейнері
             VStack(alignment: .leading, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("ЛОКАЛЬНІ ЗАГРОЗИ (КАБИ, РАКЕТИ, БПЛА)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.siBlue)
-                        .tracking(0.5)
-                    
-                    Text("Звукові сповіщення про загрози та їх скасування")
+                    HStack(spacing: 6) {
+                        Text("ЛОКАЛЬНІ ЗАГРОЗИ (КАБИ, РАКЕТИ, БПЛА)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.siBlue)
+                            .tracking(0.5)
+
+                        if !PremiumGatekeeper.shared.canAccess(.threatToggles) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("PREMIUM")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.siGold)
+                            .clipShape(Capsule())
+                        }
+                    }
+
+                    Text("Звукові сповіщення про загрози та їх скасування (потрібен Premium)")
                         .font(.system(size: 10))
                         .foregroundColor(.white.opacity(0.45))
                 }
@@ -155,32 +174,38 @@ struct NotificationsSettingsCard: View {
                 .padding(.top, 4)
 
                 VStack(spacing: 0) {
-                    // 1. Звук загрози
-                    StyledToggleRow(
+                    // 1. Звук загрози (Premium Gated)
+                    PremiumThreatToggleRow(
                         title: "Звук загрози",
                         subtitle: "Звуковий сигнал warning.wav при виявленні загрози",
                         icon: "speaker.wave.1.fill",
                         iconColor: .siBlue,
-                        isOn: soundThreatsBinding
+                        isOn: soundThreatsBinding,
+                        isPremium: PremiumGatekeeper.shared.canAccess(.threatToggles),
+                        onLockedTap: {
+                            onHaptic(.medium)
+                            showPaywallSheet = true
+                        }
                     )
-                    .disabled(!settings.notificationsEnabled)
-                    .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
                     .onChange(of: settings.muteThreatsSound) { _, _ in onHaptic(.light) }
 
                     Divider()
                         .background(Color.white.opacity(0.1))
                         .padding(.vertical, 8)
 
-                    // 2. Звук відбою загрози
-                    StyledToggleRow(
+                    // 2. Звук відбою загрози (Premium Gated)
+                    PremiumThreatToggleRow(
                         title: "Звук відбою загрози",
                         subtitle: "Звуковий сигнал clearance.wav при скасуванні загрози",
                         icon: "speaker.wave.2.bubble.left.fill",
                         iconColor: .siBlue,
-                        isOn: soundThreatClearBinding
+                        isOn: soundThreatClearBinding,
+                        isPremium: PremiumGatekeeper.shared.canAccess(.threatToggles),
+                        onLockedTap: {
+                            onHaptic(.medium)
+                            showPaywallSheet = true
+                        }
                     )
-                    .disabled(!settings.notificationsEnabled)
-                    .opacity(settings.notificationsEnabled ? 1.0 : 0.5)
                     .onChange(of: settings.muteThreatClearSound) { _, _ in onHaptic(.light) }
                 }
                 .padding(12)
@@ -193,6 +218,11 @@ struct NotificationsSettingsCard: View {
                         .stroke(Color.siBlue.opacity(0.25), lineWidth: 1)
                 )
             }
+        }
+        .sheet(isPresented: $showPaywallSheet) {
+            PremiumLockedView(feature: .threatToggles)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 }

@@ -19,7 +19,7 @@ extension ContentView {
     }
 
     var activeTrackedThreats: [AlertRegion] {
-        guard viewModel.isPremium else { return [] }
+        guard PremiumGatekeeper.shared.canAccess(.yellowZones) else { return [] }
         return viewModel.alerts.filter { !($0.isActive) && $0.threatLevel != nil && isRegionFiltered($0.name) }
     }
 
