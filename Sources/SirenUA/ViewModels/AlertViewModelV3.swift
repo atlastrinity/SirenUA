@@ -167,8 +167,8 @@ final class AlertViewModelV3: ObservableObject {
                     let status = (userInfo["status"] as? String) ?? ""
                     let action = (userInfo["action"] as? String) ?? ""
                     let isClear = status == "clear" || status == "off" || action == "clear" || level == "none" || level == "clear"
-                    let isActiveVal = (userInfo["is_active"] as? Bool)
-                                   ?? ((userInfo["is_active"] as? String) == "true" || (userInfo["is_active"] as? String) == "1")
+                    let isOfficialAlarmVal = (userInfo["is_official_alarm"] as? Bool)
+                                   ?? ((userInfo["is_official_alarm"] as? String) == "true" || (userInfo["is_official_alarm"] as? String) == "1")
 
                     if !regionName.isEmpty {
                         vmLogger.info("FCM push received for \(regionName) (level: \(level), status: \(status), isClear: \(isClear)) — applying instantly")
@@ -182,7 +182,7 @@ final class AlertViewModelV3: ObservableObject {
                                 self.alerts[index].activeThreats = []
                                 self.alerts[index].selectedThreatIndex = 0
                             } else {
-                                if isActiveVal {
+                                if isOfficialAlarmVal {
                                     self.alerts[index].isActive = true
                                 }
                                 self.alerts[index].threatLevel = level
