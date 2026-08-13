@@ -57,8 +57,10 @@ final class AlertViewModelV3: ObservableObject {
         PremiumGatekeeper.shared.$isPremium
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
-                if self?.isPremium != status {
-                    self?.isPremium = status
+                Task { @MainActor [weak self] in
+                    if self?.isPremium != status {
+                        self?.isPremium = status
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -69,10 +71,12 @@ final class AlertViewModelV3: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            vmLogger.info("App entered foreground — resetting failure timer and fetching fresh threat state")
-            self.firstNetworkFailureDate = nil
-            Task { @MainActor in await self.fetchThreatState() }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                vmLogger.info("App entered foreground — resetting failure timer and fetching fresh threat state")
+                self.firstNetworkFailureDate = nil
+                await self.fetchThreatState()
+            }
         }
 
         backgroundObserver = NotificationCenter.default.addObserver(
@@ -80,9 +84,11 @@ final class AlertViewModelV3: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            self.firstNetworkFailureDate = nil
-            self.errorMessage = nil
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.firstNetworkFailureDate = nil
+                self.errorMessage = nil
+            }
         }
         #endif
     }
@@ -156,8 +162,8 @@ final class AlertViewModelV3: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let self else { return }
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 if let userInfo = notification.userInfo {
                     let regionName = (userInfo["region"] as? String)
                                   ?? (userInfo["regionName"] as? String)
