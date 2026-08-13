@@ -113,17 +113,37 @@ struct AdminDashboardView: View {
                 }
             }
             Spacer()
-            Button(action: {
-                viewModel.triggerHaptic()
-                dismiss()
-            }) {
-                Text("Готово")
-                    .font(.system(size: 13, weight: .semibold))
+            HStack(spacing: 8) {
+                Button(action: {
+                    viewModel.triggerHaptic("medium")
+                    dismiss()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 12))
+                        Text("Користувач")
+                            .font(.system(size: 13, weight: .semibold))
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
                     .foregroundColor(.white)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 11)
                     .padding(.vertical, 7)
-                    .background(Color.blue.opacity(0.3))
+                    .background(Color.white.opacity(0.12))
                     .clipShape(Capsule())
+                }
+
+                Button(action: {
+                    viewModel.triggerHaptic()
+                    dismiss()
+                }) {
+                    Text("Готово")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.blue.opacity(0.3))
+                        .clipShape(Capsule())
+                }
             }
         }
         .padding(.horizontal, 16)
