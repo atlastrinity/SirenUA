@@ -193,27 +193,23 @@ struct SettingsView: View {
                     .foregroundColor(.white.opacity(0.5))
             }
             Spacer()
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 if adminAuthenticated {
                     Button(action: {
                         haptic(.medium)
-                        if adminViewMode {
-                            adminViewMode = false
-                        } else {
-                            adminViewMode = true
-                            showingAdminPanel = true
-                        }
+                        showingAdminPanel = true
                     }) {
                         HStack(spacing: 5) {
-                            Image(systemName: adminViewMode ? "person.fill" : "gauge.with.needle.fill")
-                                .font(.system(size: 12))
-                            Text(adminViewMode ? "Користувач" : "Консоль")
+                            Image(systemName: "gauge.with.needle.fill")
+                                .font(.system(size: 11))
+                            Text("Консоль")
                                 .font(.system(size: 13, weight: .semibold))
+                                .fixedSize(horizontal: true, vertical: false)
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(adminViewMode ? Color.cyan.opacity(0.3) : Color.purple.opacity(0.3))
+                        .background(Color.purple.opacity(0.35))
                         .clipShape(Capsule())
                     }
                 }
@@ -310,7 +306,7 @@ struct SettingsView: View {
             StyledDivider()
             
             if adminAuthenticated {
-                HStack {
+                HStack(spacing: 8) {
                     HStack(spacing: 6) {
                         Circle()
                             .fill(ChartColorTheme.confirmed)
@@ -321,6 +317,23 @@ struct SettingsView: View {
                             .foregroundColor(.white)
                     }
                     Spacer()
+                    Button(action: {
+                        haptic(.medium)
+                        showingAdminPanel = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gauge.with.needle.fill")
+                                .font(.system(size: 11))
+                            Text("Консоль")
+                                .font(.system(size: 12, weight: .bold))
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.purple.opacity(0.4))
+                        .cornerRadius(6)
+                    }
                     Button(action: {
                         haptic(.medium)
                         adminAuthenticated = false

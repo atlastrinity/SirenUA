@@ -42,6 +42,7 @@ final class AlertViewModelV3: ObservableObject {
 
     var fcmObserver: NSObjectProtocol? = nil
     var foregroundObserver: NSObjectProtocol? = nil
+    var backgroundObserver: NSObjectProtocol? = nil
 
     // MARK: - Init
 
@@ -69,16 +70,28 @@ final class AlertViewModelV3: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            vmLogger.info("App entered foreground — fetching fresh threat state")
+            vmLogger.info("App entered foreground — resetting failure timer and fetching fresh threat state")
+            self.firstNetworkFailureDate = nil
             Task { @MainActor in await self.fetchThreatState() }
+        }
+
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.firstNetworkFailureDate = nil
+            self.errorMessage = nil
         }
         #endif
     }
 
     deinit {
         refreshTask?.cancel()
-        if let fcmObserver     { NotificationCenter.default.removeObserver(fcmObserver) }
+        if let fcmObserver        { NotificationCenter.default.removeObserver(fcmObserver) }
         if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
+        if let backgroundObserver { NotificationCenter.default.removeObserver(backgroundObserver) }
     }
 
     // MARK: - Private Setup
@@ -207,7 +220,9 @@ final class AlertViewModelV3: ObservableObject {
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                try? await Task.sleep(for: .seconds(self.refreshInterval))
+                let sleepSecs = (self.errorMessage != nil) ? 8 : self.refreshInterval
+                try? await Task.sleep(for: .seconds(sleepSecs))
+                guard !Task.isCancelled else { return }
                 await self.fetchThreatState()
             }
         }

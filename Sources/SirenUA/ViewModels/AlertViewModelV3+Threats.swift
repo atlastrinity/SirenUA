@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - AlertViewModelV3 Threat Fetching & Applying
 
@@ -19,6 +20,12 @@ extension AlertViewModelV3 {
             updateStats()
             updateLastAlertedRegion()
             isFirstThreatFetch = false
+            firstNetworkFailureDate = nil
+            if errorMessage != nil {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    errorMessage = nil
+                }
+            }
             isFetching = false
         } catch {
             vmLogger.error("Error fetching threats: \(error.localizedDescription)")
@@ -135,16 +142,25 @@ extension AlertViewModelV3 {
             isFirstFetch = false
             updateStats()
             firstNetworkFailureDate = nil
-            errorMessage = nil
+            if errorMessage != nil {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    errorMessage = nil
+                }
+            }
         } catch {
             vmLogger.error("Error fetching alerts: \(error.localizedDescription)")
             if firstNetworkFailureDate == nil {
                 firstNetworkFailureDate = Date()
             }
             let duration = Date().timeIntervalSince(firstNetworkFailureDate!)
-            if duration >= 120 {
-                let mins = max(2, Int(duration / 60))
-                errorMessage = "Відсутнє мережеве з'єднання (\(mins) хв). Перевірте інтернет."
+            if duration >= 30.0 {
+                if errorMessage == nil {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        errorMessage = "Офлайн · Немає зв'язку із сервером"
+                    }
+                }
+            } else {
+                errorMessage = nil
             }
         }
 
