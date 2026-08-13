@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0196EDF012A22A8A171121CC /* ContentView+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83317973B3F38750FEC97E3E /* ContentView+Theme.swift */; };
-		05B43695E2C953D2F55C0F19 /* MockScenariosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C36151A680FC980010F2529 /* MockScenariosCard.swift */; };
 		075E28B7E1499075E16C3B6E /* PremiumLockReason.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C15630939E696A1876C1CF /* PremiumLockReason.swift */; };
 		0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BA16504A891512121DBF64D /* Assets.xcassets */; };
 		0CC99CB0B44F61B4A47B2629 /* RegionHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D9BC6244BDDF4F0663E106 /* RegionHistoryEvent.swift */; };
@@ -186,7 +185,6 @@
 		589E34F234D85B5F6839D310 /* Color+DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+DesignTokens.swift"; sourceTree = "<group>"; };
 		6583F76C8A22105AB10D00EC /* SheltersAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheltersAPI.swift; sourceTree = "<group>"; };
 		6A7320EDE140411A78D11980 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
-		6C36151A680FC980010F2529 /* MockScenariosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockScenariosCard.swift; sourceTree = "<group>"; };
 		6D3272804A294623673BFD6D /* NotificationsSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSettingsCard.swift; sourceTree = "<group>"; };
 		6D5BEA136692ADB62BF70EBF /* NotificationManager+Delegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationManager+Delegate.swift"; sourceTree = "<group>"; };
 		6F57ADE4A4F6CED1569337FF /* SirenUANotificationService.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUANotificationService.entitlements; sourceTree = "<group>"; };
@@ -508,7 +506,6 @@
 			isa = PBXGroup;
 			children = (
 				CDCB69B1A4ECD169B0E5E2F1 /* MapSettingsCard.swift */,
-				6C36151A680FC980010F2529 /* MockScenariosCard.swift */,
 				6D3272804A294623673BFD6D /* NotificationsSettingsCard.swift */,
 				BDC4B8F6AB1B3CA3B41526F0 /* RegionTrackingCard.swift */,
 				3A0D39C1B7D8A6929EC62590 /* ServerDiagnosticsCard.swift */,
@@ -827,7 +824,6 @@
 				0E920DA5C4CD37C174939E2B /* MapLegendPillView.swift in Sources */,
 				FE7A8CA504D33A38F764851F /* MapSettingsCard.swift in Sources */,
 				E3C088B7279101706D18B9C1 /* MapViewModel.swift in Sources */,
-				05B43695E2C953D2F55C0F19 /* MockScenariosCard.swift in Sources */,
 				0E50948AD94AF6FB81C85E06 /* NavigationOverlay.swift in Sources */,
 				4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */,
 				3D4D10C3B231D4BB81B0D8A6 /* NotificationManager+Delegate.swift in Sources */,
