@@ -138,9 +138,9 @@ struct AdminControlTab: View {
                     }
 
                     HStack(spacing: 8) {
-                        Button("127.0.0.1:8000 (Локальний)") {
-                            viewModel.customServerURLSetting = "http://127.0.0.1:8000"
-                            viewModel.setServerURL("http://127.0.0.1:8000")
+                        Button("127.0.0.1:8085 (Локальний)") {
+                            viewModel.customServerURLSetting = "http://127.0.0.1:8085"
+                            viewModel.setServerURL("http://127.0.0.1:8085")
                         }
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.white)
