@@ -19,7 +19,7 @@ final class NetworkManager: Sendable {
             let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
         }
-        return "https://sirenua-threatserver.onrender.com"
+        return "https://e7d9-185-94-219-55.ngrok-free.app"
     }
     static let alertsBaseURL  = "https://ubilling.net.ua/aerialalerts/"
     static let userAgent      = "ios-sirenua/4.2"
@@ -39,6 +39,7 @@ final class NetworkManager: Sendable {
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(agent, forHTTPHeaderField: "User-Agent")
+        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
         request.timeoutInterval = Self.defaultTimeout
         return request
     }
