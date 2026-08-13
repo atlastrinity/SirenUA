@@ -374,12 +374,80 @@ final class SirenUATests: XCTestCase {
         defaults.set(false, forKey: "muteClearSound")
         XCTAssertFalse(defaults.bool(forKey: "muteClearSound"))
 
-        // 6. vibrationEnabled toggle
+        // 6. muteThreatClearSound toggle
+        defaults.set(true, forKey: "muteThreatClearSound")
+        XCTAssertTrue(defaults.bool(forKey: "muteThreatClearSound"))
+
+        defaults.set(false, forKey: "muteThreatClearSound")
+        XCTAssertFalse(defaults.bool(forKey: "muteThreatClearSound"))
+
+        // 7. vibrationEnabled toggle
         defaults.set(false, forKey: "vibrationEnabled")
         XCTAssertFalse(defaults.bool(forKey: "vibrationEnabled"))
 
         defaults.set(true, forKey: "vibrationEnabled")
         XCTAssertTrue(defaults.bool(forKey: "vibrationEnabled"))
+    }
+
+    func testNotificationSoundConfigAndCriticalPolicies() {
+        let settings = NotificationSettings.shared
+        settings.notificationsEnabled = true
+        settings.criticalAlertsEnabled = true
+        settings.muteAlarmsSound = false
+        settings.muteClearSound = false
+        settings.muteThreatsSound = false
+        settings.muteThreatClearSound = false
+        settings.vibrationEnabled = true
+
+        // 1. Official Alarm -> siren.wav, relevance = 1.0, timeSensitive (with criticalAlertsEnabled)
+        let alarmConfig = NotificationManager.shared.soundConfig(for: .alarm)
+        XCTAssertEqual(alarmConfig.soundName, "siren.wav")
+        XCTAssertEqual(alarmConfig.level, .timeSensitive)
+        XCTAssertEqual(alarmConfig.relevance, 1.0)
+
+        // 2. Official Clear -> vidbiy.wav, relevance = 0.5
+        let clearConfig = NotificationManager.shared.soundConfig(for: .clear)
+        XCTAssertEqual(clearConfig.soundName, "vidbiy.wav")
+        XCTAssertEqual(clearConfig.level, .timeSensitive)
+        XCTAssertEqual(clearConfig.relevance, 0.5)
+
+        // 3. AI Threat -> warning.wav, relevance = 0.8 (high confidence), timeSensitive, NEVER critical
+        let threatConfig = NotificationManager.shared.soundConfig(for: .threat, confidence: 90)
+        XCTAssertEqual(threatConfig.soundName, "warning.wav")
+        XCTAssertEqual(threatConfig.level, .timeSensitive)
+        XCTAssertEqual(threatConfig.relevance, 0.8)
+
+        // 4. AI Threat Clear -> clearance.wav, relevance = 0.3, active level
+        let threatClearConfig = NotificationManager.shared.soundConfig(for: .threatClear)
+        XCTAssertEqual(threatClearConfig.soundName, "clearance.wav")
+        XCTAssertEqual(threatClearConfig.level, .active)
+        XCTAssertEqual(threatClearConfig.relevance, 0.3)
+
+        // 5. Test Muting Specific Sounds
+        settings.muteAlarmsSound = true
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .alarm).soundName, "")
+        settings.muteAlarmsSound = false
+
+        settings.muteThreatsSound = true
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .threat).soundName, "")
+        settings.muteThreatsSound = false
+
+        settings.muteClearSound = true
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .clear).soundName, "")
+        settings.muteClearSound = false
+
+        settings.muteThreatClearSound = true
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .threatClear).soundName, "")
+        settings.muteThreatClearSound = false
+
+        // 6. Test Master Switch
+        settings.notificationsEnabled = false
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .alarm).soundName, "")
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .threat).soundName, "")
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .clear).soundName, "")
+        XCTAssertEqual(NotificationManager.shared.soundConfig(for: .threatClear).soundName, "")
+        XCTAssertFalse(settings.shouldVibrate)
+        settings.notificationsEnabled = true
     }
 
     func testPremiumGatekeeperCanAccess() async {

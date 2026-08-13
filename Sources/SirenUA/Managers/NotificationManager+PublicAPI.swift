@@ -21,8 +21,8 @@ extension NotificationManager {
     }
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
-                                confidence: Int = 75, isCritical: Bool = false) {
-        let config = soundConfig(for: .threat, isCritical: isCritical, confidence: confidence)
+                                confidence: Int = 75) {
+        let config = soundConfig(for: .threat, confidence: confidence)
 
         var fullTitle = title
         if !title.contains(regionName) {
@@ -41,7 +41,7 @@ extension NotificationManager {
         let config = soundConfig(for: .clear)
 
         enqueue(title: title, body: body, soundName: config.soundName, regionName: regionName,
-                interruptionLevel: config.level, relevanceScore: 0.3)
+                interruptionLevel: config.level, relevanceScore: 0.5)
 
         triggerHaptic(.success, pulses: 2)
     }
@@ -63,7 +63,6 @@ extension NotificationManager {
     /// Консолідує перевірку тоглів, маппінг на звуковий файл та рівень переривання.
     func soundConfig(
         for eventType: EventType,
-        isCritical: Bool = false,
         confidence: Int = 75
     ) -> (soundName: String, level: UNNotificationInterruptionLevel, relevance: Double) {
         let settings = NotificationSettings.shared
@@ -80,7 +79,7 @@ extension NotificationManager {
         // 2. Звуковий файл — завжди з EventType.soundFile (єдине джерело правди)
         let soundName = shouldPlay ? eventType.soundFile : ""
 
-        // 3. Interruption level
+        // 3. Interruption level (Critical Alerts діють виключно для .alarm та .clear)
         let bypassDND = settings.isCriticalAlertsEnabled
         let level: UNNotificationInterruptionLevel
         let relevance: Double
@@ -89,20 +88,16 @@ extension NotificationManager {
         case .alarm:
             level = bypassDND ? .timeSensitive : .active
             relevance = 1.0
-        case .clear, .threatClear:
+        case .clear:
             level = bypassDND ? .timeSensitive : .active
-            relevance = 0.3
+            relevance = 0.5
         case .threat:
-            if isCritical || confidence >= 85 {
-                level = .timeSensitive
-                relevance = 0.8
-            } else if confidence >= 60 {
-                level = .timeSensitive
-                relevance = 0.6
-            } else {
-                level = .active
-                relevance = 0.4
-            }
+            // ШІ-загрози мають timeSensitive для уваги, але НІКОЛИ не є critical
+            level = .timeSensitive
+            relevance = (confidence >= 85) ? 0.8 : (confidence >= 60 ? 0.6 : 0.4)
+        case .threatClear:
+            level = .active
+            relevance = 0.3
         }
 
         return (soundName, level, relevance)

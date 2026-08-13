@@ -118,7 +118,7 @@ extension AlertViewModelV3 {
                 if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
                 NotificationManager.shared.sendThreatNotification(
                     for: regionName, title: title, body: body,
-                    confidence: confidence, isCritical: confidence >= 85
+                    confidence: confidence
                 )
             }
         } else if oldThreatLevel != nil && newThreatLevel == nil && !wasActive && !alerts[index].isActive {

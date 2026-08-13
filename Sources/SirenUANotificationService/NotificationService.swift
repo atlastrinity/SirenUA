@@ -107,19 +107,20 @@ final class NotificationService: UNNotificationServiceExtension {
         if allowSoundPlayback {
             let soundFile = (data["sound_file"] as? String) ?? eventType.soundFile
 
-            let isCritical = criticalEnabled && (eventType == .alarm || eventType == .clear || eventType == .threatClear)
+            // Critical alert — ВИКЛЮЧНО для офіційної тривоги (.alarm) та офіційного відбою (.clear)
+            let isCritical = criticalEnabled && (eventType == .alarm || eventType == .clear)
 
             if isCritical {
-                // Critical alert: пробиває DND + Silent Mode (для офіційних тривог alarm та відбоїв clear)
+                // Critical alert: пробиває DND + Silent Mode (для офіційних сигналів)
                 content.sound = UNNotificationSound.criticalSoundNamed(
                     UNNotificationSoundName(soundFile), withAudioVolume: 1.0)
                 content.interruptionLevel = .critical
                 nseLogger.info("NSE: \(eventType.rawValue) → critical sound: \(soundFile)")
             } else {
-                // TimeSensitive: пробиває Focus, але не Silent Mode (для ШІ-загроз threat)
+                // TimeSensitive / Regular: для локальних ШІ-загроз (.threat) та відбоїв загроз (.threatClear)
                 content.sound = UNNotificationSound(named: UNNotificationSoundName(soundFile))
                 content.interruptionLevel = .timeSensitive
-                nseLogger.info("NSE: \(eventType.rawValue) → timeSensitive sound: \(soundFile)")
+                nseLogger.info("NSE: \(eventType.rawValue) → standard timeSensitive sound: \(soundFile)")
             }
         } else if vibrationEnabled {
             // Звук вимкнений користувачем або задедуплікований, але вібрація увімкнена → використовуємо system default (вібро без обриву аудіо)
