@@ -158,24 +158,28 @@ final class AlertViewModelV3: ObservableObject {
                     let isOfficialAlarmVal = (userInfo["is_official_alarm"] as? Bool)
                                    ?? ((userInfo["is_official_alarm"] as? String) == "true" || (userInfo["is_official_alarm"] as? String) == "1")
 
+                    let threatType = (userInfo["threat_type"] as? String) ?? ""
+
                     if !regionName.isEmpty {
-                        vmLogger.info("FCM push received for \(regionName) (level: \(level), status: \(status), isClear: \(isClear)) — applying instantly")
+                        vmLogger.info("FCM push received for \(regionName) (level: \(level), threat_type: \(threatType), isOfficial: \(isOfficialAlarmVal), isClear: \(isClear)) — applying instantly")
 
                         if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
-                            if isClear {
-                                self.alerts[index].isActive = false
-                                self.alerts[index].threatLevel = nil
-                                self.alerts[index].threatType = nil
-                                self.alerts[index].threatDetail = nil
-                                self.alerts[index].activeThreats = []
-                                self.alerts[index].selectedThreatIndex = 0
+                            if isOfficialAlarmVal || threatType == "official_alarm" {
+                                // Офіційна сирена або відбій офіційної сирени — оновлюємо тільки isActive
+                                self.alerts[index].isActive = !isClear
                             } else {
-                                if isOfficialAlarmVal {
-                                    self.alerts[index].isActive = true
-                                }
-                                self.alerts[index].threatLevel = level
-                                if let type = userInfo["threat_type"] as? String, !type.isEmpty {
-                                    self.alerts[index].threatType = type
+                                // ШІ-загроза (БПЛА, ракета, КАБ)
+                                if isClear {
+                                    self.alerts[index].threatLevel = nil
+                                    self.alerts[index].threatType = nil
+                                    self.alerts[index].threatDetail = nil
+                                    self.alerts[index].activeThreats = []
+                                    self.alerts[index].selectedThreatIndex = 0
+                                } else {
+                                    self.alerts[index].threatLevel = level
+                                    if !threatType.isEmpty {
+                                        self.alerts[index].threatType = threatType
+                                    }
                                 }
                             }
                             self.updateStats()
