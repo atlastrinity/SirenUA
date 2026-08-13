@@ -197,7 +197,7 @@ final class AlertViewModelV3: ObservableObject {
     func triggerDebouncedFetch() {
         debouncedFetchTask?.cancel()
         debouncedFetchTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(750))
+            try? await Task.sleep(for: .milliseconds(1500))
             guard !Task.isCancelled else { return }
             await self.fetchThreatState()
         }
