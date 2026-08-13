@@ -449,7 +449,7 @@ struct AdminControlTab: View {
                     },
                     label: {
                         HStack {
-                            Image(systemName: "location.badge.gearshape.fill")
+                            Image(systemName: "location.north.circle.fill")
                                 .foregroundColor(.cyan)
                                 .font(.system(size: 11))
                             Text("Тактична телеметрія (опціонально)")
