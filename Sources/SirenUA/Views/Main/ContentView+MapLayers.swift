@@ -6,8 +6,8 @@ extension ContentView {
 
     var selectedMapStyle: MapStyle {
         switch mapType {
-        case 1:  return .hybrid
-        case 2:  return .imagery
+        case 1:  return .imagery(elevation: .realistic)
+        case 2:  return .hybrid(elevation: .realistic)
         default: return .standard(elevation: .realistic)
         }
     }
