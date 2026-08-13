@@ -157,6 +157,23 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
                           .replacingOccurrences(of: "+", with: "")
                           .trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // Case 1: Compound format, e.g. "1 год 16 хв" or "1 год 45 хв"
+        if cleanEta.contains("год") && cleanEta.contains("хв") {
+            let parts = cleanEta.components(separatedBy: "год")
+            if parts.count == 2,
+               let hr = Int(parts[0].trimmingCharacters(in: .whitespaces)),
+               let mn = Int(parts[1].replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)) {
+                let totalMins = hr * 60 + mn
+                let remaining = totalMins - elapsed
+                if remaining <= 0 { return "в області" }
+                else if remaining < 60 { return "~\(remaining) хв" }
+                else {
+                    let rHr = remaining / 60; let rMn = remaining % 60
+                    return rMn == 0 ? "~\(rHr) год" : "~\(rHr) год \(rMn) хв"
+                }
+            }
+        }
+
         if cleanEta.hasSuffix("хв") {
             let valPart = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
             if valPart.contains("-") {
