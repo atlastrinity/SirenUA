@@ -186,9 +186,20 @@ final class AlertViewModelV3: ObservableObject {
                         }
                     }
                 }
-                // Always fetch authoritative state from server immediately
-                await self.fetchThreatState()
+                // Debounced authoritative fetch to avoid slamming network/render loop during burst pushes
+                self.triggerDebouncedFetch()
             }
+        }
+    }
+
+    private var debouncedFetchTask: Task<Void, Never>? = nil
+
+    func triggerDebouncedFetch() {
+        debouncedFetchTask?.cancel()
+        debouncedFetchTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(750))
+            guard !Task.isCancelled else { return }
+            await self.fetchThreatState()
         }
     }
 

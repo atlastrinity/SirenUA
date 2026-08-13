@@ -49,6 +49,8 @@ struct ContentViewMapStateHandlers: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
     @Binding var onboardingCompleted: Bool
 
+    @State private var lastActiveFootprint: String = ""
+
     private func triggerMapCenter(animated: Bool = false) {
         mapViewModel.centerMapOnAlerts(
             alerts: viewModel.alerts,
@@ -57,6 +59,17 @@ struct ContentViewMapStateHandlers: ViewModifier {
             regions: geoManager.regions,
             animated: animated
         )
+    }
+
+    private func triggerMapCenterIfNeeded(animated: Bool = false) {
+        let footprint = viewModel.alerts
+            .filter { $0.isActive || $0.threatLevel != nil }
+            .map { "\($0.id):\($0.isActive):\($0.threatLevel ?? "")" }
+            .joined(separator: "|")
+        if footprint != lastActiveFootprint {
+            lastActiveFootprint = footprint
+            triggerMapCenter(animated: animated)
+        }
     }
 
     func body(content: Content) -> some View {
@@ -75,7 +88,7 @@ struct ContentViewMapStateHandlers: ViewModifier {
                 }
             }
             .onChange(of: viewModel.alerts) { _, _ in
-                triggerMapCenter(animated: true)
+                triggerMapCenterIfNeeded(animated: true)
             }
             .onChange(of: geoManager.isLoaded) { _, newValue in
                 if newValue {
