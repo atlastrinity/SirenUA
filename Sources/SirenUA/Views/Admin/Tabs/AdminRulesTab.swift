@@ -85,32 +85,123 @@ struct AdminRulesTab: View {
             // Regional Rule Metrics & Dispersion Analytics Panel
             RegionalRuleMetricsCard(viewModel: viewModel)
             
+            // Post-Mortem Deep Reflection Section (NEW v2.5)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                        .foregroundColor(.pink)
+                    Text("🧠 Автономна ШІ-Рефлексія Post-Mortem")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    if viewModel.isTriggeringPostMortem {
+                        ProgressView()
+                            .tint(.pink)
+                    }
+                }
+                
+                Text("Глибинний аналіз завершених сесій через Gemini AI: виявлення патернів прориву, хибних тривог та коригування швидкостей.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineSpacing(3)
+                
+                HStack(spacing: 8) {
+                    Button(action: {
+                        viewModel.triggerHaptic("heavy")
+                        Task { await viewModel.triggerPostMortem(hours: 4) }
+                    }) {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                            Text("Post-Mortem (4 год)")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.pink.opacity(0.3))
+                        .cornerRadius(8)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.pink.opacity(0.6), lineWidth: 1))
+                    }
+                    .disabled(viewModel.isTriggeringPostMortem)
+                    
+                    Button(action: {
+                        viewModel.triggerHaptic("heavy")
+                        Task { await viewModel.triggerPostMortem(hours: 24) }
+                    }) {
+                        HStack {
+                            Image(systemName: "flame.fill")
+                            Text("Масований (24 год)")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.purple.opacity(0.3))
+                        .cornerRadius(8)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.purple.opacity(0.6), lineWidth: 1))
+                    }
+                    .disabled(viewModel.isTriggeringPostMortem)
+                }
+                
+                if viewModel.showPostMortemSuccess {
+                    HStack {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundColor(.green)
+                        Text(viewModel.postMortemResultText)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.green)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+            .padding(12)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+            
+            // AI Learning Engine 5 Mathematical Criteria Visualizer (NEW v2.5)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "function")
+                        .foregroundColor(.cyan)
+                    Text("📐 5 Математичних критеріїв навчання ШІ")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                
+                VStack(spacing: 6) {
+                    learningRuleCriterionRow(icon: "map.fill", title: "Маршрутний вектор", desc: ">= 3 підтверджених прольотів, точність >= 70%", color: .cyan)
+                    learningRuleCriterionRow(icon: "shield.righthalf.filled", title: "Корекція довіри", desc: "Зниження ваги при переоцінці (< 50%) або буст (> 80%)", color: .green)
+                    learningRuleCriterionRow(icon: "clock.fill", title: "Часові патерни", desc: "Кластеризація хвиль за годинами доби (нічні/ранкові)", color: .orange)
+                    learningRuleCriterionRow(icon: "speedometer", title: "Математика ETA", desc: "Коригування швидкостей цілей при дельті > 15 хв", color: .purple)
+                    learningRuleCriterionRow(icon: "leaf.arrow.circlepath", title: "Згасання правил (Decay)", desc: "Правила без нових доказів знеструмлюються за 14 днів", color: .gray)
+                }
+            }
+            .padding(12)
+            .background(ChartColorTheme.cardBg)
+            .cornerRadius(12)
+            
             // Rebuild rules section
             VStack(alignment: .leading, spacing: 12) {
-                Text("🧠 Самонавчання ШІ (Gemini)")
+                Text("⚙️ Перебудова правил з paired_events")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
-                
-                Text("Запуск примусового аналізу paired_events для генерації нових правил або оновлення наявних.")
-                    .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.55))
-                    .lineSpacing(3)
                 
                 Button(action: {
                     viewModel.triggerHaptic()
                     Task { await viewModel.rebuildRules() }
                 }) {
                     HStack {
-                        Image(systemName: "brain.head.profile")
-                        Text("Перебудувати правила навчання")
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("Перебудувати правила з парних подій")
                     }
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(Color.purple.opacity(0.3))
+                    .background(Color.blue.opacity(0.3))
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.purple.opacity(0.5), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.blue.opacity(0.5), lineWidth: 1))
                 }
                 
                 if viewModel.showRebuildSuccess {
@@ -169,27 +260,27 @@ struct AdminRulesTab: View {
                 .background(ChartColorTheme.cardBg)
                 .cornerRadius(12)
                     
-                    // Rules history audit log
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("📜 Аудит-лог правил")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                        
-                        if viewModel.ruleAuditHistory.isEmpty {
-                            Text("Аудит-лог правил порожній.")
-                                .font(.system(size: 13))
-                                .foregroundColor(.gray)
-                                .padding(.vertical, 20)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        } else {
-                            ForEach(viewModel.ruleAuditHistory) { entry in
-                                GeminiRuleAuditRow(entry: entry, viewModel: viewModel)
-                            }
+                // Rules history audit log
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("📜 Аудит-лог правил")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    if viewModel.ruleAuditHistory.isEmpty {
+                        Text("Аудит-лог правил порожній.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                            .padding(.vertical, 20)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
+                        ForEach(viewModel.ruleAuditHistory) { entry in
+                            GeminiRuleAuditRow(entry: entry, viewModel: viewModel)
                         }
                     }
-                    .padding(14)
-                    .background(ChartColorTheme.cardBg)
-                    .cornerRadius(12)
+                }
+                .padding(14)
+                .background(ChartColorTheme.cardBg)
+                .cornerRadius(12)
             }
             .onChange(of: viewModel.rulesDaysFilter) { _, _ in
                 Task { await viewModel.fetchRules() }
@@ -205,6 +296,29 @@ struct AdminRulesTab: View {
             }
         }
     }
+    
+    private func learningRuleCriterionRow(icon: String, title: String, desc: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.system(size: 12))
+                .frame(width: 16, height: 16)
+                .padding(.top, 2)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                Text(desc)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            Spacer()
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.02))
+        .cornerRadius(6)
+    }
 }
 
 struct GeminiRuleRow: View {
@@ -214,23 +328,23 @@ struct GeminiRuleRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(rule.rule_type)
+                Text(ruleTypeBadgeText(rule.rule_type))
                     .font(.system(size: 9, weight: .bold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.2))
-                    .foregroundColor(.blue)
+                    .background(ruleTypeColor(rule.rule_type).opacity(0.2))
+                    .foregroundColor(ruleTypeColor(rule.rule_type))
                     .cornerRadius(4)
                 
                 Spacer()
                 
-                Text("\(Int(rule.accuracy_score * 100))% accuracy")
-                    .font(.system(size: 11, weight: .semibold))
+                Text("\(Int(rule.accuracy_score * 100))% точність")
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundColor(rule.accuracy_score >= 0.7 ? .green : .yellow)
                 
-                Text("Evidences: \(rule.evidence_count)")
-                    .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.4))
+                Text("Доказів: \(rule.evidence_count)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.5))
             }
             
             Text(rule.rule_text)
@@ -256,7 +370,29 @@ struct GeminiRuleRow: View {
         .padding(10)
         .background(Color.white.opacity(0.02))
         .cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(ruleTypeColor(rule.rule_type).opacity(0.25), lineWidth: 1))
+    }
+    
+    private func ruleTypeColor(_ type: String) -> Color {
+        switch type {
+        case "route_pattern": return .cyan
+        case "confidence_correction": return .green
+        case "time_pattern": return .orange
+        case "eta_math": return .purple
+        case "post_mortem": return .pink
+        default: return .blue
+        }
+    }
+    
+    private func ruleTypeBadgeText(_ type: String) -> String {
+        switch type {
+        case "route_pattern": return "МАРШРУТ"
+        case "confidence_correction": return "ДОВІРА"
+        case "time_pattern": return "ЧАС"
+        case "eta_math": return "ETA"
+        case "post_mortem": return "POST-MORTEM"
+        default: return type.uppercased()
+        }
     }
 }
 

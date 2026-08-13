@@ -72,6 +72,11 @@ class AdminViewModel: ObservableObject {
     @Published var errorsList: [AdminErrorEntry] = []
     @Published var errorStats: AdminErrorStatsResponse? = nil
     
+    // Post-Mortem State
+    @Published var isTriggeringPostMortem: Bool = false
+    @Published var showPostMortemSuccess: Bool = false
+    @Published var postMortemResultText: String = ""
+    
     // Palantir Data Store
     @Published var palantirOverview: PalantirOverviewResponse? = nil
     @Published var palantirReportsList: [PalantirReportEntry] = []
@@ -132,6 +137,23 @@ class AdminViewModel: ObservableObject {
     
     // MARK: - API Calls & Actions
     
+    func makeAdminRequest(url: URL, method: String = "GET", body: Data? = nil) -> URLRequest {
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.httpBody = body
+        req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("ios-sirenua-admin/4.2", forHTTPHeaderField: "User-Agent")
+        req.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+        req.timeoutInterval = 10.0
+        return req
+    }
+    
+    func fetchAdminData(from url: URL) async throws -> (Data, URLResponse) {
+        let req = makeAdminRequest(url: url)
+        return try await URLSession.shared.data(for: req)
+    }
+    
     func refreshCurrentTab(selectedTab: Int) async {
         switch selectedTab {
         case 0:
@@ -169,7 +191,7 @@ class AdminViewModel: ObservableObject {
     func fetchDashboardStats() async {
         guard let url = URL(string: "\(serverURL)/api/admin/dashboard/stats") else { return }
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await fetchAdminData(from: url)
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
                 self.lastFetchError = "Сервер повернув HTTP \(http.statusCode)"
                 adminLogger.error("HTTP \(http.statusCode) from fetchDashboardStats")
@@ -213,9 +235,9 @@ class AdminViewModel: ObservableObject {
             params += "&match_result=\(corMatchFilter)"
         }
         
-        let url = URL(string: "\(serverURL)/api/admin/chronology/v2?\(params)")!
+        guard let url = URL(string: "\(serverURL)/api/admin/chronology/v2?\(params)") else { return }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await fetchAdminData(from: url)
             do {
                 let decoded = try JSONDecoder().decode(AdminChronologyV2Response.self, from: data)
                 self.correlationV2Data = decoded
@@ -241,9 +263,9 @@ class AdminViewModel: ObservableObject {
             params += "&prediction_accuracy=\(chrMatchFilter)"
         }
         
-        let url = URL(string: "\(serverURL)/api/admin/chronology?\(params)")!
+        guard let url = URL(string: "\(serverURL)/api/admin/chronology?\(params)") else { return }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await fetchAdminData(from: url)
             do {
                 let decoded = try JSONDecoder().decode(AdminChronologyResponse.self, from: data)
                 self.chronologyData = decoded
@@ -276,11 +298,12 @@ class AdminViewModel: ObservableObject {
         }
         
         do {
-            let rulesUrl = URL(string: "\(serverURL)/api/analytics/rules?\(rulesParams)")!
-            let historyUrl = URL(string: "\(serverURL)/api/admin/rules/history?\(auditParams)")!
+            guard let rulesUrl = URL(string: "\(serverURL)/api/analytics/rules?\(rulesParams)"),
+                  let historyUrl = URL(string: "\(serverURL)/api/admin/rules/history?\(auditParams)"),
+                  let metricsUrl = URL(string: "\(serverURL)/api/admin/rules/metrics_by_region") else { return }
             
-            let (rulesData, _) = try await URLSession.shared.data(from: rulesUrl)
-            let (historyData, _) = try await URLSession.shared.data(from: historyUrl)
+            let (rulesData, _) = try await fetchAdminData(from: rulesUrl)
+            let (historyData, _) = try await fetchAdminData(from: historyUrl)
             
             do {
                 let decoded = try JSONDecoder().decode(GeminiRulesResponse.self, from: rulesData)
@@ -297,8 +320,7 @@ class AdminViewModel: ObservableObject {
             }
 
             do {
-                let metricsUrl = URL(string: "\(serverURL)/api/admin/rules/metrics_by_region")!
-                let (metricsData, _) = try await URLSession.shared.data(from: metricsUrl)
+                let (metricsData, _) = try await fetchAdminData(from: metricsUrl)
                 let decoded = try JSONDecoder().decode(AdminRulesMetricsResponse.self, from: metricsData)
                 self.regionalRuleMetrics = decoded.region_metrics
             } catch {
@@ -313,11 +335,11 @@ class AdminViewModel: ObservableObject {
         let params = "days=\(errDaysFilter)" + (errSourceFilter.isEmpty ? "" : "&source=\(errSourceFilter)") + (errTypeFilter.isEmpty ? "" : "&error_type=\(errTypeFilter)")
         
         do {
-            let statsUrl = URL(string: "\(serverURL)/api/admin/errors/stats?days=\(errDaysFilter)")!
-            let errorsUrl = URL(string: "\(serverURL)/api/admin/errors?\(params)")!
+            guard let statsUrl = URL(string: "\(serverURL)/api/admin/errors/stats?days=\(errDaysFilter)"),
+                  let errorsUrl = URL(string: "\(serverURL)/api/admin/errors?\(params)") else { return }
             
-            let (statsData, _) = try await URLSession.shared.data(from: statsUrl)
-            let (errorsData, _) = try await URLSession.shared.data(from: errorsUrl)
+            let (statsData, _) = try await fetchAdminData(from: statsUrl)
+            let (errorsData, _) = try await fetchAdminData(from: errorsUrl)
             
             if let decodedStats = try? JSONDecoder().decode(AdminErrorStatsResponse.self, from: statsData) {
                 self.errorStats = decodedStats
@@ -332,7 +354,7 @@ class AdminViewModel: ObservableObject {
     func fetchPalantirOverview() async {
         guard let url = URL(string: "\(serverURL)/api/admin/palantir/overview?days=\(palantirDaysFilter)") else { return }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await fetchAdminData(from: url)
             let decoded = try JSONDecoder().decode(PalantirOverviewResponse.self, from: data)
             self.palantirOverview = decoded
         } catch {
@@ -341,7 +363,7 @@ class AdminViewModel: ObservableObject {
         
         guard let reportsUrl = URL(string: "\(serverURL)/api/admin/palantir/reports?limit=20") else { return }
         do {
-            let (data, _) = try await URLSession.shared.data(from: reportsUrl)
+            let (data, _) = try await fetchAdminData(from: reportsUrl)
             let decoded = try JSONDecoder().decode(PalantirReportsResponse.self, from: data)
             self.palantirReportsList = decoded.reports
         } catch {
@@ -353,8 +375,7 @@ class AdminViewModel: ObservableObject {
         guard let url = URL(string: "\(serverURL)/api/admin/palantir/synthesize") else { return }
         isSynthesizingPalantir = true
         do {
-            var req = URLRequest(url: url)
-            req.httpMethod = "POST"
+            let req = makeAdminRequest(url: url, method: "POST")
             let (_, res) = try await URLSession.shared.data(for: req)
             if let http = res as? HTTPURLResponse, http.statusCode == 200 {
                 triggerHaptic("heavy")
@@ -367,9 +388,9 @@ class AdminViewModel: ObservableObject {
     }
     
     func loadRegions() async {
-        let url = URL(string: "\(serverURL)/api/threats")!
+        guard let url = URL(string: "\(serverURL)/api/threats") else { return }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await fetchAdminData(from: url)
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let threats = json["threats"] as? [String: Any] {
                 self.regionsList = threats.keys.sorted()
@@ -378,9 +399,9 @@ class AdminViewModel: ObservableObject {
     }
     
     func rebuildRules() async {
+        guard let url = URL(string: "\(serverURL)/api/analytics/rules/rebuild") else { return }
         do {
-            var req = URLRequest(url: URL(string: "\(serverURL)/api/analytics/rules/rebuild")!)
-            req.httpMethod = "POST"
+            let req = makeAdminRequest(url: url, method: "POST")
             let (_, res) = try await URLSession.shared.data(for: req)
             if let http = res as? HTTPURLResponse, http.statusCode == 200 {
                 showRebuildSuccess = true
@@ -389,6 +410,30 @@ class AdminViewModel: ObservableObject {
                 await fetchRules()
             }
         } catch {}
+    }
+    
+    func triggerPostMortem(hours: Int = 4) async {
+        guard let url = URL(string: "\(serverURL)/api/admin/rules/post_mortem?hours=\(hours)") else { return }
+        isTriggeringPostMortem = true
+        do {
+            let req = makeAdminRequest(url: url, method: "POST")
+            let (data, res) = try await URLSession.shared.data(for: req)
+            if let http = res as? HTTPURLResponse, http.statusCode == 200 {
+                if let decoded = try? JSONDecoder().decode(PostMortemResponse.self, from: data) {
+                    postMortemResultText = "ШІ сформував \(decoded.rules_created ?? 0) нових правил"
+                } else {
+                    postMortemResultText = "Рефлексію Post-Mortem виконано успішно"
+                }
+                showPostMortemSuccess = true
+                triggerHaptic("heavy")
+                await fetchRules()
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                showPostMortemSuccess = false
+            }
+        } catch {
+            adminLogger.error("Post-Mortem trigger error: \(error)")
+        }
+        isTriggeringPostMortem = false
     }
     
     // MARK: - Helpers

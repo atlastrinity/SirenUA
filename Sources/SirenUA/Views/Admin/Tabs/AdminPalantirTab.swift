@@ -16,6 +16,15 @@ struct AdminPalantirTab: View {
                 // Synthesis Action Banner
                 synthesisActionBanner
                 
+                // Multi-Hop Markov Flight Chains (NEW v2.5)
+                multiHopChainsCard(overview)
+                
+                // Junction Hub Branching Probabilities (NEW v2.5)
+                junctionBranchesCard(overview)
+                
+                // Air Defense Attrition & Density (NEW v2.5)
+                airDefenseAttritionCard(overview)
+                
                 // Trajectory Vectors Card
                 trajectoryVectorsCard(overview)
                 
@@ -77,7 +86,7 @@ struct AdminPalantirTab: View {
                 }
             }
             
-            Text("Автономне трекування траєкторій, пускових хабів ворога та оцінка ризиків")
+            Text("Автономне трекування траєкторій, багатокрокових ланцюжків Маркова, пускових хабів та щільності ППО")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.white.opacity(0.5))
         }
@@ -95,17 +104,17 @@ struct AdminPalantirTab: View {
     // MARK: - Tactical Metrics Grid
     
     private func tacticalMetricsGrid(_ overview: PalantirOverviewResponse) -> some View {
+        let chainsCount = overview.multihop_chains?.count ?? 0
         let corridorsCount = overview.trajectory_corridors?.count ?? 0
         let hubsCount = overview.launch_hubs?.count ?? 0
-        let riskRegionsCount = overview.region_risk_matrix?.count ?? 0
         let avgConf = overview.trajectory_corridors?.compactMap { $0.avg_confidence }.reduce(0, +) ?? 0
         let avgConfScore = corridorsCount > 0 ? avgConf / corridorsCount : 92
         
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            metricBox(title: "🔗 Ланцюжки Маркова", value: "\(chainsCount)", subtitle: "3+ регіони в польоті", color: .purple)
+            metricBox(title: "🚀 Пускові хаби РФ", value: "\(hubsCount)", subtitle: "Моніторинг баз", color: .orange)
             metricBox(title: "🗺️ Коридори траєкторій", value: "\(corridorsCount)", subtitle: "Активні вектори", color: .cyan)
-            metricBox(title: "🚀 Пускові хаби РФ", value: "\(hubsCount)", subtitle: "Моніторинг локацій", color: .orange)
-            metricBox(title: "🎯 Зони ризику", value: "\(riskRegionsCount)", subtitle: "Областей в матриці", color: .red)
-            metricBox(title: "👁️ Точність Palantir", value: "\(avgConfScore)%", subtitle: "AI індекс довіри", color: .green)
+            metricBox(title: "👁️ Індекс довіри Palantir", value: "\(avgConfScore)%", subtitle: "Точність синтезу", color: .green)
         }
     }
     
@@ -167,6 +176,196 @@ struct AdminPalantirTab: View {
         .disabled(viewModel.isSynthesizingPalantir)
     }
     
+    // MARK: - Multi-Hop Markov Chains Card (NEW v2.5)
+    
+    private func multiHopChainsCard(_ overview: PalantirOverviewResponse) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "point.filled.topleft.down.curvedto.point.bottomright.up")
+                        .foregroundColor(.purple)
+                    Text("🔗 Багатокрокові ланцюжки прольоту (Markov Chains)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                Text("\(overview.multihop_chains?.count ?? 0) виявлено")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.purple)
+            }
+            
+            if let chains = overview.multihop_chains, !chains.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(chains.prefix(6)) { chain in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(chain.chain)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Text("\(chain.occurrences)x")
+                                    .font(.system(size: 12, weight: .black))
+                                    .foregroundColor(.purple)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.purple.opacity(0.2))
+                                    .cornerRadius(6)
+                            }
+                            
+                            HStack {
+                                ProgressView(value: chain.confidence, total: 1.0)
+                                    .tint(.purple)
+                                Text("Довіра: \(Int(chain.confidence * 100))%")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
+                        .padding(10)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                        )
+                    }
+                }
+            } else {
+                Text("Багатокрокові ланцюжки ще формуються на основі історії хвиль.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+        }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(14)
+    }
+    
+    // MARK: - Junction Branches Card (NEW v2.5)
+    
+    private func junctionBranchesCard(_ overview: PalantirOverviewResponse) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.branch")
+                        .foregroundColor(.cyan)
+                    Text("🔀 Вузли розгалуження та ймовірності вектору")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                Text("\(overview.junction_branches?.count ?? 0) вузлів")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.cyan)
+            }
+            
+            if let branches = overview.junction_branches, !branches.isEmpty {
+                VStack(spacing: 10) {
+                    ForEach(branches.prefix(4)) { j in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("📍 Вузол: \(j.junction_region)")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.cyan)
+                                Spacer()
+                                Text("Переходів: \(j.total_transitions)")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            
+                            ForEach(j.branches.prefix(3)) { b in
+                                HStack {
+                                    Text("➔ \(b.target)")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                    Spacer()
+                                    ProgressView(value: b.probability, total: 1.0)
+                                        .tint(b.probability >= 0.5 ? .cyan : .blue)
+                                        .frame(width: 70)
+                                    Text("\(Int(b.probability * 100))%")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(b.probability >= 0.5 ? .cyan : .blue)
+                                        .frame(width: 36, alignment: .trailing)
+                                }
+                            }
+                        }
+                        .padding(10)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(8)
+                    }
+                }
+            } else {
+                Text("Вузли розгалуження аналізуються при накопиченні переходів.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+        }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(14)
+    }
+    
+    // MARK: - Air Defense Attrition Card (NEW v2.5)
+    
+    private func airDefenseAttritionCard(_ overview: PalantirOverviewResponse) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "shield.checkered")
+                        .foregroundColor(.green)
+                    Text("🛡️ Виснаження цілей силами ППО (ТОП Регіони)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                Text("\(overview.air_defense_attrition?.count ?? 0) областей")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.green)
+            }
+            
+            if let attrition = overview.air_defense_attrition, !attrition.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(attrition.prefix(6)) { att in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(att.region)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("Збито: \(att.intercepted_count) • Влучання: \(att.impact_count) • Транзит: \(att.transit_count)")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("\(att.interception_rate_percent, specifier: "%.1f")%")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(att.interception_rate_percent >= 70 ? .green : (att.interception_rate_percent >= 40 ? .yellow : .orange))
+                                
+                                Text(densityLabel(att.defense_density))
+                                    .font(.system(size: 9, weight: .bold))
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(densityColor(att.defense_density).opacity(0.2))
+                                    .foregroundColor(densityColor(att.defense_density))
+                                    .cornerRadius(4)
+                            }
+                        }
+                        .padding(8)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(6)
+                    }
+                }
+            } else {
+                Text("Дані про перехоплення формуються після верифікації відбоїв.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+        }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(14)
+    }
+    
     // MARK: - Trajectory Vectors Card
     
     private func trajectoryVectorsCard(_ overview: PalantirOverviewResponse) -> some View {
@@ -183,7 +382,7 @@ struct AdminPalantirTab: View {
             
             if let corridors = overview.trajectory_corridors, !corridors.isEmpty {
                 VStack(spacing: 8) {
-                    ForEach(corridors.prefix(8)) { corridor in
+                    ForEach(corridors.prefix(6)) { corridor in
                         HStack(spacing: 10) {
                             Text(threatIcon(corridor.threat_type))
                                 .font(.system(size: 14))
@@ -353,7 +552,7 @@ struct AdminPalantirTab: View {
                     }
                 }
             } else {
-                Text("Збережених звітів у Palantir БД ще немає. Натисніть кнопкy для синтезу.")
+                Text("Збережених звітів у Palantir БД ще немає. Натисніть кнопку для синтезу.")
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.4))
             }
@@ -380,4 +579,21 @@ struct AdminPalantirTab: View {
         if score > 20 { return .yellow }
         return .green
     }
+    
+    private func densityColor(_ density: String) -> Color {
+        switch density {
+        case "high": return .green
+        case "medium": return .cyan
+        default: return .yellow
+        }
+    }
+    
+    private func densityLabel(_ density: String) -> String {
+        switch density {
+        case "high": return "Щільне ППО"
+        case "medium": return "Середнє ППО"
+        default: return "Базове ППО"
+        }
+    }
 }
+

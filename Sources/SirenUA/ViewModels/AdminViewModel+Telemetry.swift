@@ -20,9 +20,9 @@ extension AdminViewModel {
         } catch { alertsStatus = "OFFLINE" }
         
         // 2. Analytics threat server ping
+        guard let threatsUrl = URL(string: "\(serverURL)/api/threats") else { return }
         do {
-            var req = URLRequest(url: URL(string: "\(serverURL)/api/threats")!)
-            req.timeoutInterval = 3.0
+            let req = makeAdminRequest(url: threatsUrl)
             let (_, res) = try await URLSession.shared.data(for: req)
             if let http = res as? HTTPURLResponse, http.statusCode == 200 {
                 threatsStatus = "ONLINE"
@@ -32,10 +32,9 @@ extension AdminViewModel {
         } catch { threatsStatus = "OFFLINE" }
         
         // 3. Gemini status ping
+        guard let geminiUrl = URL(string: "\(serverURL)/api/gemini/status") else { return }
         do {
-            var req = URLRequest(url: URL(string: "\(serverURL)/api/gemini/status")!)
-            req.timeoutInterval = 3.0
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, _) = try await fetchAdminData(from: geminiUrl)
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let status = json["status"] as? String {
                 geminiStatus = status.uppercased()
@@ -46,19 +45,17 @@ extension AdminViewModel {
     }
 
     func injectCustomThreat() async {
+        guard let url = URL(string: "\(serverURL)/api/threats/mock") else { return }
         do {
-            var req = URLRequest(url: URL(string: "\(serverURL)/api/threats/mock")!)
-            req.httpMethod = "POST"
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
             let body: [String: Any] = [
                 "region": simRegion,
                 "level": simLevel,
                 "threat_type": simThreatType,
                 "detail": simDetail
             ]
+            let jsonData = try? JSONSerialization.data(withJSONObject: body)
+            let req = makeAdminRequest(url: url, method: "POST", body: jsonData)
             
-            req.httpBody = try? JSONSerialization.data(withJSONObject: body)
             let (data, res) = try await URLSession.shared.data(for: req)
             if let http = res as? HTTPURLResponse {
                 if http.statusCode == 200 {

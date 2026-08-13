@@ -363,6 +363,52 @@ struct PalantirDailySummary: Codable, Identifiable {
     let effectiveness_pct: Double?
 }
 
+struct PalantirMultiHopChain: Codable, Identifiable {
+    var id: String { chain }
+    let chain: String
+    let occurrences: Int
+    let confidence: Double
+}
+
+struct PalantirBranchTarget: Codable, Identifiable {
+    var id: String { "\(target)_\(count)" }
+    let target: String
+    let count: Int
+    let probability: Double
+}
+
+struct PalantirJunctionBranch: Codable, Identifiable {
+    var id: String { junction_region }
+    let junction_region: String
+    let total_transitions: Int
+    let branches: [PalantirBranchTarget]
+}
+
+struct PalantirAirDefenseAttrition: Codable, Identifiable {
+    var id: String { region }
+    let region: String
+    let total_events: Int
+    let intercepted_count: Int
+    let impact_count: Int
+    let transit_count: Int
+    let interception_rate_percent: Double
+    let defense_density: String // "high", "medium", "standard"
+}
+
+struct PostMortemRuleCreated: Codable, Identifiable {
+    var id: String { rule_text }
+    let rule_type: String
+    let rule_text: String
+    let accuracy_score: Double?
+}
+
+struct PostMortemResponse: Codable {
+    let status: String
+    let rules_created: Int?
+    let message: String?
+    let rules_details: [PostMortemRuleCreated]?
+}
+
 struct PalantirOverviewResponse: Codable {
     let system: String?
     let days: Int?
@@ -371,6 +417,9 @@ struct PalantirOverviewResponse: Codable {
     let region_risk_matrix: [PalantirRegionRisk]?
     let flight_corridors: [PalantirCorridor]?
     let daily_summaries: [PalantirDailySummary]?
+    let multihop_chains: [PalantirMultiHopChain]?
+    let junction_branches: [PalantirJunctionBranch]?
+    let air_defense_attrition: [PalantirAirDefenseAttrition]?
 }
 
 struct PalantirReportEntry: Codable, Identifiable {
