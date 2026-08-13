@@ -127,9 +127,8 @@ struct SettingsView: View {
                         mapCard
                         premiumCard
                         regionsCard
-                        if adminAuthenticated {
+                        if adminAuthenticated && adminViewMode {
                             diagnosticsCard
-                            adminDashboardCard
                         }
                         aboutCard
                     }
@@ -173,10 +172,10 @@ struct SettingsView: View {
                 colors: [
                     Color(red: 0.02, green: 0.05, blue: 0.15).opacity(0.9),
                     Color(red: 0.05, green: 0.10, blue: 0.25).opacity(0.8),
-                    Color(red: 0.02, green: 0.04, blue: 0.12).opacity(0.95)
+                    Color(red: 0.08, green: 0.14, blue: 0.32).opacity(0.65)
                 ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
         }
@@ -186,36 +185,35 @@ struct SettingsView: View {
     private var settingsHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("⚙️ Налаштування")
-                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                Text("Налаштування")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 6, height: 6)
-                        .shadow(color: .green, radius: 4)
-                    Text("SirenUA · Конфігурація")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-                }
+                Text("Параметри сповіщень та карти")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.5))
             }
             Spacer()
             HStack(spacing: 10) {
                 if adminAuthenticated {
                     Button(action: {
                         haptic(.medium)
-                        showingAdminPanel = true
+                        if adminViewMode {
+                            adminViewMode = false
+                        } else {
+                            adminViewMode = true
+                            showingAdminPanel = true
+                        }
                     }) {
                         HStack(spacing: 5) {
-                            Image(systemName: "gauge.with.needle.fill")
+                            Image(systemName: adminViewMode ? "person.fill" : "gauge.with.needle.fill")
                                 .font(.system(size: 12))
-                            Text("Консоль")
+                            Text(adminViewMode ? "Користувач" : "Консоль")
                                 .font(.system(size: 13, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Color.purple.opacity(0.3))
+                        .background(adminViewMode ? Color.cyan.opacity(0.3) : Color.purple.opacity(0.3))
                         .clipShape(Capsule())
                     }
                 }
@@ -284,31 +282,6 @@ struct SettingsView: View {
                 Task { await checkServerStatus() }
             }
         )
-    }
-
-    private var adminDashboardCard: some View {
-        SettingsCard(title: "Панель адміністратора", icon: "gauge.with.needle.fill", iconColor: .red) {
-            Text("Повний нативний моніторинг SirenUA: логи помилок, запити до Firebase, ліміти Gemini, правила самонавчання та симулятор загроз.")
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.5))
-                .lineSpacing(4)
-            
-            Button(action: {
-                haptic(.medium)
-                showingAdminPanel = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "gauge.with.needle.fill")
-                    Text("Відкрити консоль управління")
-                }
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.blue)
-                .cornerRadius(8)
-            }
-        }
     }
 
     private var aboutCard: some View {

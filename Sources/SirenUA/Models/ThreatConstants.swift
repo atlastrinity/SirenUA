@@ -23,26 +23,69 @@ public enum ThreatConstants {
     public static let officialAlarm = "official_alarm"
     public static let unknown = "unknown"
 
-    // 2. Назви українською для активних загроз
+    public static let all: [String] = [
+        shahed,
+        cruiseMissile,
+        ballistic,
+        mig31k,
+        kab,
+        tu95,
+        tu22m3,
+        su35,
+        iskander,
+        artillery,
+        zircon,
+        mlrs,
+        fpv,
+        recon,
+        reconUav,
+        officialAlarm,
+        unknown
+    ]
+
+    // 2. Назви українською для активних загроз (Display Titles)
     public static func title(for threatType: String?) -> String {
         guard let threatType = threatType?.lowercased() else { return "Повітряна тривога" }
         switch threatType {
-        case shahed: return "БпЛА «Шахед»"
+        case shahed: return "БПЛА Shahed-136"
         case cruiseMissile: return "Крилаті ракети"
         case ballistic: return "Балістична ракета"
         case mig31k: return "МіГ-31К (Кинджал)"
         case kab: return "Керовані авіабомби (КАБ)"
         case tu95: return "Ту-95МС (крилаті ракети)"
         case tu22m3: return "Ту-22М3 (ракети Х-22/Х-32)"
-        case su35, su35Alt: return "Тактична авіація (Су-34/Су-35)"
+        case su35, su35Alt: return "Су-35/Су-57 (тактична авіація)"
         case iskander: return "Іскандер-М"
-        case artillery: return "Артилерійський обстріл"
-        case zircon: return "Гіперзвукова ракета Циркон"
-        case mlrs: return "РСЗВ (Торнадо-С / Град)"
+        case artillery: return "Артилерія"
+        case zircon: return "Гіперзвукова ракета 3M22 Циркон"
+        case mlrs: return "РСЗВ (Торнадо-С / Град / Ураган)"
         case fpv: return "FPV дрон / Ланцет"
-        case recon, reconUav: return "Розвідувальний БпЛА"
+        case recon, reconUav: return "Розвідувальний БПЛА"
         case officialAlarm: return "Повітряна тривога"
         default: return "Повітряна загроза"
+        }
+    }
+
+    // 2a. Короткі назви загроз (Short Names)
+    public static func shortName(for threatType: String?) -> String {
+        guard let threatType = threatType?.lowercased() else { return "" }
+        switch threatType {
+        case shahed: return "БпЛА"
+        case cruiseMissile: return "крилата ракета"
+        case ballistic: return "балістика"
+        case mig31k: return "МіГ-31К"
+        case kab: return "КАБ"
+        case tu95: return "Ту-95МС"
+        case tu22m3: return "Ту-22М3"
+        case su35, su35Alt: return "Су-35"
+        case iskander: return "Іскандер-М"
+        case artillery: return "обстріл"
+        case zircon: return "Циркон"
+        case mlrs: return "РСЗВ"
+        case fpv: return "FPV-дрон"
+        case recon, reconUav: return "розвідник"
+        case officialAlarm: return "тривога"
+        default: return "загроза"
         }
     }
 
@@ -134,23 +177,25 @@ public enum ThreatConstants {
         }
     }
 
-    // 4. SF Symbol іконки
+    // 4. SF Symbol іконки (SFSymbol Constants)
     public static func sfSymbol(for threatType: String?) -> String {
         guard let threatType = threatType?.lowercased() else { return "exclamationmark.triangle.fill" }
         switch threatType {
-        case shahed: return "airplane"
-        case cruiseMissile: return "bolt.fill"
-        case ballistic, zircon: return "arrow.up.right"
+        case shahed: return "airplane.circle.fill"
+        case cruiseMissile: return "paperplane.fill"
+        case ballistic: return "flame.fill"
         case mig31k: return "bolt.fill"
-        case kab: return "flame.fill"
+        case kab: return "circle.circle.fill"
         case tu95: return "airplane"
         case tu22m3: return "airplane"
         case su35, su35Alt: return "airplane.departure"
-        case iskander: return "scope"
-        case artillery, mlrs: return "burst.fill"
+        case iskander: return "flame.fill"
+        case artillery: return "burst.fill"
+        case zircon: return "bolt.horizontal.fill"
+        case mlrs: return "sparkles"
         case fpv: return "viewfinder"
         case recon, reconUav: return "eye.fill"
-        case officialAlarm: return "exclamationmark.triangle.fill"
+        case officialAlarm: return "bell.fill"
         default: return "exclamationmark.triangle.fill"
         }
     }
@@ -173,7 +218,7 @@ public enum ThreatConstants {
         }
     }
 
-    // 6. Середні швидкості руху (км/год) для розрахунку дольоту
+    // 6. Середні швидкості руху (км/год) для розрахунку дольоту (Kinematics)
     public static func speedKmh(for threatType: String?) -> Double {
         guard let threatType = threatType?.lowercased() else { return 300.0 }
         switch threatType {
@@ -181,7 +226,7 @@ public enum ThreatConstants {
         case cruiseMissile: return 850.0
         case ballistic, iskander: return 5500.0
         case mig31k: return 2500.0
-        case kab: return 350.0
+        case kab: return 900.0
         case tu95: return 800.0
         case tu22m3: return 4200.0
         case su35, su35Alt: return 950.0
@@ -190,7 +235,54 @@ public enum ThreatConstants {
         case fpv: return 140.0
         case artillery: return 1200.0
         case recon, reconUav: return 120.0
+        case officialAlarm: return 0.0
         default: return 300.0
+        }
+    }
+
+    // 6b. Таймаути автозняття (TTL Seconds)
+    public static func defaultDelay(for threatType: String?, isRegex: Bool = false) -> Int {
+        guard let threatType = threatType?.lowercased() else { return 3600 }
+        switch threatType {
+        case shahed: return 10800
+        case cruiseMissile: return isRegex ? 3600 : 2700
+        case ballistic: return isRegex ? 1800 : 600
+        case mig31k: return isRegex ? 2700 : 1800
+        case kab: return isRegex ? 420 : 300
+        case tu95: return 5400
+        case tu22m3: return 3600
+        case su35, su35Alt: return isRegex ? 3600 : 2700
+        case iskander: return isRegex ? 1800 : 1200
+        case artillery: return 1800
+        case zircon: return isRegex ? 1200 : 600
+        case mlrs: return isRegex ? 1800 : 1200
+        case fpv: return 1800
+        case recon, reconUav: return 3600
+        case officialAlarm: return 3600
+        default: return 3600
+        }
+    }
+
+    // 6c. Дефолтні рядки очікуваного часу дольоту (Default ETAs)
+    public static func defaultEta(for threatType: String?, isRegex: Bool = false) -> String {
+        guard let threatType = threatType?.lowercased() else { return "~30 хв" }
+        switch threatType {
+        case shahed: return isRegex ? "+1-2 год" : "~200 хв"
+        case cruiseMissile: return isRegex ? "+15-30 хв" : "~55 хв"
+        case ballistic: return isRegex ? "~2-5 хв" : "~15 хв"
+        case mig31k: return isRegex ? "~20-40 хв" : "~40 хв"
+        case kab: return isRegex ? "~3-5 хв" : "~5 хв"
+        case tu95: return isRegex ? "~30-90 хв" : "~110 хв"
+        case tu22m3: return isRegex ? "~3-10 хв" : "~15 хв"
+        case su35, su35Alt: return isRegex ? "~5-15 хв" : "~20 хв"
+        case iskander: return isRegex ? "~2-5 хв" : "~25 хв"
+        case artillery: return isRegex ? "~0-5 хв" : "~10 хв"
+        case zircon: return isRegex ? "~1-3 хв" : "~5 хв"
+        case mlrs: return isRegex ? "~0-5 хв" : "~10 хв"
+        case fpv: return isRegex ? "~5-15 хв" : "~20 хв"
+        case recon, reconUav: return isRegex ? "~15-30 хв" : "~30 хв"
+        case officialAlarm: return "-"
+        default: return "~30 хв"
         }
     }
 

@@ -36,16 +36,7 @@ struct AlertRegionDetailView: View {
     }
     
     private func getThreatDescription(_ type: String?) -> String {
-        switch type {
-        case "shahed": return "БпЛА «Шахед»"
-        case "cruise_missile": return "Крилата ракета"
-        case "ballistic": return "Балістична ракета"
-        case "mig31k": return "МіГ-31К (Кинжал)"
-        case "kab": return "КАБ / ФАБ"
-        case "iskander": return "Іскандер-М"
-        case "tu95": return "Стратегічна авіація Ту-95"
-        default: return "Загроза обстрілу / БпЛА"
-        }
+        return ThreatConstants.title(for: type)
     }
 
     private var effectiveThreatDetail: String? {
@@ -94,16 +85,7 @@ struct AlertRegionDetailView: View {
     }
     
     private var threatTypeEmoji: String {
-        switch liveRegion.threatType {
-        case "shahed": return "🛩"
-        case "cruise_missile": return "🚀"
-        case "ballistic": return "💥"
-        case "mig31k": return "✈️"
-        case "kab": return "💣"
-        case "iskander": return "🎯"
-        case "tu95": return "✈️"
-        default: return "⚠️"
-        }
+        return ThreatConstants.emoji(for: liveRegion.threatType)
     }
 
     var body: some View {
