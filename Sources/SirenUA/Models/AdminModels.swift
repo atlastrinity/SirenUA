@@ -447,6 +447,7 @@ struct ChartColorTheme {
     static let accent = Color(red: 0.31, green: 0.62, blue: 1.00) // #4f9eff
     static let cyan = Color(red: 0.13, green: 0.83, blue: 0.93) // #22d3ee
     static let orange = Color(red: 0.98, green: 0.57, blue: 0.24) // #fb923c
+    static let purple = Color(red: 0.75, green: 0.45, blue: 1.00) // #c084fc
     static let bg = Color(red: 0.04, green: 0.05, blue: 0.08)
     static let cardBg = Color(red: 0.07, green: 0.10, blue: 0.13)
 }

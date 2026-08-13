@@ -112,31 +112,6 @@ struct SettingsView: View {
         }
     }
 
-    private func triggerScenario(_ scenario: String) {
-        guard let url = URL(string: "\(NetworkManager.serverURL)/api/threats/scenario") else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body: [String: String] = ["scenario": scenario]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        Task {
-            do {
-                let (_, response) = try await URLSession.shared.data(for: request)
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    settingsLogger.info("Successfully triggered scenario \(scenario)")
-                    // Refresh server status to update UI immediately
-                    await checkServerStatus()
-                } else {
-                    settingsLogger.error("Failed to trigger scenario: invalid response")
-                }
-            } catch {
-                settingsLogger.error("Error triggering scenario: \(error.localizedDescription)")
-            }
-        }
-    }
-
     // MARK: - Body
     var body: some View {
         ZStack {
@@ -155,7 +130,6 @@ struct SettingsView: View {
                         if adminAuthenticated {
                             diagnosticsCard
                             adminDashboardCard
-                            mockScenariosCard
                         }
                         aboutCard
                     }
@@ -335,13 +309,6 @@ struct SettingsView: View {
                 .cornerRadius(8)
             }
         }
-    }
-
-    private var mockScenariosCard: some View {
-        MockScenariosCard(onTriggerScenario: { scenario in
-            haptic(.medium)
-            triggerScenario(scenario)
-        })
     }
 
     private var aboutCard: some View {

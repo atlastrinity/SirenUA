@@ -52,6 +52,15 @@ class AdminViewModel: ObservableObject {
     @Published var simLevel = "high"
     @Published var simThreatType = "shahed"
     @Published var simDetail = "Група ударних БПЛА рухається курсом на Васильків"
+    @Published var simConfidence: Double = 85.0
+    @Published var simSpeedKmh: String = "185"
+    @Published var simHeadingDegrees: String = "280"
+    @Published var simAttackVector: String = "south_to_north"
+    @Published var isAdvancedTelemetryExpanded: Bool = false
+    @Published var isTriggeringScenario: String? = nil
+    @Published var isClearingThreats: Bool = false
+    @Published var isTriggeringLearner: Bool = false
+    @Published var serverLatencyMs: Int? = nil
     @Published var showSimSuccessMessage = false
     @Published var simSuccessText = ""
     
