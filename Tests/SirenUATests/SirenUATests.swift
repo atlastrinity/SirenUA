@@ -187,7 +187,7 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(decoded.coordinate.longitude, region.coordinate.longitude, accuracy: 0.0001)
     }
 
-    func testAlertRegionEqualityUsesIDOnly() {
+    func testAlertRegionEquality() {
         let first = AlertRegion(
             id: 1,
             name: "Київська область",
@@ -196,7 +196,15 @@ final class SirenUATests: XCTestCase {
             description: "Повітряна тривога!",
             coordinate: CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
         )
-        let second = AlertRegion(
+        let identical = AlertRegion(
+            id: 1,
+            name: "Київська область",
+            isActive: true,
+            level: 3,
+            description: "Повітряна тривога!",
+            coordinate: CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+        )
+        let different = AlertRegion(
             id: 1,
             name: "Львівська область",
             isActive: false,
@@ -205,7 +213,9 @@ final class SirenUATests: XCTestCase {
             coordinate: CLLocationCoordinate2D(latitude: 49.8397, longitude: 24.0297)
         )
 
-        XCTAssertEqual(first, second)
+        XCTAssertEqual(first, identical)
+        XCTAssertNotEqual(first, different)
+        XCTAssertEqual(first.id, different.id)
     }
 
     func testAlertRegionIconsMatchLevels() {
@@ -259,7 +269,7 @@ final class SirenUATests: XCTestCase {
 
     func testDynamicETACalculations() throws {
         // Formulate an ISO string 10 minutes ago
-        let tenMinAgo = Date().addingTimeInterval(-600)
+        let tenMinAgo = Date().addingTimeInterval(-605)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let sinceStr = formatter.string(from: tenMinAgo)
@@ -282,12 +292,12 @@ final class SirenUATests: XCTestCase {
         )
         
         XCTAssertEqual(threat.elapsedMinutes, 10)
-        XCTAssertEqual(threat.dynamicETA, "~15  хв".replacingOccurrences(of: "  ", with: " ")) // Expected remaining 15 mins (with double space normalization or direct match)
+        XCTAssertEqual(threat.dynamicETA, "до 15 хв")
     }
 
     func testDynamicDistanceCalculations() throws {
         // Formulate an ISO string 15 minutes ago
-        let fifteenMinAgo = Date().addingTimeInterval(-900)
+        let fifteenMinAgo = Date().addingTimeInterval(-905)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let sinceStr = formatter.string(from: fifteenMinAgo)

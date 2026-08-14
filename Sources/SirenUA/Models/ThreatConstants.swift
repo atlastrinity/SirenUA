@@ -265,24 +265,24 @@ public enum ThreatConstants {
 
     // 6c. Дефолтні рядки очікуваного часу дольоту (Default ETAs)
     public static func defaultEta(for threatType: String?, isRegex: Bool = false) -> String {
-        guard let threatType = threatType?.lowercased() else { return "~30 хв" }
+        guard let threatType = threatType?.lowercased() else { return "до 30 хв" }
         switch threatType {
-        case shahed: return isRegex ? "+1-2 год" : "~200 хв"
-        case cruiseMissile: return isRegex ? "+15-30 хв" : "~55 хв"
-        case ballistic: return isRegex ? "~2-5 хв" : "~15 хв"
-        case mig31k: return isRegex ? "~20-40 хв" : "~40 хв"
-        case kab: return isRegex ? "~3-5 хв" : "~5 хв"
-        case tu95: return isRegex ? "~30-90 хв" : "~110 хв"
-        case tu22m3: return isRegex ? "~3-10 хв" : "~15 хв"
-        case su35, su35Alt: return isRegex ? "~5-15 хв" : "~20 хв"
-        case iskander: return isRegex ? "~2-5 хв" : "~25 хв"
-        case artillery: return isRegex ? "~0-5 хв" : "~10 хв"
-        case zircon: return isRegex ? "~1-3 хв" : "~5 хв"
-        case mlrs: return isRegex ? "~0-5 хв" : "~10 хв"
-        case fpv: return isRegex ? "~5-15 хв" : "~20 хв"
-        case recon, reconUav: return isRegex ? "~15-30 хв" : "~30 хв"
+        case shahed: return isRegex ? "до 1.5 год" : "до 3 год"
+        case cruiseMissile: return isRegex ? "до 30 хв" : "до 55 хв"
+        case ballistic: return isRegex ? "до 5 хв" : "до 15 хв"
+        case mig31k: return isRegex ? "до 40 хв" : "до 40 хв"
+        case kab: return isRegex ? "до 5 хв" : "до 5 хв"
+        case tu95: return isRegex ? "до 1.5 год" : "до 2 год"
+        case tu22m3: return isRegex ? "до 10 хв" : "до 15 хв"
+        case su35, su35Alt: return isRegex ? "до 15 хв" : "до 20 хв"
+        case iskander: return isRegex ? "до 5 хв" : "до 25 хв"
+        case artillery: return isRegex ? "до 5 хв" : "до 10 хв"
+        case zircon: return isRegex ? "до 3 хв" : "до 5 хв"
+        case mlrs: return isRegex ? "до 5 хв" : "до 10 хв"
+        case fpv: return isRegex ? "до 15 хв" : "до 20 хв"
+        case recon, reconUav: return isRegex ? "до 30 хв" : "до 30 хв"
         case officialAlarm: return "-"
-        default: return "~30 хв"
+        default: return "до 30 хв"
         }
     }
 

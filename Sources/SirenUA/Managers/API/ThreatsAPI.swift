@@ -86,6 +86,54 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     let launch_sector_latitude: Double?
     let launch_sector_longitude: Double?
 
+    init(
+        threat_id: String,
+        level: String,
+        type: String? = nil,
+        detail: String? = nil,
+        since: String? = nil,
+        confidence: Int? = nil,
+        eta: String? = nil,
+        is_predictive: Bool? = nil,
+        is_test: Bool? = nil,
+        group_id: String? = nil,
+        origin_latitude: Double? = nil,
+        origin_longitude: Double? = nil,
+        transit_from: String? = nil,
+        last_checkpoint_latitude: Double? = nil,
+        last_checkpoint_longitude: Double? = nil,
+        carrier_type: String? = nil,
+        carrier_origin_name: String? = nil,
+        carrier_origin_latitude: Double? = nil,
+        carrier_origin_longitude: Double? = nil,
+        launch_sector_name: String? = nil,
+        launch_sector_latitude: Double? = nil,
+        launch_sector_longitude: Double? = nil
+    ) {
+        self.threat_id = threat_id
+        self.level = level
+        self.type = type
+        self.detail = detail
+        self.since = since
+        self.confidence = confidence
+        self.eta = eta
+        self.is_predictive = is_predictive
+        self.is_test = is_test
+        self.group_id = group_id
+        self.origin_latitude = origin_latitude
+        self.origin_longitude = origin_longitude
+        self.transit_from = transit_from
+        self.last_checkpoint_latitude = last_checkpoint_latitude
+        self.last_checkpoint_longitude = last_checkpoint_longitude
+        self.carrier_type = carrier_type
+        self.carrier_origin_name = carrier_origin_name
+        self.carrier_origin_latitude = carrier_origin_latitude
+        self.carrier_origin_longitude = carrier_origin_longitude
+        self.launch_sector_name = launch_sector_name
+        self.launch_sector_latitude = launch_sector_latitude
+        self.launch_sector_longitude = launch_sector_longitude
+    }
+
     var id: String { threat_id }
 
     var originCoordinate: CLLocationCoordinate2D? {
@@ -183,64 +231,66 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         let elapsed = elapsedMinutes
         let cleanEta = eta.replacingOccurrences(of: "~", with: "")
                           .replacingOccurrences(of: "+", with: "")
+                          .replacingOccurrences(of: "до", with: "")
                           .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Case 1: Compound format, e.g. "1 год 16 хв" or "1 год 45 хв"
+        // Допоміжна функція для уніфікованого форматування залишку часу ("до X хв", "до X год Y хв", "в області")
+        func formatRemaining(minutes: Int) -> String {
+            if minutes <= 0 {
+                return "в області"
+            } else if minutes < 60 {
+                return "до \(minutes) хв"
+            } else {
+                let hr = minutes / 60
+                let mn = minutes % 60
+                return mn == 0 ? "до \(hr) год" : "до \(hr) год \(mn) хв"
+            }
+        }
+
+        // Case 1: Складений формат, наприклад "1 год 16 хв" або "1 год 45 хв"
         if cleanEta.contains("год") && cleanEta.contains("хв") {
             let parts = cleanEta.components(separatedBy: "год")
             if parts.count == 2,
                let hr = Int(parts[0].trimmingCharacters(in: .whitespaces)),
                let mn = Int(parts[1].replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)) {
                 let totalMins = hr * 60 + mn
-                let remaining = totalMins - elapsed
-                if remaining <= 0 { return "в області" }
-                else if remaining < 60 { return "~\(remaining) хв" }
-                else {
-                    let rHr = remaining / 60; let rMn = remaining % 60
-                    return rMn == 0 ? "~\(rHr) год" : "~\(rHr) год \(rMn) хв"
-                }
+                return formatRemaining(minutes: totalMins - elapsed)
             }
         }
 
+        // Case 2: Хвилини (діапазони "34-38 хв", "3-5 хв" або одинарні "16 хв", "45 хв")
         if cleanEta.hasSuffix("хв") {
             let valPart = cleanEta.replacingOccurrences(of: "хв", with: "").trimmingCharacters(in: .whitespaces)
             if valPart.contains("-") {
                 let comps = valPart.components(separatedBy: "-")
                 if comps.count == 2,
-                   let minVal = Int(comps[0].trimmingCharacters(in: .whitespaces)),
                    let maxVal = Int(comps[1].trimmingCharacters(in: .whitespaces)) {
-                    let newMin = max(0, minVal - elapsed)
-                    let newMax = max(0, maxVal - elapsed)
-                    if newMax == 0 { return "в області" }
-                    else if newMin == 0 { return "~до \(newMax) хв" }
-                    else { return "~\(newMin)-\(newMax) хв" }
+                    // Уніфіковано беремо верхню безпечну межу діапазону мінус час польоту
+                    return formatRemaining(minutes: maxVal - elapsed)
                 }
             } else if let minutes = Int(valPart) {
-                let remaining = minutes - elapsed
-                if remaining <= 0 { return "в області" }
-                else if remaining < 60 { return "~\(remaining) хв" }
-                else { let hr = remaining / 60; let mn = remaining % 60; return mn == 0 ? "~\(hr) год" : "~\(hr) год \(mn) хв" }
+                return formatRemaining(minutes: minutes - elapsed)
             }
         } else if cleanEta.hasSuffix("год") {
             let valPart = cleanEta.replacingOccurrences(of: "год", with: "").trimmingCharacters(in: .whitespaces)
             if valPart.contains("-") {
                 let comps = valPart.components(separatedBy: "-")
                 if comps.count == 2,
-                   let minVal = Double(comps[0].trimmingCharacters(in: .whitespaces)),
                    let maxVal = Double(comps[1].trimmingCharacters(in: .whitespaces)) {
-                    let minMin = Int(minVal * 60); let maxMin = Int(maxVal * 60)
-                    let newMin = max(0, minMin - elapsed); let newMax = max(0, maxMin - elapsed)
-                    if newMax == 0 { return "в області" }
-                    let newMinHr = Double(newMin)/60.0; let newMaxHr = Double(newMax)/60.0
-                    return newMin == 0 ? String(format: "~до %.1f год", newMaxHr) : String(format: "~%.1f-%.1f год", newMinHr, newMaxHr)
+                    let totalMins = Int(maxVal * 60)
+                    return formatRemaining(minutes: totalMins - elapsed)
                 }
             } else if let hours = Double(valPart) {
-                let remainingMin = Int(hours * 60) - elapsed
-                if remainingMin <= 0 { return "в області" }
-                else if remainingMin < 60 { return "~до \(remainingMin) хв" }
-                else { let hr = remainingMin / 60; let mn = remainingMin % 60; return mn == 0 ? "~\(hr) год" : "~\(hr) год \(mn) хв" }
+                let totalMins = Int(hours * 60)
+                return formatRemaining(minutes: totalMins - elapsed)
             }
         }
+
+        // Fallback: якщо просто число
+        if let num = Int(cleanEta) {
+            return formatRemaining(minutes: num - elapsed)
+        }
+
         return eta
     }
 
