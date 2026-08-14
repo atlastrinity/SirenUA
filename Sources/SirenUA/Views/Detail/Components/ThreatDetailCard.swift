@@ -44,6 +44,44 @@ struct ThreatDetailCard: View {
                 }
             }
             
+            if let threat = threat {
+                if let carrierName = threat.carrier_origin_name, !carrierName.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "airplane.departure")
+                            .foregroundStyle(themeColor)
+                            .font(.system(size: 12))
+                        Text("Зліт:")
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.6))
+                        Text(carrierName)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundStyle(themeColor)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.black.opacity(0.2))
+                    .cornerRadius(8)
+                }
+
+                if let sector = threat.launch_sector_name, !sector.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "scope")
+                            .foregroundStyle(themeColor)
+                            .font(.system(size: 12))
+                        Text("Рубіж:")
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.6))
+                        Text(sector)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundStyle(themeColor)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.black.opacity(0.2))
+                    .cornerRadius(8)
+                }
+            }
+
             if !descriptionLines.isEmpty {
                 Text(descriptionLines.joined(separator: "\n"))
                     .font(.system(size: 15, weight: .medium, design: .monospaced))

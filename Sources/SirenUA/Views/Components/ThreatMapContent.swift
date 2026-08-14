@@ -127,6 +127,10 @@ struct FlyingThreatMapOverlay: MapContent {
                         targetCoordinate: alert.coordinate,
                         threatType: itemType,
                         customOrigin: itemOrigin,
+                        carrierOrigin: threatItem.carrierOriginCoordinate,
+                        launchSector: threatItem.launchSectorCoordinate,
+                        carrierOriginName: threatItem.carrier_origin_name,
+                        launchSectorName: threatItem.launch_sector_name,
                         color: itemColor,
                         isPremium: isPremium
                     )
@@ -136,6 +140,10 @@ struct FlyingThreatMapOverlay: MapContent {
                     targetCoordinate: alert.coordinate,
                     threatType: threatType,
                     customOrigin: customOrigin,
+                    carrierOrigin: alert.currentThreat?.carrierOriginCoordinate,
+                    launchSector: alert.currentThreat?.launchSectorCoordinate,
+                    carrierOriginName: alert.currentThreat?.carrier_origin_name,
+                    launchSectorName: alert.currentThreat?.launch_sector_name,
                     color: color,
                     isPremium: isPremium
                 )

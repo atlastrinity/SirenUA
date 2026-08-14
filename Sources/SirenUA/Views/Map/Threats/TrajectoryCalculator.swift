@@ -22,17 +22,26 @@ public struct TrajectoryPath {
     public let flowArrows: [TrajectoryFlowArrow]
     public let lastCheckpointCoordinate: CLLocationCoordinate2D
     public let lastCheckpointAngle: Double
+    public let carrierApproachPoints: [CLLocationCoordinate2D]?
+    public let carrierOriginName: String?
+    public let launchSectorName: String?
 
     public init(
         fullPoints: [CLLocationCoordinate2D],
         flowArrows: [TrajectoryFlowArrow],
         lastCheckpointCoordinate: CLLocationCoordinate2D,
-        lastCheckpointAngle: Double
+        lastCheckpointAngle: Double,
+        carrierApproachPoints: [CLLocationCoordinate2D]? = nil,
+        carrierOriginName: String? = nil,
+        launchSectorName: String? = nil
     ) {
         self.fullPoints = fullPoints
         self.flowArrows = flowArrows
         self.lastCheckpointCoordinate = lastCheckpointCoordinate
         self.lastCheckpointAngle = lastCheckpointAngle
+        self.carrierApproachPoints = carrierApproachPoints
+        self.carrierOriginName = carrierOriginName
+        self.launchSectorName = launchSectorName
     }
 }
 
@@ -41,7 +50,11 @@ public struct TrajectoryPath {
 public func calculateTrajectory(
     target: CLLocationCoordinate2D,
     threatType: String?,
-    customOrigin: CLLocationCoordinate2D? = nil
+    customOrigin: CLLocationCoordinate2D? = nil,
+    carrierOrigin: CLLocationCoordinate2D? = nil,
+    launchSector: CLLocationCoordinate2D? = nil,
+    carrierOriginName: String? = nil,
+    launchSectorName: String? = nil
 ) -> TrajectoryPath {
     let curvature: Double
     let cycles: Double
@@ -230,10 +243,40 @@ public func calculateTrajectory(
     let angleRad = atan2(deltaLon, deltaLat)
     let angleDeg = angleRad * 180.0 / .pi
 
+    // Calculate Carrier Ingress Approach (Airbase -> Launch Sector)
+    var carrierApproachPoints: [CLLocationCoordinate2D]? = nil
+    if let carrier = carrierOrigin {
+        var approach: [CLLocationCoordinate2D] = []
+        let appSteps = 24
+        let appMidLat = (carrier.latitude + startLat) / 2.0
+        let appMidLon = (carrier.longitude + startLon) / 2.0
+        let dLatApp = (startLat - carrier.latitude) * 111.0
+        let dLonApp = (startLon - carrier.longitude) * 111.0 * cos(carrier.latitude * .pi / 180.0)
+        let appDist = max(0.1, sqrt(dLatApp * dLatApp + dLonApp * dLonApp))
+        let appCurvatureScale = min(0.25, max(0.05, appDist * 0.0003))
+        
+        let appNormalLat = -(startLon - carrier.longitude) / max(0.01, sqrt(pow(startLat - carrier.latitude, 2) + pow(startLon - carrier.longitude, 2)))
+        let appNormalLon = (startLat - carrier.latitude) / max(0.01, sqrt(pow(startLat - carrier.latitude, 2) + pow(startLon - carrier.longitude, 2)))
+        let appControlLat = appMidLat + appNormalLat * appCurvatureScale
+        let appControlLon = appMidLon + appNormalLon * appCurvatureScale
+
+        for i in 0...appSteps {
+            let t = Double(i) / Double(appSteps)
+            let invT = 1.0 - t
+            let lat = invT * invT * carrier.latitude + 2.0 * invT * t * appControlLat + t * t * startLat
+            let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startLon
+            approach.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+        }
+        carrierApproachPoints = approach
+    }
+
     return TrajectoryPath(
         fullPoints: fullPoints,
         flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
-        lastCheckpointAngle: angleDeg
+        lastCheckpointAngle: angleDeg,
+        carrierApproachPoints: carrierApproachPoints,
+        carrierOriginName: carrierOriginName,
+        launchSectorName: launchSectorName
     )
 }

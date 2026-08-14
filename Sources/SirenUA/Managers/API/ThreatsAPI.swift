@@ -77,16 +77,38 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     let last_checkpoint_latitude: Double?
     let last_checkpoint_longitude: Double?
 
+    // MARK: - Tactical Aviation Profile
+    let carrier_type: String?
+    let carrier_origin_name: String?
+    let carrier_origin_latitude: Double?
+    let carrier_origin_longitude: Double?
+    let launch_sector_name: String?
+    let launch_sector_latitude: Double?
+    let launch_sector_longitude: Double?
+
     var id: String { threat_id }
 
     var originCoordinate: CLLocationCoordinate2D? {
         if let lat = origin_latitude, let lon = origin_longitude {
             return CLLocationCoordinate2D(latitude: lat, longitude: lon)
         }
+        if let lat = launch_sector_latitude, let lon = launch_sector_longitude {
+            return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        }
         if let transit = transit_from, let coord = RegionRegistry.regionalCoordinates[transit] {
             return coord
         }
         return nil
+    }
+
+    var carrierOriginCoordinate: CLLocationCoordinate2D? {
+        guard let lat = carrier_origin_latitude, let lon = carrier_origin_longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+
+    var launchSectorCoordinate: CLLocationCoordinate2D? {
+        guard let lat = launch_sector_latitude, let lon = launch_sector_longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
     var lastCheckpointCoordinate: CLLocationCoordinate2D? {
