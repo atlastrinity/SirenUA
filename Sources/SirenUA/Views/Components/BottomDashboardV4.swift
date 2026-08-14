@@ -145,8 +145,8 @@ struct BottomDashboardV4: View {
                     .background(
                         LinearGradient(
                             colors: [
-                                Color.cyan.opacity(0.35),
-                                Color.blue.opacity(0.25)
+                                Color.cyan.opacity(0.28),
+                                Color.blue.opacity(0.18)
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -155,7 +155,7 @@ struct BottomDashboardV4: View {
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .stroke(Color.cyan.opacity(0.6), lineWidth: 1)
+                            .stroke(Color.cyan.opacity(0.45), lineWidth: 0.8)
                     )
                 }
                 .disabled(isSearchingShelter)
@@ -164,17 +164,15 @@ struct BottomDashboardV4: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
         .background(
-            ZStack {
-                Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.40)
-                Rectangle().fill(.ultraThinMaterial)
-            }
+            Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.25)
         )
+        .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.25), Color.white.opacity(0.08)],
+                        colors: [Color.white.opacity(0.20), Color.white.opacity(0.06)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -182,7 +180,7 @@ struct BottomDashboardV4: View {
                 )
         )
         .padding(.horizontal, 10)
-        .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 3)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 isPulsating = true

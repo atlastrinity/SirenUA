@@ -16,6 +16,23 @@ struct AIRadarHeroCardView: View {
     var onOpenRegionPicker: (() -> Void)? = nil
     var onCardTap: (() -> Void)? = nil
     
+    @State private var isHighlighted: Bool = false
+    @State private var highlightTask: Task<Void, Never>? = nil
+    
+    private func triggerHighlight() {
+        highlightTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isHighlighted = true
+        }
+        highlightTask = Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 секунди
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.6)) {
+                isHighlighted = false
+            }
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 8) {
             // Top Bar: Brand, Logo & Interactive Region Selection Dropdown Button
@@ -54,16 +71,17 @@ struct AIRadarHeroCardView: View {
                     .background(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.06, green: 0.16, blue: 0.35).opacity(0.85),
-                                Color(red: 0.02, green: 0.08, blue: 0.22).opacity(0.90)
+                                Color(red: 0.06, green: 0.16, blue: 0.35).opacity(isHighlighted ? 0.85 : 0.20),
+                                Color(red: 0.02, green: 0.08, blue: 0.22).opacity(isHighlighted ? 0.90 : 0.25)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
+                    .background(.ultraThinMaterial)
                     .clipShape(Capsule())
                     .overlay(
-                        Capsule().stroke(isTrackedOnly ? Color.cyan.opacity(0.6) : Color.yellow.opacity(0.5), lineWidth: 1)
+                        Capsule().stroke(isTrackedOnly ? Color.cyan.opacity(isHighlighted ? 0.7 : 0.35) : Color.yellow.opacity(isHighlighted ? 0.6 : 0.3), lineWidth: isHighlighted ? 1.0 : 0.8)
                     )
                 }
             }
@@ -150,8 +168,8 @@ struct AIRadarHeroCardView: View {
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.06, green: 0.16, blue: 0.35).opacity(0.92),
-                            Color(red: 0.02, green: 0.08, blue: 0.22).opacity(0.96)
+                            Color(red: 0.06, green: 0.16, blue: 0.35).opacity(isHighlighted ? 0.92 : 0.18),
+                            Color(red: 0.02, green: 0.08, blue: 0.22).opacity(isHighlighted ? 0.96 : 0.22)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -163,17 +181,31 @@ struct AIRadarHeroCardView: View {
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(
                             LinearGradient(
-                                colors: [Color.cyan.opacity(0.6), Color.blue.opacity(0.3)],
+                                colors: isHighlighted ?
+                                    [Color.cyan.opacity(0.8), Color.blue.opacity(0.5)] :
+                                    [Color.cyan.opacity(0.28), Color.blue.opacity(0.15)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 1.2
+                            lineWidth: isHighlighted ? 1.5 : 0.8
                         )
                 )
-                .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
+                .shadow(color: isHighlighted ? Color.cyan.opacity(0.4) : Color.black.opacity(0.15), radius: isHighlighted ? 12 : 6, x: 0, y: 3)
             }
             .buttonStyle(PlainButtonStyle())
             .padding(.horizontal, 16)
+        }
+        .onChange(of: threatDetail) {
+            triggerHighlight()
+        }
+        .onChange(of: activeThreatCount) {
+            triggerHighlight()
+        }
+        .onChange(of: isAlarmActive) {
+            triggerHighlight()
+        }
+        .onChange(of: threatType) {
+            triggerHighlight()
         }
     }
 }

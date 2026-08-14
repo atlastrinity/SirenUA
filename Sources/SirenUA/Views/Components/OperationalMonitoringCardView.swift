@@ -81,8 +81,8 @@ struct OperationalMonitoringCardView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color(red: 0.06, green: 0.16, blue: 0.35).opacity(0.92),
-                    Color(red: 0.02, green: 0.08, blue: 0.22).opacity(0.96)
+                    Color(red: 0.06, green: 0.16, blue: 0.35).opacity(0.30),
+                    Color(red: 0.02, green: 0.08, blue: 0.22).opacity(0.35)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -94,14 +94,14 @@ struct OperationalMonitoringCardView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
                     LinearGradient(
-                        colors: [.cyan.opacity(0.5), .blue.opacity(0.25)],
+                        colors: [.cyan.opacity(0.35), .blue.opacity(0.18)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1
+                    lineWidth: 0.8
                 )
         )
-        .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 5)
+        .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 16)
     }
 }
