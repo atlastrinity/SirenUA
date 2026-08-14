@@ -117,14 +117,29 @@ struct FlyingThreatMapOverlay: MapContent {
             let color = alert.color
             let customOrigin = alert.currentThreat?.originCoordinate
 
-            // MARK: - Trajectory flight vector overlay (gated by Premium)
-            PremiumTrajectoryOverlay(
-                targetCoordinate: alert.coordinate,
-                threatType: threatType,
-                customOrigin: customOrigin,
-                color: color,
-                isPremium: isPremium
-            )
+            // MARK: - Trajectory flight vector overlay for ALL active threats (gated by Premium)
+            if !alert.activeThreats.isEmpty {
+                ForEach(alert.activeThreats) { threatItem in
+                    let itemType = threatItem.type ?? alert.threatType
+                    let itemOrigin = threatItem.originCoordinate
+                    let itemColor = threatItem.threatColor
+                    PremiumTrajectoryOverlay(
+                        targetCoordinate: alert.coordinate,
+                        threatType: itemType,
+                        customOrigin: itemOrigin,
+                        color: itemColor,
+                        isPremium: isPremium
+                    )
+                }
+            } else {
+                PremiumTrajectoryOverlay(
+                    targetCoordinate: alert.coordinate,
+                    threatType: threatType,
+                    customOrigin: customOrigin,
+                    color: color,
+                    isPremium: isPremium
+                )
+            }
 
             // Target Region Destination Flying Threat Badge
             Annotation(coordinate: alert.coordinate) {
