@@ -125,14 +125,18 @@ public func calculateTrajectory(
         // Otherwise, extrapolate origin back to state border / sea entry corridor
         switch threatType {
         case "shahed":
-            if target.latitude > 49.5 {
-                // Northern / Eastern target (Kharkiv, Sumy, Kyiv, Chernihiv, Poltava): project to Belgorod / Kursk border
+            if target.latitude < 47.9 {
+                // Southern targets (Odesa, Mykolaiv, Kherson, Zaporizhzhia): project to Black Sea / Crimea border
+                startLat = min(45.8, target.latitude - 1.2)
+                startLon = max(30.5, target.longitude + 1.2)
+            } else if target.longitude > 34.0 {
+                // Eastern targets (Kharkiv, Sumy, Poltava, Dnipro, Luhansk, Donetsk): project to Belgorod / Kursk border
                 startLat = max(50.4, target.latitude + 0.6)
                 startLon = max(36.4, target.longitude + 0.8)
             } else {
-                // Southern / Western target (Odesa, Mykolaiv, Zaporizhzhia): project to Black Sea / Crimea border
-                startLat = min(45.8, target.latitude - 1.2)
-                startLon = max(30.5, target.longitude + 1.2)
+                // Central / Northern / Western targets (Kirovohrad, Cherkasy, Kyiv, Vinnytsia, Zhytomyr): project from East / North-East ingress
+                startLat = target.latitude + 0.8
+                startLon = target.longitude + 1.8
             }
         case "cruise_missile", "tu95":
             // Cruise missile / Tu-95: project to Caspian Sea / East border

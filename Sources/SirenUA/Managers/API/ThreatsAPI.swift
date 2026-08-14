@@ -72,6 +72,7 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     let group_id: String?
     let origin_latitude: Double?
     let origin_longitude: Double?
+    let transit_from: String?
 
     let last_checkpoint_latitude: Double?
     let last_checkpoint_longitude: Double?
@@ -79,8 +80,13 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     var id: String { threat_id }
 
     var originCoordinate: CLLocationCoordinate2D? {
-        guard let lat = origin_latitude, let lon = origin_longitude else { return nil }
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        if let lat = origin_latitude, let lon = origin_longitude {
+            return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        }
+        if let transit = transit_from, let coord = RegionRegistry.regionalCoordinates[transit] {
+            return coord
+        }
+        return nil
     }
 
     var lastCheckpointCoordinate: CLLocationCoordinate2D? {
