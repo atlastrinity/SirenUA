@@ -91,6 +91,9 @@ struct AdminDashboardView: View {
                 await viewModel.loadRegions()
                 await viewModel.refreshAllData()
             }
+            .onChange(of: selectedTab) { _, newTab in
+                Task { await viewModel.refreshCurrentTab(selectedTab: newTab) }
+            }
         }
     }
     
