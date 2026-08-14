@@ -109,13 +109,25 @@ class AdminViewModel: ObservableObject {
     
     // MARK: - Computeds
     
+    func localDateString(from utcTimestamp: String?) -> String {
+        guard let ts = utcTimestamp, ts.count >= 10 else { return "Невідома дата" }
+        let cleanTs = ts.replacingOccurrences(of: "T", with: " ")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        if let date = formatter.date(from: String(cleanTs.prefix(19))) {
+            let localFormatter = DateFormatter()
+            localFormatter.dateFormat = "yyyy-MM-dd"
+            localFormatter.timeZone = TimeZone(identifier: "Europe/Kiev") ?? TimeZone.current
+            return localFormatter.string(from: date)
+        }
+        return String(ts.prefix(10))
+    }
+
     var groupedCorrelationEvents: [(String, [AdminChronologyV2Entry])] {
         guard let events = correlationV2Data?.events else { return [] }
         let grouped = Dictionary(grouping: events) { ev in
-            if let ts = ev.ai_timestamp, ts.count >= 10 {
-                return String(ts.prefix(10))
-            }
-            return "Невідома дата"
+            localDateString(from: ev.ai_timestamp)
         }
         return grouped.sorted { $0.key > $1.key }
     }
@@ -123,10 +135,7 @@ class AdminViewModel: ObservableObject {
     var groupedChronologyEvents: [(String, [AdminChronologyEntry])] {
         guard let events = chronologyData?.events else { return [] }
         let grouped = Dictionary(grouping: events) { ev in
-            if let ts = ev.threat_timestamp, ts.count >= 10 {
-                return String(ts.prefix(10))
-            }
-            return "Невідома дата"
+            localDateString(from: ev.threat_timestamp)
         }
         return grouped.sorted { $0.key > $1.key }
     }
