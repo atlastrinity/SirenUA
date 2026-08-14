@@ -91,6 +91,8 @@ extension NotificationManager {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
+        let notificationDate = response.notification.date
+        let ageSeconds = Date().timeIntervalSince(notificationDate)
 
         var regionName: String? = nil
         if let reg = userInfo["region"] as? String {
@@ -104,12 +106,26 @@ extension NotificationManager {
         }
 
         DispatchQueue.main.async {
-            // Instantly notify AlertViewModelV3 to fetch authoritative state and clear any finished alerts
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ThreatDataUpdated"),
-                object: nil,
-                userInfo: userInfo
-            )
+            // Only apply instant in-memory payload if notification is fresh (less than 3 minutes old).
+            // If the user tapped an old notification (e.g. from 2 hours ago), passing stale threatLevel
+            // causes UI to flash a non-existent threat before server fetch finishes.
+            if ageSeconds < 180 {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("ThreatDataUpdated"),
+                    object: nil,
+                    userInfo: userInfo
+                )
+            } else {
+                // For stale notifications, trigger debounced/direct authoritative fetch without corrupting memory
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("ThreatDataUpdated"),
+                    object: nil,
+                    userInfo: [
+                        "is_stale_notification": true,
+                        "region": regionName ?? ""
+                    ]
+                )
+            }
 
             if let regionName = regionName, !regionName.isEmpty {
                 NotificationManager.shared.pendingTappedRegion = regionName

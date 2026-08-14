@@ -4,7 +4,19 @@ import SwiftUI
 
 struct AlertRegion: Identifiable, Codable, Equatable {
     static func == (lhs: AlertRegion, rhs: AlertRegion) -> Bool {
-        return lhs.id == rhs.id
+        return lhs.id == rhs.id &&
+               lhs.name == rhs.name &&
+               lhs.isActive == rhs.isActive &&
+               lhs.level == rhs.level &&
+               lhs.description == rhs.description &&
+               lhs.threatLevel == rhs.threatLevel &&
+               lhs.threatType == rhs.threatType &&
+               lhs.threatDetail == rhs.threatDetail &&
+               lhs.threatConfidence == rhs.threatConfidence &&
+               lhs.threatETA == rhs.threatETA &&
+               lhs.isThreatPredictive == rhs.isThreatPredictive &&
+               lhs.activeThreats == rhs.activeThreats &&
+               lhs.selectedThreatIndex == rhs.selectedThreatIndex
     }
     let id: Int
     let name: String

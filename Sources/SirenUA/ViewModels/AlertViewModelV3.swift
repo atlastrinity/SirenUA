@@ -165,6 +165,7 @@ final class AlertViewModelV3: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 if let userInfo = notification.userInfo {
+                    let isStale = (userInfo["is_stale_notification"] as? Bool) ?? false
                     let regionName = (userInfo["region"] as? String)
                                   ?? (userInfo["regionName"] as? String)
                                   ?? ""
@@ -179,7 +180,7 @@ final class AlertViewModelV3: ObservableObject {
 
                     let threatType = (userInfo["threat_type"] as? String) ?? ""
 
-                    if !regionName.isEmpty {
+                    if !regionName.isEmpty && !isStale {
                         vmLogger.info("FCM push received for \(regionName) (level: \(level), threat_type: \(threatType), isOfficial: \(isOfficialAlarmVal), isClear: \(isClear)) — applying instantly")
 
                         if let index = self.alerts.firstIndex(where: { $0.name == regionName }) {
