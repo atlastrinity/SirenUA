@@ -31,11 +31,13 @@ struct ShelterItem: Codable, Identifiable, Hashable {
     /// Human-readable type description in Ukrainian
     var typeDescription: String {
         switch type {
-        case "bomb_shelter": return "Бомбосховище"
-        case "bunker":       return "Бункер"
-        case "metro":        return "Станція метро"
-        case "underground":  return "Підземний перехід"
-        default:             return "Укриття"
+        case "bomb_shelter":         return "Бомбосховище"
+        case "underground_parking":  return "Підземний паркінг"
+        case "metro":                return "Станція метро"
+        case "bunker":               return "Бункер"
+        case "radiation_shelter":    return "Протирадіаційне укриття"
+        case "underground":          return "Підземне укриття"
+        default:                     return "Укриття цивільного захисту"
         }
     }
 
@@ -51,10 +53,12 @@ struct ShelterItem: Codable, Identifiable, Hashable {
     /// Icon name for this shelter type
     var iconName: String {
         switch type {
-        case "metro":        return "tram.fill"
-        case "underground":  return "arrow.down.to.line"
-        case "bunker":       return "shield.checkered"
-        default:             return "figure.walk.arrival"
+        case "metro":                return "tram.fill"
+        case "underground_parking":  return "parkingsign.circle.fill"
+        case "bunker":               return "shield.checkered"
+        case "radiation_shelter":    return "shield.fill"
+        case "underground":          return "arrow.down.to.line"
+        default:                     return "shield.fill"
         }
     }
 

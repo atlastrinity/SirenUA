@@ -525,4 +525,123 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(premiumResult.count, 1)
         XCTAssertEqual(premiumResult.first?.nameUK, "Київська область")
     }
+
+    func testShelterItemDecodingAndTypeDescriptions() throws {
+        let json = """
+        {
+            "count": 4,
+            "radius_m": 2000,
+            "total_in_db": 4,
+            "shelters": [
+                {
+                    "id": "s_1",
+                    "name": "Бомбосховище №1",
+                    "address": "вул. Хрещатик 1",
+                    "lat": 50.4501,
+                    "lon": 30.5234,
+                    "distance_m": 350.0,
+                    "type": "bomb_shelter",
+                    "capacity": 500,
+                    "accessible": true,
+                    "source": "osm"
+                },
+                {
+                    "id": "s_2",
+                    "name": "Підземний паркінг",
+                    "address": "пл. Спортивна 1",
+                    "lat": 50.4385,
+                    "lon": 30.5230,
+                    "distance_m": 1200.0,
+                    "type": "underground_parking",
+                    "capacity": 800,
+                    "accessible": true,
+                    "source": "osm"
+                },
+                {
+                    "id": "s_3",
+                    "name": "Станція метро Майдан",
+                    "address": "Майдан Незалежності",
+                    "lat": 50.4505,
+                    "lon": 30.5230,
+                    "distance_m": 450.0,
+                    "type": "metro",
+                    "capacity": 3000,
+                    "accessible": true,
+                    "source": "osm"
+                },
+                {
+                    "id": "s_4",
+                    "name": "Бункер цивільного захисту",
+                    "address": "вул. Банкова",
+                    "lat": 50.4460,
+                    "lon": 30.5280,
+                    "distance_m": 850.0,
+                    "type": "bunker",
+                    "capacity": 200,
+                    "accessible": false,
+                    "source": "osm"
+                }
+            ]
+        }
+        """
+
+        let response = try JSONDecoder().decode(ShelterResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(response.count, 4)
+        XCTAssertEqual(response.shelters.count, 4)
+
+        let s1 = response.shelters[0]
+        XCTAssertEqual(s1.typeDescription, "Бомбосховище")
+        XCTAssertEqual(s1.distanceText, "350 м")
+        XCTAssertEqual(s1.iconName, "shield.fill")
+
+        let s2 = response.shelters[1]
+        XCTAssertEqual(s2.typeDescription, "Підземний паркінг")
+        XCTAssertEqual(s2.distanceText, "1.2 км")
+        XCTAssertEqual(s2.iconName, "parkingsign.circle.fill")
+
+        let s3 = response.shelters[2]
+        XCTAssertEqual(s3.typeDescription, "Станція метро")
+        XCTAssertEqual(s3.iconName, "tram.fill")
+
+        let s4 = response.shelters[3]
+        XCTAssertEqual(s4.typeDescription, "Бункер")
+        XCTAssertEqual(s4.iconName, "shield.checkered")
+    }
+
+    func testShelterKeywordsExclusionFilterLogic() {
+        let excludedKeywords = [
+            "дощ", "зупинка", "навіс", "альтанка", "павільйон", "тент",
+            "палатка", "павіліон", "пляж", "кафе", "ресторан", "маф", "кіоск", "мангал",
+            "rain", "bus stop", "gazebo", "awning", "tent", "transit", "stop", "platform"
+        ]
+
+        let testNames: [(name: String, shouldExclude: Bool)] = [
+            ("Зупинка автобуса №24", true),
+            ("Навіс від дощу", true),
+            ("Альтанка в парку", true),
+            ("Кафе біля пляжу", true),
+            ("Бомбосховище №14", false),
+            ("Підземний паркінг ТРЦ", false),
+            ("Станція метро Хрещатик", false),
+            ("Протирадіаційне укриття", false),
+            ("Бункер цивільного захисту", false)
+        ]
+
+        for test in testNames {
+            let nameLower = test.name.lowercased()
+            let isUndergroundParking = nameLower.contains("паркінг") || nameLower.contains("парковка")
+            let isSubway = nameLower.contains("метро") || nameLower.contains("subway")
+            
+            var isExcluded = false
+            if !isUndergroundParking && !isSubway {
+                isExcluded = excludedKeywords.contains { nameLower.contains($0) }
+            }
+
+            XCTAssertEqual(
+                isExcluded,
+                test.shouldExclude,
+                "Failed exclusion check for '\(test.name)': expected \(test.shouldExclude), got \(isExcluded)"
+            )
+        }
+    }
 }

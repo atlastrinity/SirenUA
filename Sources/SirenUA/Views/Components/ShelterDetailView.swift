@@ -1,5 +1,8 @@
 import SwiftUI
 import MapKit
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct ShelterDetailView: View {
     let shelter: MKMapItem
@@ -8,6 +11,19 @@ struct ShelterDetailView: View {
     var routeErrorMessage: String?
     let onRouteRequested: () -> Void
     let onStartNavigation: () -> Void
+
+    private var shelterIcon: String {
+        let nameLower = (shelter.name ?? "").lowercased()
+        if nameLower.contains("метро") || nameLower.contains("subway") {
+            return "tram.fill"
+        } else if nameLower.contains("паркінг") || nameLower.contains("парковка") {
+            return "parkingsign.circle.fill"
+        } else if nameLower.contains("бункер") {
+            return "shield.checkered"
+        } else {
+            return "shield.fill"
+        }
+    }
 
     private var distanceText: String? {
         guard let route else { return nil }
@@ -33,34 +49,41 @@ struct ShelterDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Top drag handle
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 40, height: 5)
+                .fill(Color.white.opacity(0.35))
+                .frame(width: 44, height: 5)
                 .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-                .padding(.bottom, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 18)
 
             // Header
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "figure.walk.arrival")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.blue)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.cyan.opacity(0.25), Color.blue.opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 52, height: 52)
+                        .overlay(Circle().stroke(Color.cyan.opacity(0.35), lineWidth: 1))
+                    Image(systemName: shelterIcon)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.cyan)
                 }
-                .shadow(color: Color.blue.opacity(0.3), radius: 8)
+                .shadow(color: Color.cyan.opacity(0.35), radius: 10)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(shelter.name ?? "Невідоме укриття")
-                        .font(.system(size: 17, weight: .bold))
+                    Text(shelter.name ?? "Укриття цивільного захисту")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(2)
 
                     if let address = shelter.placemark.title {
                         Text(address)
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.5))
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.6))
                             .lineLimit(2)
                     }
                 }
@@ -69,97 +92,115 @@ struct ShelterDetailView: View {
 
             // Route info / error
             if let dist = distanceText, let time = timeText {
-                HStack(spacing: 16) {
-                    routeStatBadge(icon: "ruler", value: dist, color: .blue)
-                    routeStatBadge(icon: "clock", value: time, color: .green)
+                HStack(spacing: 14) {
+                    routeStatBadge(icon: "ruler", value: dist, color: .cyan)
+                    routeStatBadge(icon: "clock.fill", value: time, color: .green)
                     Spacer()
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 14)
+                .padding(.top, 16)
             } else if let error = routeErrorMessage {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
-                        .font(.system(size: 13))
+                        .font(.system(size: 14))
                     Text(error)
-                        .font(.system(size: 13))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.orange)
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 12)
+                .padding(.top, 14)
             }
 
             // Action buttons
             HStack(spacing: 12) {
                 if route == nil {
-                    Button(action: onRouteRequested) {
+                    Button(action: {
+                        #if os(iOS)
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        #endif
+                        onRouteRequested()
+                    }) {
                         HStack(spacing: 8) {
                             if isCalculatingRoute {
-                                ProgressView().tint(.white).scaleEffect(0.8)
+                                ProgressView().tint(.white).scaleEffect(0.85)
                             } else {
                                 Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 15, weight: .bold))
                             }
                             Text(isCalculatingRoute ? "Обчислення..." : "Побудувати маршрут")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
+                        .padding(.vertical, 16)
                         .background(
                             LinearGradient(
-                                colors: [Color(red: 0.20, green: 0.52, blue: 0.98), Color(red: 0.45, green: 0.30, blue: 0.92)],
+                                colors: [Color(red: 0.10, green: 0.55, blue: 0.98), Color(red: 0.35, green: 0.25, blue: 0.90)],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
                         .clipShape(Capsule())
-                        .shadow(color: Color.blue.opacity(0.35), radius: 10, x: 0, y: 5)
+                        .overlay(
+                            Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1)
+                        )
+                        .shadow(color: Color.blue.opacity(0.4), radius: 12, x: 0, y: 5)
                     }
                     .disabled(isCalculatingRoute)
                 } else {
-                    Button(action: onStartNavigation) {
+                    Button(action: {
+                        #if os(iOS)
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        #endif
+                        onStartNavigation()
+                    }) {
                         HStack(spacing: 8) {
                             Image(systemName: "location.fill")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("Почати навігацію")
                                 .font(.system(size: 15, weight: .bold))
+                            Text("Почати навігацію")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
+                        .padding(.vertical, 16)
                         .background(
                             LinearGradient(
-                                colors: [Color(red: 0.18, green: 0.80, blue: 0.55), Color(red: 0.10, green: 0.65, blue: 0.40)],
+                                colors: [Color(red: 0.15, green: 0.85, blue: 0.55), Color(red: 0.08, green: 0.65, blue: 0.40)],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
                         .clipShape(Capsule())
-                        .shadow(color: Color.green.opacity(0.35), radius: 10, x: 0, y: 5)
+                        .overlay(
+                            Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1)
+                        )
+                        .shadow(color: Color.green.opacity(0.4), radius: 12, x: 0, y: 5)
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
+            .padding(.horizontal, 22)
+            .padding(.top, 18)
+            .padding(.bottom, 26)
         }
         .background(Color.clear)
     }
 
     private func routeStatBadge(icon: String, value: String, color: Color) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(color.opacity(0.12))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(color.opacity(0.16))
         .clipShape(Capsule())
-        .overlay(Capsule().stroke(color.opacity(0.2), lineWidth: 1))
+        .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 1))
     }
 }

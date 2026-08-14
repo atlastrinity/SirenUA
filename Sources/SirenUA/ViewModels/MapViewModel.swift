@@ -193,14 +193,15 @@ final class MapViewModel: ObservableObject {
                 return
             }
 
-            // 2. Priority 2: Fallback to Apple MKLocalSearch (Civil defense bomb shelters & subway stations only)
-            mapVMLogger.info("Falling back to MKLocalSearch for civil defense bomb shelters...")
+            // 2. Priority 2: Fallback to Apple MKLocalSearch (Civil defense bomb shelters, subway stations & underground parkings only)
+            mapVMLogger.info("Falling back to MKLocalSearch for civil defense bomb shelters & underground parkings...")
             let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: maxSearchRadiusMeters, longitudinalMeters: maxSearchRadiusMeters)
 
             // Strictly target civil defense bomb shelters, subway stations & underground parkings (excluding rain shelters/bus stops)
             let queries = [
                 "бомбосховище", "укриття цивільного захисту", "станція метро",
-                "підземний паркінг", "протирадіаційне укриття", "підземне укриття"
+                "підземний паркінг", "протирадіаційне укриття", "підземне сховище",
+                "захисна споруда цивільного захисту"
             ]
 
             var allItems: [MKMapItem] = []
@@ -228,10 +229,10 @@ final class MapViewModel: ObservableObject {
                 }
             }
 
-            // Exclude rain shelters, bus stops, gazebo awnings, public transport platforms
+            // Exclude rain shelters, bus stops, gazebo awnings, public transport platforms, cafes
             let excludedKeywords = [
                 "дощ", "зупинка", "навіс", "альтанка", "павільйон", "тент",
-                "палатка", "павіліон", "сквер", "пляж", "кафе", "ресторан", "маф",
+                "палатка", "павіліон", "пляж", "кафе", "ресторан", "маф", "кіоск", "мангал",
                 "rain", "bus stop", "gazebo", "awning", "tent", "transit", "stop", "platform"
             ]
             
@@ -239,15 +240,22 @@ final class MapViewModel: ObservableObject {
             for item in allItems {
                 let nameLower = (item.name ?? "").lowercased()
 
-                // Filter out public transport stops, parks, and beaches
+                // Filter out public transport stops, parks, food establishments and beaches
                 if let category = item.pointOfInterestCategory {
-                    if category == .publicTransport || category == .park || category == .beach {
+                    if category == .publicTransport || category == .park || category == .beach ||
+                       category == .restaurant || category == .cafe || category == .gasStation ||
+                       category == .restroom || category == .nightlife || category == .campground {
                         continue
                     }
                 }
 
-                let isRainShelter = excludedKeywords.contains { nameLower.contains($0) }
-                if isRainShelter { continue }
+                let isUndergroundParking = nameLower.contains("паркінг") || nameLower.contains("парковка")
+                let isSubway = nameLower.contains("метро") || nameLower.contains("subway")
+                
+                if !isUndergroundParking && !isSubway {
+                    let isRainShelter = excludedKeywords.contains { nameLower.contains($0) }
+                    if isRainShelter { continue }
+                }
 
                 let coord = item.placemark.coordinate
                 let isDuplicate = uniqueItems.contains { existing in

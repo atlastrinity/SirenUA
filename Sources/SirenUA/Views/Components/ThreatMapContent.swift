@@ -79,8 +79,9 @@ struct ThreatMapContent: MapContent {
 
         // Nearby shelters markers
         ForEach(allFoundShelters, id: \.self) { shelter in
-            Marker(shelter.name ?? "Укриття", systemImage: "figure.walk.arrival", coordinate: shelter.placemark.coordinate)
-                .tint(selectedShelter == shelter ? .green : .blue)
+            let shelterIcon = shelterIconName(for: shelter.name ?? "")
+            Marker(shelter.name ?? "Укриття", systemImage: shelterIcon, coordinate: shelter.placemark.coordinate)
+                .tint(selectedShelter == shelter ? .green : .cyan)
                 .tag(shelter)
         }
         
@@ -88,6 +89,19 @@ struct ThreatMapContent: MapContent {
         if let route = route {
             MapPolyline(route)
                 .stroke(.blue, lineWidth: 5)
+        }
+    }
+
+    private func shelterIconName(for name: String) -> String {
+        let nameLower = name.lowercased()
+        if nameLower.contains("метро") || nameLower.contains("subway") {
+            return "tram.fill"
+        } else if nameLower.contains("паркінг") || nameLower.contains("парковка") {
+            return "parkingsign.circle.fill"
+        } else if nameLower.contains("бункер") {
+            return "shield.checkered"
+        } else {
+            return "shield.fill"
         }
     }
 
