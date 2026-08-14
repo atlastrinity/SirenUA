@@ -14,6 +14,7 @@ struct PendingNotification {
     let interruptionLevel: UNNotificationInterruptionLevel
     let relevanceScore: Double
     let regionName: String
+    let eventType: EventType
 }
 
 // MARK: - NotificationManager
@@ -33,6 +34,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     /// Unified 15s throttle — aligned with NSE to avoid sound conflicts.
     var lastPlayedTime: Date?
     static let soundThrottle: TimeInterval = 15.0
+
+    /// Registry of recently delivered/enqueued notifications to prevent local/remote duplicates (15s window)
+    private var recentlyNotifiedEvents: [String: Date] = [:]
+    static let duplicateThrottleWindow: TimeInterval = 15.0
 
     /// Task for managing topic synchronization
     var syncTask: Task<Void, Never>? = nil
@@ -83,9 +88,25 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         }
     }
 
+    // MARK: - Deduplication Registry
+
+    func recordRecentNotification(regionName: String, eventType: String, date: Date = Date()) {
+        let key = "\(regionName)_\(eventType)"
+        recentlyNotifiedEvents[key] = date
+    }
+
+    func wasRecentlyNotified(regionName: String, eventType: String, now: Date = Date()) -> Bool {
+        let key = "\(regionName)_\(eventType)"
+        if let last = recentlyNotifiedEvents[key], now.timeIntervalSince(last) < Self.duplicateThrottleWindow {
+            return true
+        }
+        return false
+    }
+
     // MARK: - Queue Management
 
     func enqueue(title: String, body: String, soundName: String, regionName: String,
+                 eventType: EventType,
                  interruptionLevel: UNNotificationInterruptionLevel = .active,
                  relevanceScore: Double = 0.5) {
         guard NotificationSettings.shared.isNotificationsEnabled else { return }
@@ -94,6 +115,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let now = Date()
+
+            // Check if this region & event was already notified within the throttle window (e.g. from remote FCM push)
+            if self.wasRecentlyNotified(regionName: regionName, eventType: eventType.rawValue, now: now) {
+                notifLogger.debug("Local notification for \(regionName) (\(eventType.rawValue)) suppressed — duplicate within \(Self.duplicateThrottleWindow)s")
+                return
+            }
+            self.recordRecentNotification(regionName: regionName, eventType: eventType.rawValue, date: now)
+
             let playSoundForThis: Bool
             if soundName.isEmpty {
                 playSoundForThis = false
@@ -114,7 +143,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
                 soundName: playSoundForThis ? soundName : "",
                 interruptionLevel: interruptionLevel,
                 relevanceScore: relevanceScore,
-                regionName: regionName
+                regionName: regionName,
+                eventType: eventType
             ))
             self.processQueue()
         }
@@ -128,7 +158,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
         let content       = UNMutableNotificationContent()
         content.title     = item.title
         content.body      = item.body
-        content.userInfo  = ["region": item.regionName]
+        content.userInfo  = [
+            "region": item.regionName,
+            "event_type": item.eventType.rawValue
+        ]
 
         // Interruption level for lock screen / Focus delivery
         content.interruptionLevel = item.interruptionLevel
@@ -142,7 +175,23 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             content.sound = nil
         }
 
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        // Canonical deterministic identifier per region & channel to update banners seamlessly
+        let identifier: String
+        switch item.eventType {
+        case .alarm, .clear:
+            identifier = "sirenua_alarm_\(item.regionName)"
+        case .threat, .threatClear:
+            identifier = "sirenua_threat_\(item.regionName)"
+        }
+
+        // On clearance signals, clean up previous active banners from Notification Center
+        if item.eventType == .threatClear {
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["sirenua_threat_\(item.regionName)"])
+        } else if item.eventType == .clear {
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["sirenua_alarm_\(item.regionName)"])
+        }
+
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error {

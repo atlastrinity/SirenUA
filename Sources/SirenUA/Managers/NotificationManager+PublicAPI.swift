@@ -15,6 +15,7 @@ extension NotificationManager {
         let config = soundConfig(for: .alarm)
 
         enqueue(title: fullTitle, body: body, soundName: config.soundName, regionName: regionName,
+                eventType: .alarm,
                 interruptionLevel: config.level, relevanceScore: 1.0)
 
         triggerHaptic(.warning, pulses: 4)
@@ -30,6 +31,7 @@ extension NotificationManager {
         }
 
         enqueue(title: fullTitle, body: body, soundName: config.soundName, regionName: regionName,
+                eventType: .threat,
                 interruptionLevel: config.level, relevanceScore: config.relevance)
 
         triggerHaptic(confidence >= 85 ? .error : .warning, pulses: 3)
@@ -41,6 +43,7 @@ extension NotificationManager {
         let config = soundConfig(for: .clear)
 
         enqueue(title: title, body: body, soundName: config.soundName, regionName: regionName,
+                eventType: .clear,
                 interruptionLevel: config.level, relevanceScore: 0.5)
 
         triggerHaptic(.success, pulses: 2)
@@ -52,6 +55,7 @@ extension NotificationManager {
         let config = soundConfig(for: .threatClear)
 
         enqueue(title: title, body: body, soundName: config.soundName, regionName: regionName,
+                eventType: .threatClear,
                 interruptionLevel: config.level, relevanceScore: 0.3)
 
         triggerHaptic(.success, pulses: 2)

@@ -76,6 +76,10 @@ extension NotificationManager {
                 now: now
             )
 
+            if let region = regionName {
+                self.recordRecentNotification(regionName: region, eventType: eventType.rawValue, date: now)
+            }
+
             if allowSoundPlayback && notification.request.content.sound != nil {
                 self.lastPlayedTime = now
                 completionHandler([.banner, .sound, .badge, .list])
