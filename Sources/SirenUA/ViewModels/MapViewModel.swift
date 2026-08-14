@@ -11,11 +11,41 @@ final class MapViewModel: ObservableObject {
     @Published var transportType: MKDirectionsTransportType = .walking
     @Published var activeSheet: ActiveSheet? = nil
     @Published var showHistory = false
-    @Published var showActiveAlerts = false
+    @Published var isShelterPanelVisible = false
     @Published var isNavigating = false
     @Published var isRoutingToShelter = false
     @Published var selectedRegionForDetail: AlertRegion? = nil
     @Published var selectedRegionForHistory: AlertRegion? = nil
+    
+    private var shelterDismissTask: Task<Void, Never>? = nil
+
+    func showShelterPanel(autoHideAfter seconds: Double = 10.0) {
+        shelterDismissTask?.cancel()
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+            isShelterPanelVisible = true
+        }
+        shelterDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    self.isShelterPanelVisible = false
+                    if self.selectedTab == 2 {
+                        self.selectedTab = 0
+                    }
+                }
+            }
+        }
+    }
+
+    func hideShelterPanel() {
+        shelterDismissTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.45)) {
+            isShelterPanelVisible = false
+            if selectedTab == 2 {
+                selectedTab = 0
+            }
+        }
+    }
     
     // States for found shelter and routing
     @Published var foundShelter: MKMapItem? = nil

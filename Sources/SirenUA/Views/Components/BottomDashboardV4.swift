@@ -10,8 +10,6 @@ struct BottomDashboardV4: View {
     @Binding var transportType: MKDirectionsTransportType
     var onFindShelter: () -> Void
     var onShare: () -> Void
-    var onSettings: () -> Void
-    var onHistory: () -> Void
     var onStatusTap: () -> Void
 
     let threatConfidence: Int?
@@ -41,13 +39,22 @@ struct BottomDashboardV4: View {
             // Ліва частина: Статус, Локація та ШІ-Концентрація
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 5) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 8, height: 8)
-                        .opacity(circleOpacity)
+                    ZStack {
+                        if hasActiveAlert {
+                            Circle()
+                                .fill(statusColor.opacity(0.35))
+                                .frame(width: 14, height: 14)
+                                .scaleEffect(isPulsating ? 1.3 : 0.85)
+                        }
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 8, height: 8)
+                            .shadow(color: statusColor.opacity(0.8), radius: 4)
+                    }
+                    .frame(width: 14, height: 14)
                     
                     Text(statusTitle)
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .font(.system(size: 11, weight: Font.Weight.black, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -55,12 +62,12 @@ struct BottomDashboardV4: View {
                     if let conf = threatConfidence {
                         HStack(spacing: 2) {
                             Image(systemName: "cpu")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 8, weight: Font.Weight.bold))
                             Text("\(conf)%")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .font(.system(size: 8, weight: Font.Weight.bold, design: .monospaced))
                         }
                         .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.25))
                         .clipShape(Capsule())
@@ -70,11 +77,11 @@ struct BottomDashboardV4: View {
                 HStack(spacing: 5) {
                     HStack(spacing: 3) {
                         Image(systemName: "location.fill")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.system(size: 8, weight: Font.Weight.bold))
                             .foregroundColor(.cyan)
                         Text(primaryRegionName ?? "Україна")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 10, weight: Font.Weight.bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.95))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }
@@ -84,8 +91,8 @@ struct BottomDashboardV4: View {
                         .foregroundColor(.white.opacity(0.4))
                     
                     Text(detailText)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(hasActiveAlert ? Color.red.opacity(0.9) : Color.green.opacity(0.9))
+                        .font(.system(size: 10, weight: Font.Weight.semibold))
+                        .foregroundColor(hasActiveAlert ? Color.red.opacity(0.95) : Color.green.opacity(0.95))
                         .lineLimit(1)
                 }
             }
@@ -110,14 +117,16 @@ struct BottomDashboardV4: View {
                 // Кнопка Поділитися
                 Button(action: onShare) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11, weight: Font.Weight.semibold))
                         .foregroundColor(.white.opacity(0.9))
-                        .frame(width: 26, height: 26)
+                        .frame(width: 28, height: 28)
                         .background(Color.white.opacity(0.12))
                         .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
                 }
+                .buttonStyle(PlainButtonStyle())
 
-                // Кнопка Укриття (скло-пілл з чітким текстом)
+                // Кнопка Укриття (скло-пілл з градієнтом та світінням)
                 Button(action: {
                     let generator = UIImpactFeedbackGenerator(style: .medium)
                     generator.impactOccurred()
@@ -130,23 +139,23 @@ struct BottomDashboardV4: View {
                                 .scaleEffect(0.65)
                         } else {
                             Image(systemName: "shield.checkered")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 11, weight: Font.Weight.bold))
                                 .foregroundColor(.cyan)
                         }
                         
                         Text(isSearchingShelter ? "ШУКАЮ..." : "УКРИТТЯ")
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .font(.system(size: 10, weight: Font.Weight.heavy, design: .rounded))
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 9)
+                    .padding(.vertical, 7)
+                    .padding(.horizontal, 10)
                     .background(
                         LinearGradient(
                             colors: [
-                                Color.cyan.opacity(0.28),
-                                Color.blue.opacity(0.18)
+                                Color.cyan.opacity(0.35),
+                                Color.blue.opacity(0.25)
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -155,32 +164,45 @@ struct BottomDashboardV4: View {
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .stroke(Color.cyan.opacity(0.45), lineWidth: 0.8)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.cyan.opacity(0.65), Color.blue.opacity(0.35)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.0
+                            )
                     )
+                    .shadow(color: Color.cyan.opacity(0.3), radius: 5, x: 0, y: 1)
                 }
+                .buttonStyle(PlainButtonStyle())
                 .disabled(isSearchingShelter)
             }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .padding(.horizontal, 12)
         .background(
-            Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.25)
+            Color(red: 0.03, green: 0.07, blue: 0.18).opacity(0.40)
         )
         .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.20), Color.white.opacity(0.06)],
+                        colors: [
+                            Color.white.opacity(0.24),
+                            Color.cyan.opacity(0.18),
+                            Color.white.opacity(0.06)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 0.8
+                    lineWidth: 0.9
                 )
         )
-        .padding(.horizontal, 10)
-        .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 3)
+        .padding(.horizontal, 12)
+        .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 4)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 isPulsating = true

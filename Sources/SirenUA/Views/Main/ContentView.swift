@@ -281,12 +281,20 @@ struct ContentView: View {
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .onTapGesture {
-                            mapViewModel.showActiveAlerts = true
+                            mapViewModel.selectedRegionForDetail = alert
                         }
                     }
                     
-                    // Нижній полупрозорий дашборд з локацією, ШІ-концентрацією та пошуком бомбосховища
-                    bottomDashboardSection
+                    // Нижній полупрозорий дашборд з локацією, ШІ-концентрацією та пошуком бомбосховища (плавно виїжджає та ховається)
+                    if mapViewModel.isShelterPanelVisible {
+                        bottomDashboardSection
+                            .transition(
+                                .asymmetric(
+                                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                                    removal: .move(edge: .bottom).combined(with: .opacity)
+                                )
+                            )
+                    }
 
                     // Нижній таббар
                     MainTabBarView(selectedTab: $mapViewModel.selectedTab)
@@ -296,7 +304,7 @@ struct ContentView: View {
             
             if mapViewModel.showHistory {
                 AlertListOverlayView(
-                    title: "ІСТОРІЯ ТРИВОГ (Всі області)",
+                    title: "ХРОНОЛОГІЯ ТРИВОГ (Всі області)",
                     color: .yellow,
                     alerts: viewModel.alerts,
                     filterMode: .all,
@@ -307,23 +315,6 @@ struct ContentView: View {
                         mapViewModel.showHistory = false
                     },
                     onClose: { mapViewModel.showHistory = false }
-                )
-                .transition(.opacity.combined(with: .scale))
-            }
-            
-            if mapViewModel.showActiveAlerts {
-                AlertListOverlayView(
-                    title: "ПОДІЇ ЗА СУТКУ (24 ГОД)",
-                    color: themeColor,
-                    alerts: viewModel.alerts,
-                    filterMode: .last24Hours,
-                    filterActiveOnly: false,
-                    isPremium: viewModel.isPremium,
-                    onSelect: { region in
-                        mapViewModel.selectedRegionForDetail = region
-                        mapViewModel.showActiveAlerts = false
-                    },
-                    onClose: { mapViewModel.showActiveAlerts = false }
                 )
                 .transition(.opacity.combined(with: .scale))
             }
@@ -434,7 +425,6 @@ struct ContentView: View {
             onboardingCompleted: $onboardingCompleted
         )
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionDetail")), perform: handleOpenRegionDetail)
         .onAppear(perform: handleOnAppear)
         .onReceive(refreshTimer) { _ in handleTimerTick() }
     }
@@ -442,6 +432,7 @@ struct ContentView: View {
     private func handleOnAppear() {
         locationManager.requestPermission()
         viewModel.markLastAlertAsViewed()
+        mapViewModel.showShelterPanel(autoHideAfter: 10.0)
 
         if let pending = NotificationManager.shared.pendingTappedRegion {
             if let region = viewModel.alerts.first(where: { $0.name == pending }) {
@@ -599,9 +590,13 @@ struct ContentView: View {
                 )
             },
             onShare: { mapViewModel.activeSheet = .share },
-            onSettings: { mapViewModel.activeSheet = .settings },
-            onHistory: { mapViewModel.showHistory = true },
-            onStatusTap: { mapViewModel.showActiveAlerts = true },
+            onStatusTap: {
+                if let reg = primaryThreatRegion ?? trackedAlerts.first(where: { $0.isActive }) {
+                    mapViewModel.selectedRegionForDetail = reg
+                } else {
+                    mapViewModel.showHistory = true
+                }
+            },
             threatConfidence: primaryThreatRegion?.currentThreat?.confidence ?? primaryThreatRegion?.threatConfidence
         )
     }

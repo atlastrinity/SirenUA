@@ -9,16 +9,15 @@ struct ContentViewTabHandlers: ViewModifier {
                 switch newValue {
                 case 0:
                     mapViewModel.showHistory = false
-                    mapViewModel.showActiveAlerts = false
                 case 1:
-                    mapViewModel.showActiveAlerts = false
+                    mapViewModel.hideShelterPanel()
                     mapViewModel.showHistory = true
                 case 2:
                     mapViewModel.showHistory = false
-                    mapViewModel.showActiveAlerts = true
+                    mapViewModel.showShelterPanel(autoHideAfter: 10.0)
                 case 3:
                     mapViewModel.showHistory = false
-                    mapViewModel.showActiveAlerts = false
+                    mapViewModel.hideShelterPanel()
                     mapViewModel.activeSheet = .settings
                 default:
                     break
@@ -26,11 +25,6 @@ struct ContentViewTabHandlers: ViewModifier {
             }
             .onChange(of: mapViewModel.showHistory) { _, isShowing in
                 if !isShowing && mapViewModel.selectedTab == 1 {
-                    mapViewModel.selectedTab = 0
-                }
-            }
-            .onChange(of: mapViewModel.showActiveAlerts) { _, isShowing in
-                if !isShowing && mapViewModel.selectedTab == 2 {
                     mapViewModel.selectedTab = 0
                 }
             }
@@ -85,6 +79,7 @@ struct ContentViewMapStateHandlers: ViewModifier {
                         await viewModel.fetchThreatState()
                         triggerMapCenter(animated: true)
                     }
+                    mapViewModel.showShelterPanel(autoHideAfter: 10.0)
                 }
             }
             .onChange(of: viewModel.alerts) { _, _ in
