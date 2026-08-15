@@ -860,5 +860,54 @@ final class SirenUATests: XCTestCase {
         XCTAssertTrue(padded.origin.x < sampleRect.origin.x)
         XCTAssertTrue(padded.origin.y < sampleRect.origin.y)
     }
+
+    func testMultiWaypointTrajectoryAzovDniproMykolaiv() {
+        // Target: Mykolaiv (46.9750, 31.9946)
+        let mykolaivTarget = CLLocationCoordinate2D(latitude: 46.9750, longitude: 31.9946)
+        // Transit: Dnipropetrovsk Oblast centroid (48.4647, 35.0462)
+        let dniproTransit = CLLocationCoordinate2D(latitude: 48.4647, longitude: 35.0462)
+        // Launch sector: Azov Sea (46.20, 36.50)
+        let azovLaunchSector = CLLocationCoordinate2D(latitude: 46.20, longitude: 36.50)
+        // Carrier: Morozovsk Airbase (48.31, 41.79)
+        let morozovskCarrier = CLLocationCoordinate2D(latitude: 48.31, longitude: 41.79)
+
+        let trajectory = calculateTrajectory(
+            target: mykolaivTarget,
+            threatType: "shahed",
+            customOrigin: dniproTransit,
+            carrierOrigin: morozovskCarrier,
+            launchSector: azovLaunchSector,
+            carrierOriginName: "Аеродром Морозовськ",
+            launchSectorName: "Акваторія Азовського моря"
+        )
+
+        // 1. Full trajectory starts at Azov Sea and terminates at Mykolaiv
+        XCTAssertFalse(trajectory.fullPoints.isEmpty)
+        let firstPt = trajectory.fullPoints.first!
+        let lastPt = trajectory.fullPoints.last!
+        
+        XCTAssertEqual(firstPt.latitude, 46.20, accuracy: 0.01)
+        XCTAssertEqual(firstPt.longitude, 36.50, accuracy: 0.01)
+        XCTAssertEqual(lastPt.latitude, 46.9750, accuracy: 0.01)
+        XCTAssertEqual(lastPt.longitude, 31.9946, accuracy: 0.01)
+
+        // 2. Trajectory midpoint passes near Dnipro transit waypoint
+        let midPt = trajectory.fullPoints[trajectory.fullPoints.count / 2]
+        let dLatMid = abs(midPt.latitude - dniproTransit.latitude)
+        let dLonMid = abs(midPt.longitude - dniproTransit.longitude)
+        XCTAssertTrue(dLatMid < 0.5, "Trajectory midpoint should pass near Dnipro latitude")
+        XCTAssertTrue(dLonMid < 0.5, "Trajectory midpoint should pass near Dnipro longitude")
+
+        // 3. Flow arrows and checkpoint exist
+        XCTAssertFalse(trajectory.flowArrows.isEmpty)
+        XCTAssertTrue(trajectory.lastCheckpointCoordinate.latitude > 46.0)
+
+        // 4. Carrier approach connects Morozovsk to Azov Sea launch sector
+        XCTAssertNotNil(trajectory.carrierApproachPoints)
+        let approachFirst = trajectory.carrierApproachPoints!.first!
+        let approachLast = trajectory.carrierApproachPoints!.last!
+        XCTAssertEqual(approachFirst.latitude, 48.31, accuracy: 0.01)
+        XCTAssertEqual(approachLast.latitude, 46.20, accuracy: 0.01)
+    }
 }
 

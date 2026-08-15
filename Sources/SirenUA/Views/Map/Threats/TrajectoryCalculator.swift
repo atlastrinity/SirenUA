@@ -96,18 +96,7 @@ public func calculateTrajectory(
         waveAmplitude = 0.040
     }
     
-    let startLat: Double
-    let startLon: Double
-
-    // Calculate distance between customOrigin and target to detect city-center fallbacks
-    let originDistanceKm: Double = {
-        guard let origin = customOrigin else { return 0 }
-        let dLat = (origin.latitude - target.latitude) * 111.0
-        let dLon = (origin.longitude - target.longitude) * 111.0 * cos(target.latitude * .pi / 180.0)
-        return sqrt(dLat * dLat + dLon * dLon)
-    }()
-
-    // Regional capital centroids list — used to identify regional transit fallbacks
+    // Regional capital centroids list — used to identify regional transit waypoints
     let regionalCenters: [(Double, Double)] = [
         (49.2331, 28.4682), (50.7412, 25.3201), (48.4647, 35.0462), (48.0159, 37.8028),
         (50.2547, 28.6587), (48.6208, 22.2879), (47.8388, 35.1396), (48.9226, 24.7111),
@@ -130,119 +119,181 @@ public func calculateTrajectory(
         return false
     }()
 
-    if let origin = customOrigin, originDistanceKm > 20.0, !isRegionalCentroid {
-        // Real external launch site (e.g. Shaykovka, Mozdok, Primorsko-Akhtarsk)
-        startLat = origin.latitude
-        startLon = origin.longitude
-    } else if let origin = customOrigin, originDistanceKm > 20.0, isRegionalCentroid {
-        // Transit origin: origin is a regional centroid (e.g. Dnipro city center).
-        // Extrapolate backwards through the transit centroid to launch corridor / border!
-        let dLat = target.latitude - origin.latitude
-        let dLon = target.longitude - origin.longitude
-        let scale = max(1.5, 160.0 / max(10.0, originDistanceKm))
-        startLat = origin.latitude - dLat * scale
-        startLon = origin.longitude - dLon * scale
-    } else {
-        // Otherwise, extrapolate origin back to state border / sea entry corridor
+    let originDistanceKm: Double = {
+        guard let origin = customOrigin else { return 0 }
+        let dLat = (origin.latitude - target.latitude) * 111.0
+        let dLon = (origin.longitude - target.longitude) * 111.0 * cos(target.latitude * .pi / 180.0)
+        return sqrt(dLat * dLat + dLon * dLon)
+    }()
+
+    let startCoord: CLLocationCoordinate2D
+    var transitWaypoint: CLLocationCoordinate2D? = nil
+
+    // 1. PRIORITY 1: Explicit Launch Sector provided (e.g. Азовське море, Чорне море, Чауда, Курськ, Бєлгород)
+    if let sector = launchSector {
+        startCoord = sector
+        if let origin = customOrigin {
+            let dLatSector = (sector.latitude - origin.latitude) * 111.0
+            let dLonSector = (sector.longitude - origin.longitude) * 111.0 * cos(origin.latitude * .pi / 180.0)
+            let distSectorToOrigin = sqrt(dLatSector * dLatSector + dLonSector * dLonSector)
+            
+            // If customOrigin is a distinct transit waypoint (e.g. Dnipropetrovsk when sector is Azov Sea)
+            if distSectorToOrigin > 35.0 && originDistanceKm > 35.0 {
+                transitWaypoint = origin
+            }
+        }
+    }
+    // 2. PRIORITY 2: Custom Origin provided without explicit Launch Sector
+    else if let origin = customOrigin, originDistanceKm > 20.0 {
+        if isRegionalCentroid {
+            // Origin is a regional transit centroid (e.g. Дніпропетровська область)
+            transitWaypoint = origin
+            // Correlate natural entrance corridor sector based on transit location and target
+            if origin.longitude > 34.5 && origin.latitude < 48.8 {
+                // Dnipro / Zaporizhzhia transit -> Ingress from Azov Sea (46.20, 36.50)
+                startCoord = CLLocationCoordinate2D(latitude: 46.20, longitude: 36.50)
+            } else if origin.latitude > 50.5 && origin.longitude < 34.5 {
+                // Sumy / Chernihiv transit -> Ingress from Kursk / Bryansk (51.70, 35.50)
+                startCoord = CLLocationCoordinate2D(latitude: 51.70, longitude: 35.50)
+            } else if origin.longitude > 35.5 && origin.latitude > 49.5 {
+                // Kharkiv transit -> Ingress from Belgorod (50.60, 36.58)
+                startCoord = CLLocationCoordinate2D(latitude: 50.60, longitude: 36.58)
+            } else if origin.latitude < 47.0 {
+                // Kherson / Odesa / Mykolaiv transit -> Ingress from Black Sea (44.50, 32.00)
+                startCoord = CLLocationCoordinate2D(latitude: 44.50, longitude: 32.00)
+            } else {
+                // Fallback: extrapolate backward through transit point
+                let dLat = target.latitude - origin.latitude
+                let dLon = target.longitude - origin.longitude
+                let scale = max(1.5, 160.0 / max(10.0, originDistanceKm))
+                startCoord = CLLocationCoordinate2D(
+                    latitude: origin.latitude - dLat * scale,
+                    longitude: origin.longitude - dLon * scale
+                )
+            }
+        } else {
+            // Real external launch site (e.g. Shaykovka, Mozdok, Primorsko-Akhtarsk)
+            startCoord = origin
+        }
+    }
+    // 3. PRIORITY 3: Strategic weapon default launch sectors based on threat type and target
+    else {
+        let sLat: Double
+        let sLon: Double
         switch threatType {
         case "shahed":
             if target.latitude < 47.9 {
-                // Southern targets (Odesa, Mykolaiv, Kherson, Zaporizhzhia): project to Black Sea / Crimea border
-                startLat = min(45.8, target.latitude - 1.2)
-                startLon = max(30.5, target.longitude + 1.2)
+                // Southern targets (Odesa, Mykolaiv, Kherson, Zaporizhzhia): Black Sea / Chauda / Azov
+                if target.longitude > 34.0 {
+                    sLat = 46.20 // Azov Sea
+                    sLon = 36.50
+                } else {
+                    sLat = 44.50 // Black Sea
+                    sLon = 32.00
+                }
             } else if target.longitude > 34.0 {
-                // Eastern targets (Kharkiv, Sumy, Poltava, Dnipro, Luhansk, Donetsk): project to Belgorod / Kursk border
-                startLat = max(50.4, target.latitude + 0.6)
-                startLon = max(36.4, target.longitude + 0.8)
+                // Eastern targets (Kharkiv, Sumy, Poltava, Dnipro): Belgorod / Kursk
+                sLat = max(50.4, target.latitude + 0.6)
+                sLon = max(36.4, target.longitude + 0.8)
             } else {
-                // Central / Northern / Western targets (Kirovohrad, Cherkasy, Kyiv, Vinnytsia, Zhytomyr): project from East / North-East ingress
-                startLat = target.latitude + 0.8
-                startLon = target.longitude + 1.8
+                // Central / Northern / Western targets: Kursk / Orel ingress
+                sLat = target.latitude + 0.8
+                sLon = target.longitude + 1.8
             }
         case "cruise_missile", "tu95":
-            // Cruise missile / Tu-95: project to Caspian Sea / East border
-            startLat = max(48.5, target.latitude + 0.8)
-            startLon = max(39.2, target.longitude + 3.2)
+            // Cruise missile / Tu-95: Caspian Sea / Engels
+            sLat = max(48.5, target.latitude + 0.8)
+            sLon = max(39.2, target.longitude + 3.2)
         case "tu22m3":
             // Ту-22М3: Шайковка (54.22, 34.36) або Моздок (43.78, 44.60)
             if target.latitude > 48.5 {
-                startLat = 54.22  // Shaykovka
-                startLon = 34.36
+                sLat = 54.22  // Shaykovka
+                sLon = 34.36
             } else {
-                startLat = 43.78  // Mozdok
-                startLon = 44.60
+                sLat = 43.78  // Mozdok
+                sLon = 44.60
             }
         case "ballistic", "iskander":
-            // Ballistic: project to Belgorod / Kursk / Savasleyka North-East border
-            startLat = max(50.5, target.latitude + 0.8)
-            startLon = max(36.5, target.longitude + 0.6)
+            // Ballistic: Belgorod / Kursk / Savasleyka / Crimea
+            if target.latitude < 47.5 {
+                sLat = 45.40 // Crimea Tarkhankut / Dzhankoy
+                sLon = 34.30
+            } else {
+                sLat = max(50.5, target.latitude + 0.8)
+                sLon = max(36.5, target.longitude + 0.6)
+            }
         case "kab":
-            // KAB: project to Frontline / Border
-            startLat = target.latitude + 0.4
-            startLon = target.longitude + 0.5
+            // KAB: Frontline / Border
+            sLat = target.latitude + 0.4
+            sLon = target.longitude + 0.5
         default:
-            startLat = max(50.5, target.latitude + 0.8)
-            startLon = max(35.5, target.longitude + 1.2)
+            sLat = max(50.5, target.latitude + 0.8)
+            sLon = max(35.5, target.longitude + 1.2)
         }
+        startCoord = CLLocationCoordinate2D(latitude: sLat, longitude: sLon)
     }
-    
-    let dLat = target.latitude - startLat
-    let dLon = target.longitude - startLon
-    let distance = max(0.1, sqrt(dLat * dLat + dLon * dLon))
-    
-    // True perpendicular normal vector (-dLon, dLat)
-    let normalLat = -dLon / distance
-    let normalLon = dLat / distance
-    
-    let midLat = (startLat + target.latitude) / 2.0
-    let midLon = (startLon + target.longitude) / 2.0
-    
-    // Aerodynamic control point offset along true perpendicular vector
-    let controlLat = midLat + normalLat * (distance * curvature)
-    let controlLon = midLon + normalLon * (distance * curvature)
-    
+
+    // MARK: - Multi-Waypoint or Direct Aerodynamic Curve Generation
     var fullPoints: [CLLocationCoordinate2D] = []
-    let steps = 48 // 48 ultra-smooth interpolated points
-    for i in 0...steps {
-        let t = Double(i) / Double(steps)
-        let invT = 1.0 - t
-        
-        let baseLat = invT * invT * startLat + 2.0 * invT * t * controlLat + t * t * target.latitude
-        let baseLon = invT * invT * startLon + 2.0 * invT * t * controlLon + t * t * target.longitude
-        
-        let tangentLat = 2.0 * invT * (controlLat - startLat) + 2.0 * t * (target.latitude - controlLat)
-        let tangentLon = 2.0 * invT * (controlLon - startLon) + 2.0 * t * (target.longitude - controlLon)
-        let tLen = max(0.0001, sqrt(tangentLat * tangentLat + tangentLon * tangentLon))
-        
-        let localPerpLat = -tangentLon / tLen
-        let localPerpLon = tangentLat / tLen
-        
-        let envelope = sin(t * .pi)
-        let snakeOffset = sin(t * .pi * 2.0 * cycles) * envelope * (distance * waveAmplitude)
-        
-        let finalLat = baseLat + localPerpLat * snakeOffset
-        let finalLon = baseLon + localPerpLon * snakeOffset
-        
-        fullPoints.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
+
+    if let waypoint = transitWaypoint {
+        // Multi-segment flight path: [startCoord -> transitWaypoint -> target]
+        let seg1 = generateSegment(
+            start: startCoord,
+            end: waypoint,
+            curvature: curvature * 0.7,
+            cycles: cycles,
+            waveAmplitude: waveAmplitude,
+            steps: 24,
+            startPhase: 0.0,
+            totalPhases: 0.5
+        )
+        let seg2 = generateSegment(
+            start: waypoint,
+            end: target,
+            curvature: -curvature * 0.7,
+            cycles: cycles,
+            waveAmplitude: waveAmplitude,
+            steps: 24,
+            startPhase: 0.5,
+            totalPhases: 0.5
+        )
+        fullPoints = seg1 + seg2.dropFirst()
+    } else {
+        // Direct single-segment flight path: [startCoord -> target]
+        fullPoints = generateSegment(
+            start: startCoord,
+            end: target,
+            curvature: curvature,
+            cycles: cycles,
+            waveAmplitude: waveAmplitude,
+            steps: 48,
+            startPhase: 0.0,
+            totalPhases: 1.0
+        )
     }
+
+    let steps = fullPoints.count - 1
 
     // Directional flow arrows at ~25%, ~50%, and ~75% along trajectory
     var flowArrows: [TrajectoryFlowArrow] = []
-    let arrowStepIndices = [12, 24, 36]
+    let arrowStepIndices = [steps / 4, steps / 2, (steps * 3) / 4]
     for stepIdx in arrowStepIndices {
-        let ap1 = fullPoints[stepIdx]
-        let ap2 = fullPoints[stepIdx + 1]
-        let aDeltaLat = ap2.latitude - ap1.latitude
-        let aDeltaLon = ap2.longitude - ap1.longitude
-        let aAngleRad = atan2(aDeltaLon, aDeltaLat)
-        let aAngleDeg = aAngleRad * 180.0 / .pi
-        let progress = Double(stepIdx) / Double(steps)
-        let arrowOpacity = 0.50 + (progress * 0.50)
-        flowArrows.append(TrajectoryFlowArrow(coordinate: ap1, angle: aAngleDeg, opacity: arrowOpacity))
+        if stepIdx + 1 < fullPoints.count {
+            let ap1 = fullPoints[stepIdx]
+            let ap2 = fullPoints[stepIdx + 1]
+            let aDeltaLat = ap2.latitude - ap1.latitude
+            let aDeltaLon = ap2.longitude - ap1.longitude
+            let aAngleRad = atan2(aDeltaLon, aDeltaLat)
+            let aAngleDeg = aAngleRad * 180.0 / .pi
+            let progress = Double(stepIdx) / Double(steps)
+            let arrowOpacity = 0.50 + (progress * 0.50)
+            flowArrows.append(TrajectoryFlowArrow(coordinate: ap1, angle: aAngleDeg, opacity: arrowOpacity))
+        }
     }
 
     // Last telemetry checkpoint at ~80% along the trajectory
-    let checkpointIdx = 38
+    let checkpointIdx = min(steps - 1, max(1, Int(Double(steps) * 0.80)))
     let p1 = fullPoints[checkpointIdx]
     let p2 = fullPoints[checkpointIdx + 1]
 
@@ -251,28 +302,28 @@ public func calculateTrajectory(
     let angleRad = atan2(deltaLon, deltaLat)
     let angleDeg = angleRad * 180.0 / .pi
 
-    // Calculate Carrier Ingress Approach (Airbase -> Launch Sector)
+    // Calculate Carrier Ingress Approach (Airbase -> Launch Sector / Start Coordinate)
     var carrierApproachPoints: [CLLocationCoordinate2D]? = nil
     if let carrier = carrierOrigin {
         var approach: [CLLocationCoordinate2D] = []
         let appSteps = 24
-        let appMidLat = (carrier.latitude + startLat) / 2.0
-        let appMidLon = (carrier.longitude + startLon) / 2.0
-        let dLatApp = (startLat - carrier.latitude) * 111.0
-        let dLonApp = (startLon - carrier.longitude) * 111.0 * cos(carrier.latitude * .pi / 180.0)
+        let appMidLat = (carrier.latitude + startCoord.latitude) / 2.0
+        let appMidLon = (carrier.longitude + startCoord.longitude) / 2.0
+        let dLatApp = (startCoord.latitude - carrier.latitude) * 111.0
+        let dLonApp = (startCoord.longitude - carrier.longitude) * 111.0 * cos(carrier.latitude * .pi / 180.0)
         let appDist = max(0.1, sqrt(dLatApp * dLatApp + dLonApp * dLonApp))
         let appCurvatureScale = min(0.25, max(0.05, appDist * 0.0003))
         
-        let appNormalLat = -(startLon - carrier.longitude) / max(0.01, sqrt(pow(startLat - carrier.latitude, 2) + pow(startLon - carrier.longitude, 2)))
-        let appNormalLon = (startLat - carrier.latitude) / max(0.01, sqrt(pow(startLat - carrier.latitude, 2) + pow(startLon - carrier.longitude, 2)))
+        let appNormalLat = -(startCoord.longitude - carrier.longitude) / max(0.01, sqrt(pow(startCoord.latitude - carrier.latitude, 2) + pow(startCoord.longitude - carrier.longitude, 2)))
+        let appNormalLon = (startCoord.latitude - carrier.latitude) / max(0.01, sqrt(pow(startCoord.latitude - carrier.latitude, 2) + pow(startCoord.longitude - carrier.longitude, 2)))
         let appControlLat = appMidLat + appNormalLat * appCurvatureScale
         let appControlLon = appMidLon + appNormalLon * appCurvatureScale
 
         for i in 0...appSteps {
             let t = Double(i) / Double(appSteps)
             let invT = 1.0 - t
-            let lat = invT * invT * carrier.latitude + 2.0 * invT * t * appControlLat + t * t * startLat
-            let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startLon
+            let lat = invT * invT * carrier.latitude + 2.0 * invT * t * appControlLat + t * t * startCoord.latitude
+            let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startCoord.longitude
             approach.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
         }
         carrierApproachPoints = approach
@@ -287,4 +338,56 @@ public func calculateTrajectory(
         carrierOriginName: carrierOriginName,
         launchSectorName: launchSectorName
     )
+}
+
+// MARK: - Internal Aerodynamic Spline Segment Generator
+
+private func generateSegment(
+    start: CLLocationCoordinate2D,
+    end: CLLocationCoordinate2D,
+    curvature: Double,
+    cycles: Double,
+    waveAmplitude: Double,
+    steps: Int,
+    startPhase: Double,
+    totalPhases: Double
+) -> [CLLocationCoordinate2D] {
+    let dLat = end.latitude - start.latitude
+    let dLon = end.longitude - start.longitude
+    let distance = max(0.1, sqrt(dLat * dLat + dLon * dLon))
+
+    let normalLat = -dLon / distance
+    let normalLon = dLat / distance
+
+    let midLat = (start.latitude + end.latitude) / 2.0
+    let midLon = (start.longitude + end.longitude) / 2.0
+
+    let controlLat = midLat + normalLat * (distance * curvature)
+    let controlLon = midLon + normalLon * (distance * curvature)
+
+    var points: [CLLocationCoordinate2D] = []
+    for i in 0...steps {
+        let t = Double(i) / Double(steps)
+        let invT = 1.0 - t
+
+        let baseLat = invT * invT * start.latitude + 2.0 * invT * t * controlLat + t * t * end.latitude
+        let baseLon = invT * invT * start.longitude + 2.0 * invT * t * controlLon + t * t * end.longitude
+
+        let tangentLat = 2.0 * invT * (controlLat - start.latitude) + 2.0 * t * (end.latitude - controlLat)
+        let tangentLon = 2.0 * invT * (controlLon - start.longitude) + 2.0 * t * (end.longitude - controlLon)
+        let tLen = max(0.0001, sqrt(tangentLat * tangentLat + tangentLon * tangentLon))
+
+        let localPerpLat = -tangentLon / tLen
+        let localPerpLon = tangentLat / tLen
+
+        let globalT = startPhase + t * totalPhases
+        let envelope = sin(globalT * .pi)
+        let snakeOffset = sin(globalT * .pi * 2.0 * cycles) * envelope * (distance * waveAmplitude)
+
+        let finalLat = baseLat + localPerpLat * snakeOffset
+        let finalLon = baseLon + localPerpLon * snakeOffset
+
+        points.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
+    }
+    return points
 }
