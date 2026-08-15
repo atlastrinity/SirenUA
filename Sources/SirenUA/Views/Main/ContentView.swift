@@ -412,10 +412,14 @@ struct ContentView: View {
                 }
             }
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                locationManager.requestFreshLocation()
+            }
+        }
         .onChange(of: mapViewModel.transportType) { _, _ in
             if mapViewModel.selectedShelter != nil || mapViewModel.route != nil {
                 mapViewModel.findNearestShelter(
-                    userLoc: centerCoordinate,
                     walkingSearchRadius: walkingSearchRadius,
                     drivingSearchRadius: drivingSearchRadius,
                     serverURL: viewModel.threatServerURL
@@ -425,7 +429,6 @@ struct ContentView: View {
         .onChange(of: walkingSearchRadius) { _, _ in
             if mapViewModel.selectedShelter != nil || mapViewModel.route != nil {
                 mapViewModel.findNearestShelter(
-                    userLoc: centerCoordinate,
                     walkingSearchRadius: walkingSearchRadius,
                     drivingSearchRadius: drivingSearchRadius,
                     serverURL: viewModel.threatServerURL
@@ -435,7 +438,6 @@ struct ContentView: View {
         .onChange(of: drivingSearchRadius) { _, _ in
             if mapViewModel.selectedShelter != nil || mapViewModel.route != nil {
                 mapViewModel.findNearestShelter(
-                    userLoc: centerCoordinate,
                     walkingSearchRadius: walkingSearchRadius,
                     drivingSearchRadius: drivingSearchRadius,
                     serverURL: viewModel.threatServerURL
@@ -598,6 +600,9 @@ struct ContentView: View {
         }
         if let activeName = trackedAlerts.first(where: { $0.isActive })?.name {
             return activeName
+        }
+        if let loc = locationManager.location?.coordinate {
+            return RegionRegistry.nearestRegionName(to: loc)
         }
         return "м. Київ"
     }

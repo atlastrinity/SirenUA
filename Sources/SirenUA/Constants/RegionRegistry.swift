@@ -124,4 +124,23 @@ public enum RegionRegistry {
     public static func isPermanentlyActive(_ regionName: String) -> Bool {
         permanentlyActiveRegions.contains(regionName)
     }
+
+    /// Знаходить найближчий географічний регіон для заданої координати.
+    public static func nearestRegionName(to coordinate: CLLocationCoordinate2D) -> String {
+        let userLoc = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        var closestName = "м. Київ"
+        var minDistance = Double.infinity
+
+        for (name, regCoord) in regionalCoordinates {
+            // Пропускаємо синоніми з однаковими координатами
+            if name == "АР Крим" { continue }
+            let regLoc = CLLocation(latitude: regCoord.latitude, longitude: regCoord.longitude)
+            let distance = userLoc.distance(from: regLoc)
+            if distance < minDistance {
+                minDistance = distance
+                closestName = name
+            }
+        }
+        return closestName
+    }
 }

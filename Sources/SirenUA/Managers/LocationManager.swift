@@ -35,18 +35,45 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         authorizationStatus = manager.authorizationStatus
         super.init()
         manager.delegate = self
-        // Optimize power and resource usage
+        // Optimize accuracy and response time
         manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.distanceFilter = 15 // Update only if user moved 15 meters
+        manager.distanceFilter = 10 // Update if user moved 10 meters
+        
+        // 1. Restore persisted location from shared UserDefaults on cold start
+        if let defaults = UserDefaults(suiteName: "group.com.sirenua.shared") {
+            let lat = defaults.double(forKey: "location_last_known_lat")
+            let lon = defaults.double(forKey: "location_last_known_lon")
+            let ts = defaults.double(forKey: "location_last_known_ts")
+            if lat != 0.0 && lon != 0.0 {
+                let date = ts > 0 ? Date(timeIntervalSince1970: ts) : Date()
+                self.location = CLLocation(
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    altitude: 0,
+                    horizontalAccuracy: 100,
+                    verticalAccuracy: 100,
+                    timestamp: date
+                )
+                locLogger.info("Restored persisted location: \(lat), \(lon)")
+            }
+        }
+        
+        // 2. Adopt system manager.location immediately if available
+        if let sysLoc = manager.location {
+            self.location = sysLoc
+            locLogger.info("Adopted system manager.location: \(sysLoc.coordinate.latitude), \(sysLoc.coordinate.longitude)")
+        }
+        
         locLogger.info("LocationManager initialized with status: \(String(describing: self.authorizationStatus))")
         
         #if os(iOS) || os(watchOS) || os(tvOS) || os(visionOS)
         if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
             manager.startUpdatingLocation()
+            manager.requestLocation()
         }
         #else
         if authorizationStatus == .authorizedAlways {
             manager.startUpdatingLocation()
+            manager.requestLocation()
         }
         #endif
     }
@@ -60,6 +87,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         case .authorizedAlways, .authorizedWhenInUse:
             locLogger.info("Starting location updates")
             manager.startUpdatingLocation()
+            manager.requestLocation()
         case .denied, .restricted:
             locLogger.warning("Location access denied or restricted")
             manager.stopUpdatingLocation()
@@ -68,10 +96,16 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         }
     }
     
-    func resolveUserCoordinate(timeoutSeconds: Double = 3.5) async -> CLLocationCoordinate2D? {
+    func requestFreshLocation() {
+        guard isLocationAuthorized else { return }
+        manager.requestLocation()
+        manager.startUpdatingLocation()
+    }
+    
+    func resolveUserCoordinate(timeoutSeconds: Double = 4.5) async -> CLLocationCoordinate2D? {
         guard CLLocationManager.locationServicesEnabled() else {
             locLogger.warning("Location services disabled system-wide")
-            return nil
+            return location?.coordinate
         }
         
         if isLocationDenied {
@@ -83,11 +117,21 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             requestPermission()
         }
 
-        if let loc = location, abs(loc.timestamp.timeIntervalSinceNow) < 60 {
+        // 1. If we have a recent location (< 180s), return immediately
+        if let loc = location, abs(loc.timestamp.timeIntervalSinceNow) < 180 {
             locLogger.debug("Using cached recent location: \(loc.coordinate.latitude), \(loc.coordinate.longitude)")
             return loc.coordinate
         }
+        
+        // 2. If system manager.location is available and recent, adopt it
+        if let sysLoc = manager.location, abs(sysLoc.timestamp.timeIntervalSinceNow) < 300 {
+            self.location = sysLoc
+            locLogger.debug("Using system manager.location: \(sysLoc.coordinate.latitude), \(sysLoc.coordinate.longitude)")
+            return sysLoc.coordinate
+        }
 
+        // 3. Request immediate one-shot GPS update
+        manager.requestLocation()
         manager.startUpdatingLocation()
 
         return await withCheckedContinuation { continuation in
@@ -95,7 +139,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
-                self.flushContinuations(with: self.location?.coordinate)
+                // On timeout, return best available coordinate rather than nil
+                let fallback = self.location?.coordinate ?? self.manager.location?.coordinate
+                self.flushContinuations(with: fallback)
             }
         }
     }
@@ -126,14 +172,20 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         locLogger.debug("Location updated: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         Task { @MainActor in
             self.location = location
+            if let defaults = UserDefaults(suiteName: "group.com.sirenua.shared") {
+                defaults.set(location.coordinate.latitude, forKey: "location_last_known_lat")
+                defaults.set(location.coordinate.longitude, forKey: "location_last_known_lon")
+                defaults.set(location.timestamp.timeIntervalSince1970, forKey: "location_last_known_ts")
+            }
             self.flushContinuations(with: location.coordinate)
         }
     }
     
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        locLogger.error("Location manager failed with error: \(error.localizedDescription)")
+        locLogger.warning("Location manager error or timeout: \(error.localizedDescription)")
         Task { @MainActor in
-            self.flushContinuations(with: self.location?.coordinate)
+            let best = self.location?.coordinate ?? self.manager.location?.coordinate
+            self.flushContinuations(with: best)
         }
     }
 }
