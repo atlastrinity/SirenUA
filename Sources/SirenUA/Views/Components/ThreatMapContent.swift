@@ -91,12 +91,6 @@ struct ThreatMapContent: MapContent {
                 .stroke(.blue, lineWidth: 5)
         }
     }
-
-    private func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
-        let isPredictive = alert.isThreatPredictive || (alert.currentThreat?.is_predictive ?? false)
-        let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty) || isPredictive
-        return (alert.isActive || isPredictive) && hasThreatData
-    }
 }
 
 
@@ -171,10 +165,6 @@ struct FlyingThreatMapOverlay: MapContent {
             }
         }
     }
-}
-
-func threatIconName(for threatType: String?) -> String {
-    return ThreatConstants.sfSymbol(for: threatType)
 }
 
 // MARK: - Flying Threat Visibility Logic
