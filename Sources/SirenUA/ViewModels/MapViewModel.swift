@@ -225,11 +225,13 @@ final class MapViewModel: ObservableObject {
             mapVMLogger.info("Falling back to MKLocalSearch for civil defense bomb shelters & underground parkings...")
             let searchRegion = MKCoordinateRegion(center: finalUserLoc, latitudinalMeters: maxSearchRadiusMeters, longitudinalMeters: maxSearchRadiusMeters)
 
-            // Strictly target civil defense bomb shelters, subway stations & underground parkings (excluding rain shelters/bus stops)
+            // Strictly target civil defense bomb shelters, bunkers, PRU, subway stations & underground parkings
             let queries = [
-                "бомбосховище", "укриття цивільного захисту", "станція метро",
-                "підземний паркінг", "протирадіаційне укриття", "підземне сховище",
-                "захисна споруда цивільного захисту"
+                "бомбосховище", "укриття цивільного захисту", "найпростіше укриття",
+                "бункер", "протирадіаційне укриття", "ПРУ",
+                "споруда подвійного призначення", "захисна споруда цивільного захисту",
+                "станція метро", "підземний паркінг", "підземне сховище",
+                "bomb shelter", "bunker"
             ]
 
             var allItems: [MKMapItem] = []

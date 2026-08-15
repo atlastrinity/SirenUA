@@ -96,9 +96,11 @@ struct ThreatMapContent: MapContent {
         let nameLower = name.lowercased()
         if nameLower.contains("метро") || nameLower.contains("subway") {
             return "tram.fill"
-        } else if nameLower.contains("паркінг") || nameLower.contains("парковка") {
+        } else if nameLower.contains("паркінг") || nameLower.contains("парковка") || nameLower.contains("parking") {
             return "parkingsign.circle.fill"
-        } else if nameLower.contains("бункер") {
+        } else if nameLower.contains("протирадіаційн") || nameLower.contains("пру") || nameLower.contains("радіаці") {
+            return "radiation"
+        } else if nameLower.contains("бункер") || nameLower.contains("bunker") {
             return "shield.checkered"
         } else {
             return "shield.fill"
