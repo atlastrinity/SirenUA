@@ -1,34 +1,52 @@
+# OS & System
 .DS_Store
+.netrc
+.env
+.env.hash
+
+# Swift Package Manager & Dependencies
 /.build
 /Packages
-xcuserdata/
-DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
-.netrc
+
+# Xcode User Data & Derived Data
+xcuserdata/
+DerivedData/
+*.xcuserstate
+project.xcworkspace/xcuserdata/
+*.xcuserdatad
+
+# Build Outputs & Artifacts
 build/
-/.env
-/.env.hash
-*.session
-*.session-journal
+build_sim/
+build_test/
+*.xcarchive/
+*.xcresult/
 *.ipa
 *.dSYM.zip
 *.app.dSYM.zip
+DistributionSummary.plist
+ExportOptions.plist
+Packaging.log
 
-*.db
-*.sqlite
+# Logs & Test Results
 *.log
 build_log.txt
-build_sim/
-build_test/
+build_*.log
+test_results.log
 fastlane/report.xml
 
-# Xcode Build & Test Artifacts
-*.xcarchive/
-*.xcresult/
-ExportOptions.plist
-threat_server/
+# Databases & Sessions
+*.db
+*.sqlite
+*.session
+*.session-journal
+
+# Tooling & Agent Caches
 .agents/
 .claw/
+threat_server/
+
 
 
