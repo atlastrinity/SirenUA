@@ -392,13 +392,9 @@ struct AdminControlTab: View {
                         .foregroundColor(.white.opacity(0.7))
                     Spacer()
                     Picker("", selection: $viewModel.simThreatType) {
-                        Text("Шахед (shahed)").tag("shahed")
-                        Text("МіГ-31К (mig31k)").tag("mig31k")
-                        Text("Крилаті ракети (cruise_missile)").tag("cruise_missile")
-                        Text("Балістика (ballistic)").tag("ballistic")
-                        Text("КАБ (kab)").tag("kab")
-                        Text("Артилерія (artillery)").tag("artillery")
-                        Text("Розвід. БПЛА (recon)").tag("recon")
+                        ForEach(ThreatConstants.all.filter { $0 != ThreatConstants.unknown }, id: \.self) { t in
+                            Text("\(ThreatConstants.emoji(for: t)) \(ThreatConstants.title(for: t)) (\(t))").tag(t)
+                        }
                     }
                     .pickerStyle(.menu)
                 }

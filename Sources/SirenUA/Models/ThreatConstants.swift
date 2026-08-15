@@ -23,6 +23,7 @@ public enum ThreatConstants {
     public static let fpv = "fpv"
     public static let recon = "recon"
     public static let reconUav = "recon_uav"
+    public static let reconUAV = "recon_uav"
     public static let officialAlarm = "official_alarm"
     public static let unknown = "unknown"
 

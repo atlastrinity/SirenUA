@@ -61,27 +61,35 @@ public func calculateTrajectory(
     let waveAmplitude: Double
     
     switch threatType {
-    case "shahed":
+    case ThreatConstants.shahed:
         curvature = -0.22 // Base aerodynamic arc
         cycles = 3.5      // 3.5 weaving S-curves (змійка)
         waveAmplitude = 0.055 // Realistic lateral evasion amplitude
-    case "cruise_missile", "tu95":
+    case ThreatConstants.cruiseMissile, ThreatConstants.tu95:
         curvature = 0.20
         cycles = 2.5      // 2.5 tactical waypoint weaves
         waveAmplitude = 0.045
-    case "tu22m3":
+    case ThreatConstants.tu22m3:
         // Ту-22М3: надзвукова Х-22/Х-32 — майже пряма балістична дуга, мінімальне відхилення
         curvature = -0.18
         cycles = 1.2      // Supersonic — minor terminal correction only
         waveAmplitude = 0.015
-    case "ballistic", "iskander":
+    case ThreatConstants.ballistic, ThreatConstants.iskander, ThreatConstants.zircon:
         curvature = -0.15
         cycles = 1.5      // Minor terminal trajectory wobble
         waveAmplitude = 0.025
-    case "kab":
+    case ThreatConstants.kab:
         curvature = 0.15
         cycles = 2.0      // Wind drift glide weaving
         waveAmplitude = 0.035
+    case ThreatConstants.artillery, ThreatConstants.mlrs:
+        curvature = 0.05
+        cycles = 1.0
+        waveAmplitude = 0.010
+    case ThreatConstants.fpv, ThreatConstants.recon, ThreatConstants.reconUAV:
+        curvature = 0.10
+        cycles = 2.5
+        waveAmplitude = 0.030
     default:
         curvature = 0.20
         cycles = 3.0
