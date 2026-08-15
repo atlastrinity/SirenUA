@@ -30,7 +30,7 @@ struct RegionStatusBadgeAnnotation: MapContent {
             let badgeBgColor: Color = alert.isActive ? .red : (isThreatActive ? alert.color : .green)
 
             Annotation(coordinate: alert.coordinate) {
-                VStack(spacing: 4) {
+                VStack(alignment: .center, spacing: 4) {
                     if isPremium {
                         Image(systemName: badgeIcon)
                             .font(.system(size: 10, weight: .bold))

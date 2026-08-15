@@ -19,13 +19,13 @@ public struct TrajectoryFlowChevronView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 2) {
-            ZStack {
-                // Pulse ring
+        VStack(alignment: .center, spacing: 2) {
+            ZStack(alignment: .center) {
+                // Symmetrical Centered Pulse Ring (no layout shift)
                 Circle()
-                    .stroke(Color.yellow.opacity(isPulsing ? 0.0 : 0.7), lineWidth: 1.5)
-                    .frame(width: 28, height: 28)
-                    .scaleEffect(isPulsing ? 1.8 : 0.9)
+                    .stroke(Color.yellow.opacity(isPulsing ? 0.0 : 0.75), lineWidth: 1.5)
+                    .frame(width: 22, height: 22)
+                    .scaleEffect(isPulsing ? 1.8 : 0.9, anchor: .center)
                     .animation(.easeOut(duration: 1.6).repeatForever(autoreverses: false), value: isPulsing)
                 
                 // Icon background
@@ -37,15 +37,16 @@ public struct TrajectoryFlowChevronView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 22, height: 22)
+                    .frame(width: 18, height: 18)
                     .shadow(color: .orange.opacity(0.6), radius: 4)
                 
                 // Direction chevron + threat icon
                 Image(systemName: threatIcon)
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white)
                     .rotationEffect(.degrees(angle - 90))
             }
+            .frame(width: 40, height: 40, alignment: .center)
             
             // Mini threat label
             Text(threatLabel)
@@ -61,7 +62,7 @@ public struct TrajectoryFlowChevronView: View {
     }
 }
 
-// MARK: - FlyingThreatMarkerView
+// MARK: - FlyingThreatMarkerView (Стійкий концентричний радарний маркер цілі)
 
 public struct FlyingThreatMarkerView: View {
     public let regionName: String
@@ -100,44 +101,56 @@ public struct FlyingThreatMarkerView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 3) {
+        VStack(alignment: .center, spacing: 2) {
             if isPremium {
-                ZStack {
-                    // Radar pulse animation
+                // Фіксований квадратний контейнер (44x44) гарантує 100% симетричне концентричне розширення без горизонтального зміщення
+                ZStack(alignment: .center) {
+                    // Концентричне пульсуюче кільце 1 (Radar primary wave)
                     Circle()
-                        .stroke(color, lineWidth: 2)
-                        .frame(width: 38, height: 38)
-                        .scaleEffect(isPulsing ? 1.5 : 0.9)
-                        .opacity(isPulsing ? 0.0 : 0.8)
+                        .stroke(color.opacity(isPulsing ? 0.0 : 0.90), lineWidth: 2.0)
+                        .frame(width: 24, height: 24)
+                        .scaleEffect(isPulsing ? 1.85 : 0.90, anchor: .center)
                         .animation(
-                            .easeOut(duration: 1.5).repeatForever(autoreverses: false),
+                            .easeOut(duration: 1.6).repeatForever(autoreverses: false),
                             value: isPulsing
                         )
 
-                    // Weapon Badge Background
+                    // Концентричне пульсуюче кільце 2 (Radar secondary echo)
+                    Circle()
+                        .stroke(color.opacity(isPulsing ? 0.0 : 0.50), lineWidth: 1.2)
+                        .frame(width: 24, height: 24)
+                        .scaleEffect(isPulsing ? 2.30 : 0.90, anchor: .center)
+                        .animation(
+                            .easeOut(duration: 1.6).delay(0.3).repeatForever(autoreverses: false),
+                            value: isPulsing
+                        )
+
+                    // Центральний тактичний маяк (Weapon Badge Core)
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [color, color.opacity(0.75)],
+                                colors: [color, color.opacity(0.85)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 28, height: 28)
-                        .shadow(color: color.opacity(0.8), radius: 8, x: 0, y: 2)
+                        .frame(width: 24, height: 24)
+                        .overlay(Circle().stroke(Color.white.opacity(0.9), lineWidth: 1.0))
+                        .shadow(color: color.opacity(0.7), radius: 6, x: 0, y: 1)
 
-                    // Icon
+                    // Іконка типу загрози
                     Image(systemName: iconName)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                 }
+                .frame(width: 56, height: 56, alignment: .center)
                 .onAppear {
                     isPulsing = true
                 }
             }
 
-            // Visual Flying Tag ("Полтавська область")
-            VStack(spacing: 2) {
+            // Інформаційна плашка з назвою та деталями загрози
+            VStack(alignment: .center, spacing: 2) {
                 Text(regionName)
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white)
@@ -182,6 +195,7 @@ public struct FlyingThreatMarkerView: View {
             )
             .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 2)
         }
+        .frame(alignment: .center)
     }
 }
 
@@ -199,13 +213,13 @@ public struct LastTelemetryCheckpointView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 3) {
-            ZStack {
-                // Pulse Ring
+        VStack(alignment: .center, spacing: 3) {
+            ZStack(alignment: .center) {
+                // Pulse Ring (Centered)
                 Circle()
                     .stroke(Color.yellow, lineWidth: 1.5)
-                    .frame(width: 26, height: 26)
-                    .scaleEffect(isPulsing ? 1.6 : 0.8)
+                    .frame(width: 20, height: 20)
+                    .scaleEffect(isPulsing ? 1.7 : 0.85, anchor: .center)
                     .opacity(isPulsing ? 0.0 : 0.9)
                     .animation(.easeOut(duration: 1.4).repeatForever(autoreverses: false), value: isPulsing)
                 
@@ -218,14 +232,15 @@ public struct LastTelemetryCheckpointView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 16, height: 16)
+                    .frame(width: 14, height: 14)
                     .shadow(color: .orange, radius: 4)
                 
                 Image(systemName: "chevron.forward")
-                    .font(.system(size: 8, weight: .black))
+                    .font(.system(size: 7, weight: .black))
                     .foregroundColor(.black)
                     .rotationEffect(.degrees(angle - 90))
             }
+            .frame(width: 36, height: 36, alignment: .center)
             .onAppear {
                 isPulsing = true
             }
@@ -249,5 +264,6 @@ public struct LastTelemetryCheckpointView: View {
             )
             .shadow(color: .black.opacity(0.5), radius: 4)
         }
+        .frame(alignment: .center)
     }
 }
