@@ -18,6 +18,10 @@ enum ShelterType: String, Codable, CaseIterable {
     case metro = "metro"
     case bunker = "bunker"
     case radiationShelter = "radiation_shelter"
+    case schoolShelter = "school_shelter"
+    case hospitalShelter = "hospital_shelter"
+    case adminShelter = "admin_shelter"
+    case basicShelter = "basic_shelter"
     case underground = "underground"
     case civilDefense = "civil_defense"
 
@@ -28,6 +32,10 @@ enum ShelterType: String, Codable, CaseIterable {
         case .metro:               return "Станція метро"
         case .bunker:              return "Бункер"
         case .radiationShelter:    return "Протирадіаційне укриття"
+        case .schoolShelter:       return "Найпростіше укриття (Школа / Ліцей)"
+        case .hospitalShelter:     return "Медичний заклад (ПРУ / Підвал)"
+        case .adminShelter:        return "Адміністративна будівля (Старостат)"
+        case .basicShelter:        return "Найпростіше укриття"
         case .underground:         return "Підземне укриття"
         case .civilDefense:        return "Укриття цивільного захисту"
         }
@@ -39,6 +47,10 @@ enum ShelterType: String, Codable, CaseIterable {
         case .undergroundParking:  return "parkingsign.circle.fill"
         case .bunker:              return "shield.checkered"
         case .radiationShelter:    return "radiation"
+        case .schoolShelter:       return "graduationcap.fill"
+        case .hospitalShelter:     return "cross.case.fill"
+        case .adminShelter:        return "building.columns.fill"
+        case .basicShelter:        return "shield.checkered"
         case .underground:         return "arrow.down.to.line"
         case .bombShelter, .civilDefense:
             return "shield.fill"
@@ -57,6 +69,14 @@ enum ShelterType: String, Codable, CaseIterable {
                 return .bunker
             case "radiation_shelter", "anti_radiation", "radiation":
                 return .radiationShelter
+            case "school_shelter", "school", "kindergarten":
+                return .schoolShelter
+            case "hospital_shelter", "hospital", "clinic":
+                return .hospitalShelter
+            case "admin_shelter", "admin", "townhall":
+                return .adminShelter
+            case "basic_shelter":
+                return .basicShelter
             case "underground":
                 return .underground
             case "bomb_shelter":
@@ -78,6 +98,12 @@ enum ShelterType: String, Codable, CaseIterable {
             return .radiationShelter
         } else if name.contains("бункер") || name.contains("bunker") {
             return .bunker
+        } else if name.contains("ліцей") || name.contains("школа") || name.contains("гімназія") || name.contains("дитсадок") || name.contains("садочок") || name.contains("здо") {
+            return .schoolShelter
+        } else if name.contains("лікарня") || name.contains("поліклініка") || name.contains("амбулаторія") || name.contains("госпіталь") {
+            return .hospitalShelter
+        } else if name.contains("старостат") || name.contains("сільрада") || name.contains("сільська рада") || name.contains("міська рада") || name.contains("будинок культури") {
+            return .adminShelter
         } else if name.contains("підземн") || name.contains("перехід") {
             return .underground
         } else {

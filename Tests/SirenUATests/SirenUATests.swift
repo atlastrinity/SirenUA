@@ -788,6 +788,9 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(ShelterType.matching(from: "underground_parking").iconName, "parkingsign.circle.fill")
         XCTAssertEqual(ShelterType.matching(from: "bunker").iconName, "shield.checkered")
         XCTAssertEqual(ShelterType.matching(from: "radiation_shelter").iconName, "radiation")
+        XCTAssertEqual(ShelterType.matching(from: "school_shelter").iconName, "graduationcap.fill")
+        XCTAssertEqual(ShelterType.matching(from: "hospital_shelter").iconName, "cross.case.fill")
+        XCTAssertEqual(ShelterType.matching(from: "admin_shelter").iconName, "building.columns.fill")
         XCTAssertEqual(ShelterType.matching(from: "underground").iconName, "arrow.down.to.line")
         XCTAssertEqual(ShelterType.matching(from: "bomb_shelter").iconName, "shield.fill")
 
@@ -796,6 +799,9 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(ShelterType.iconName(for: "Підземний паркінг ТРЦ"), "parkingsign.circle.fill")
         XCTAssertEqual(ShelterType.iconName(for: "Протирадіаційне сховище"), "radiation")
         XCTAssertEqual(ShelterType.iconName(for: "Військовий бункер"), "shield.checkered")
+        XCTAssertEqual(ShelterType.iconName(for: "Угерський ліцей"), "graduationcap.fill")
+        XCTAssertEqual(ShelterType.iconName(for: "Стрийська міська лікарня"), "cross.case.fill")
+        XCTAssertEqual(ShelterType.iconName(for: "Сільська рада / Старостат"), "building.columns.fill")
         XCTAssertEqual(ShelterType.iconName(for: "Захисна споруда №14"), "shield.fill")
     }
 

@@ -67,12 +67,18 @@ final class ShelterSearchService {
         let userLoc = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
 
         if !apiShelters.isEmpty {
-            // Re-verify exact Haversine distance and sort
-            let sortedWithDistance = apiShelters.map { shelter -> (shelter: ShelterItem, distance: Double) in
+            // Re-verify exact Haversine distance and apply smart safety tier ranking
+            let sortedWithDistance = apiShelters.map { shelter -> (shelter: ShelterItem, distance: Double, tier: Int) in
                 let shelterLoc = CLLocation(latitude: shelter.lat, longitude: shelter.lon)
                 let dist = shelterLoc.distance(from: userLoc)
-                return (shelter, dist)
-            }.sorted { $0.distance < $1.distance }
+                let tier = self.safetyTierScore(for: shelter)
+                return (shelter, dist, tier)
+            }.sorted {
+                if abs($0.distance - $1.distance) < 250.0 && $0.tier != $1.tier {
+                    return $0.tier < $1.tier
+                }
+                return $0.distance < $1.distance
+            }
 
             let strictlyWithin = sortedWithDistance.filter { $0.distance <= targetRadiusMeters }
             let withinLocalExtended = sortedWithDistance.filter { $0.distance <= localExtendedRadiusMeters }
@@ -114,20 +120,27 @@ final class ShelterSearchService {
             }
         }
 
-        // 3. Priority 2: Apple MapKit MKLocalSearch fallback
-        searchLogger.info("Executing MKLocalSearch for civil defense shelters...")
+        // 3. Priority 2: Apple MapKit MKLocalSearch fallback with Smart Ranking
+        searchLogger.info("Executing MKLocalSearch for civil defense shelters, parkings, educational and medical facilities across Ukraine...")
         let localSearchItems = await performLocalSearch(
             center: userCoordinate,
             radiusMeters: regionalExtendedRadiusMeters
         )
 
-        let itemsWithDistance = localSearchItems.map { item -> (item: MKMapItem, distance: Double) in
+        let itemsWithDistance = localSearchItems.map { item -> (item: MKMapItem, distance: Double, tier: Int) in
             let itemLoc = CLLocation(
                 latitude: item.placemark.coordinate.latitude,
                 longitude: item.placemark.coordinate.longitude
             )
-            return (item, itemLoc.distance(from: userLoc))
-        }.sorted { $0.distance < $1.distance }
+            let dist = itemLoc.distance(from: userLoc)
+            let tier = self.safetyTierScore(for: item)
+            return (item, dist, tier)
+        }.sorted {
+            if abs($0.distance - $1.distance) < 250.0 && $0.tier != $1.tier {
+                return $0.tier < $1.tier
+            }
+            return $0.distance < $1.distance
+        }
 
         let preferred = itemsWithDistance.filter { $0.distance <= targetRadiusMeters }
         let localExt = itemsWithDistance.filter { $0.distance <= localExtendedRadiusMeters }
@@ -179,6 +192,52 @@ final class ShelterSearchService {
 
     // MARK: - Helper Methods
 
+    private func safetyTierScore(for item: MKMapItem) -> Int {
+        let nameLower = (item.name ?? "").lowercased()
+        // Tier 1: Metro, dedicated Bunkers, Bomb Shelters, Civil Defense
+        if nameLower.contains("метро") || nameLower.contains("subway") ||
+           nameLower.contains("бункер") || nameLower.contains("bunker") ||
+           nameLower.contains("бомбосховище") || nameLower.contains("сховище") ||
+           nameLower.contains("протирадіаційн") || nameLower.contains("пру") ||
+           nameLower.contains("цивільного захисту") {
+            return 1
+        }
+        // Tier 2: Underground parking & underground facilities
+        if nameLower.contains("підземн") || nameLower.contains("паркінг") ||
+           nameLower.contains("парковка") || nameLower.contains("parking") {
+            return 2
+        }
+        // Tier 3: Certified basic shelters in communities: Schools, Lyceums, Kindergartens, Hospitals, Public Admin basements
+        if nameLower.contains("ліцей") || nameLower.contains("школа") ||
+           nameLower.contains("гімназія") || nameLower.contains("дитсадок") ||
+           nameLower.contains("садочок") || nameLower.contains("здо") ||
+           nameLower.contains("лікарня") || nameLower.contains("поліклініка") ||
+           nameLower.contains("амбулаторія") || nameLower.contains("госпіталь") ||
+           nameLower.contains("старостат") || nameLower.contains("сільрада") ||
+           nameLower.contains("сільська рада") || nameLower.contains("міська рада") ||
+           nameLower.contains("будинок культури") || nameLower.contains("пункт незламності") {
+            return 3
+        }
+        return 4
+    }
+
+    private func safetyTierScore(for shelter: ShelterItem) -> Int {
+        let rawType = shelter.type.lowercased()
+        let nameLower = shelter.displayName.lowercased()
+        if rawType == "metro" || rawType == "bunker" || rawType == "bomb_shelter" || rawType == "radiation_shelter" ||
+           nameLower.contains("метро") || nameLower.contains("бункер") || nameLower.contains("бомбосховище") || nameLower.contains("пру") {
+            return 1
+        }
+        if rawType == "underground_parking" || rawType == "underground" || nameLower.contains("паркінг") || nameLower.contains("підземн") {
+            return 2
+        }
+        if rawType == "school_shelter" || rawType == "hospital_shelter" || rawType == "admin_shelter" || rawType == "basic_shelter" ||
+           nameLower.contains("ліцей") || nameLower.contains("школа") || nameLower.contains("гімназія") || nameLower.contains("лікарня") {
+            return 3
+        }
+        return 4
+    }
+
     private func createMapItem(from shelter: ShelterItem) -> MKMapItem {
         let placemark = MKPlacemark(coordinate: shelter.coordinate)
         let item = MKMapItem(placemark: placemark)
@@ -197,13 +256,21 @@ final class ShelterSearchService {
         )
 
         let queries = [
+            // 1. Civil defense & specialized bunkers
             "укриття", "бомбосховище", "сховище", "захисна споруда",
             "укриття цивільного захисту", "найпростіше укриття",
             "бункер", "протирадіаційне укриття", "ПРУ",
             "пункт незламності", "ДСНС",
             "споруда подвійного призначення", "захисна споруда цивільного захисту",
-            "станція метро", "підземний паркінг", "підземне сховище",
-            "bomb shelter", "bunker"
+            "станція метро", "підземне сховище", "bomb shelter", "bunker",
+            // 2. Underground parking & shopping facilities
+            "підземний паркінг", "підземна автостоянка", "паркінг", "ТРЦ", "ТЦ",
+            // 3. Educational institutions (certified simple civil defense shelters)
+            "ліцей", "гімназія", "школа", "дитсадок", "дитячий садок", "ЗДО",
+            // 4. Medical facilities (basements and PRU)
+            "лікарня", "поліклініка", "амбулаторія", "госпіталь",
+            // 5. Municipal buildings and village centers
+            "старостат", "сільська рада", "міська рада", "будинок культури"
         ]
 
         var rawItems: [MKMapItem] = []
@@ -243,19 +310,22 @@ final class ShelterSearchService {
         for item in rawItems {
             let nameLower = (item.name ?? "").lowercased()
 
-            // Filter out non-defense categories
+            // Filter out non-defense commercial entertainment categories
             if let category = item.pointOfInterestCategory {
-                if category == .publicTransport || category == .park || category == .beach ||
+                if category == .park || category == .beach ||
                    category == .restaurant || category == .cafe || category == .gasStation ||
                    category == .restroom || category == .nightlife || category == .campground {
                     continue
                 }
             }
 
-            let isUndergroundParking = nameLower.contains("паркінг") || nameLower.contains("парковка")
+            let isUndergroundParking = nameLower.contains("паркінг") || nameLower.contains("парковка") || nameLower.contains("parking")
             let isSubway = nameLower.contains("метро") || nameLower.contains("subway")
+            let isInstitution = nameLower.contains("ліцей") || nameLower.contains("школа") || nameLower.contains("гімназія") ||
+                                nameLower.contains("лікарня") || nameLower.contains("поліклініка") || nameLower.contains("дитсадок") ||
+                                nameLower.contains("старостат") || nameLower.contains("амбулаторія")
             
-            if !isUndergroundParking && !isSubway {
+            if !isUndergroundParking && !isSubway && !isInstitution {
                 let isRainShelter = excludedKeywords.contains { nameLower.contains($0) }
                 if isRainShelter { continue }
             }
