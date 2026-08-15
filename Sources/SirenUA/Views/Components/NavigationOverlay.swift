@@ -7,20 +7,12 @@ struct NavigationOverlay: View {
 
     private var distanceText: String {
         guard let route else { return "" }
-        let meters = Int(route.distance)
-        return meters >= 1000 ? String(format: "%.1f км", Double(meters) / 1000) : "\(meters) м"
+        return ShelterFormatter.formatDistance(meters: route.distance)
     }
 
     private var timeText: String {
         guard let route else { return "" }
-        let minutes = Int(route.expectedTravelTime / 60)
-        if minutes < 60 {
-            return "\(minutes) хв"
-        } else {
-            let h = minutes / 60
-            let m = minutes % 60
-            return m > 0 ? "\(h) год \(m) хв" : "\(h) год"
-        }
+        return ShelterFormatter.formatTravelTime(seconds: route.expectedTravelTime)
     }
 
     var body: some View {

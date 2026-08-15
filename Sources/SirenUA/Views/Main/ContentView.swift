@@ -418,7 +418,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: mapViewModel.transportType) { _, _ in
-            if mapViewModel.selectedShelter != nil || mapViewModel.route != nil {
+            if mapViewModel.selectedShelter != nil || mapViewModel.route != nil || mapViewModel.foundShelter != nil {
                 mapViewModel.findNearestShelter(
                     walkingSearchRadius: walkingSearchRadius,
                     drivingSearchRadius: drivingSearchRadius,
@@ -427,7 +427,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: walkingSearchRadius) { _, _ in
-            if mapViewModel.selectedShelter != nil || mapViewModel.route != nil {
+            if (mapViewModel.selectedShelter != nil || mapViewModel.route != nil || mapViewModel.foundShelter != nil) && mapViewModel.transportType == .walking {
                 mapViewModel.findNearestShelter(
                     walkingSearchRadius: walkingSearchRadius,
                     drivingSearchRadius: drivingSearchRadius,
@@ -436,7 +436,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: drivingSearchRadius) { _, _ in
-            if mapViewModel.selectedShelter != nil || mapViewModel.route != nil {
+            if (mapViewModel.selectedShelter != nil || mapViewModel.route != nil || mapViewModel.foundShelter != nil) && mapViewModel.transportType == .automobile {
                 mapViewModel.findNearestShelter(
                     walkingSearchRadius: walkingSearchRadius,
                     drivingSearchRadius: drivingSearchRadius,

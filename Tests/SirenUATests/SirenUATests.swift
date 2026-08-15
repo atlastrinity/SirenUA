@@ -1,4 +1,5 @@
 import CoreLocation
+import MapKit
 import XCTest
 @testable import SirenUA
 
@@ -750,6 +751,78 @@ final class SirenUATests: XCTestCase {
         // Reset to default
         settings.allRegionsTracked = true
         settings.trackedRegionsString = RegionRegistry.allRegions.joined(separator: ";")
+    }
+
+    func testShelterTypeClassificationAndIcons() {
+        XCTAssertEqual(ShelterType.matching(from: "metro").iconName, "tram.fill")
+        XCTAssertEqual(ShelterType.matching(from: "underground_parking").iconName, "parkingsign.circle.fill")
+        XCTAssertEqual(ShelterType.matching(from: "bunker").iconName, "shield.checkered")
+        XCTAssertEqual(ShelterType.matching(from: "radiation_shelter").iconName, "radiation")
+        XCTAssertEqual(ShelterType.matching(from: "underground").iconName, "arrow.down.to.line")
+        XCTAssertEqual(ShelterType.matching(from: "bomb_shelter").iconName, "shield.fill")
+
+        // Name heuristics fallback
+        XCTAssertEqual(ShelterType.iconName(for: "Станція метро Хрещатик"), "tram.fill")
+        XCTAssertEqual(ShelterType.iconName(for: "Підземний паркінг ТРЦ"), "parkingsign.circle.fill")
+        XCTAssertEqual(ShelterType.iconName(for: "Протирадіаційне сховище"), "radiation")
+        XCTAssertEqual(ShelterType.iconName(for: "Військовий бункер"), "shield.checkered")
+        XCTAssertEqual(ShelterType.iconName(for: "Захисна споруда №14"), "shield.fill")
+    }
+
+    func testShelterFormatterDistanceAndTravelTime() {
+        XCTAssertEqual(ShelterFormatter.formatDistance(meters: 450), "450 м")
+        XCTAssertEqual(ShelterFormatter.formatDistance(meters: 999), "999 м")
+        XCTAssertEqual(ShelterFormatter.formatDistance(meters: 1000), "1.0 км")
+        XCTAssertEqual(ShelterFormatter.formatDistance(meters: 2450), "2.5 км")
+        XCTAssertEqual(ShelterFormatter.formatDistance(meters: 15300), "15.3 км")
+
+        XCTAssertEqual(ShelterFormatter.formatTravelTime(seconds: 45), "1 хв")
+        XCTAssertEqual(ShelterFormatter.formatTravelTime(seconds: 300), "5 хв")
+        XCTAssertEqual(ShelterFormatter.formatTravelTime(seconds: 3600), "1 год")
+        XCTAssertEqual(ShelterFormatter.formatTravelTime(seconds: 4500), "1 год 15 хв")
+    }
+
+    func testShelterItemDisplayNameAndModel() {
+        let itemWithAddress = ShelterItem(
+            id: "s1",
+            name: "Бомбосховище №5",
+            address: "вул. Хрещатик, 1",
+            lat: 50.4501,
+            lon: 30.5234,
+            distance_m: 250,
+            type: "bomb_shelter",
+            capacity: 500,
+            accessible: true,
+            source: "gov"
+        )
+        XCTAssertEqual(itemWithAddress.displayName, "Бомбосховище №5 — вул. Хрещатик, 1")
+        XCTAssertEqual(itemWithAddress.distanceText, "250 м")
+        XCTAssertEqual(itemWithAddress.iconName, "shield.fill")
+
+        let itemNoName = ShelterItem(
+            id: "s2",
+            name: nil,
+            address: "вул. Шевченка, 10",
+            lat: 50.4501,
+            lon: 30.5234,
+            distance_m: 1400,
+            type: "metro",
+            capacity: 2000,
+            accessible: true,
+            source: "osm"
+        )
+        XCTAssertEqual(itemNoName.displayName, "Станція метро — вул. Шевченка, 10")
+        XCTAssertEqual(itemNoName.distanceText, "1.4 км")
+        XCTAssertEqual(itemNoName.iconName, "tram.fill")
+    }
+
+    func testShelterOptimalCameraRect() {
+        let sampleRect = MKMapRect(x: 10000, y: 10000, width: 2000, height: 3000)
+        let padded = ShelterRouteService.optimalCameraRect(for: sampleRect)
+        XCTAssertTrue(padded.size.width > sampleRect.size.width)
+        XCTAssertTrue(padded.size.height > sampleRect.size.height)
+        XCTAssertTrue(padded.origin.x < sampleRect.origin.x)
+        XCTAssertTrue(padded.origin.y < sampleRect.origin.y)
     }
 }
 

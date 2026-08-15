@@ -33,6 +33,7 @@
 		2A94AC072C1E2729A4E8654E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52577CC4A3DB333AB117FE33 /* ContentView.swift */; };
 		307E6EBF96E30DC37C52E8C4 /* EventType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FD3A345D7A3C6D3C7C25D2 /* EventType.swift */; };
 		386D3BF166F7AB51DA2AC116 /* YellowZonePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C77A307A65BE55B75601A8 /* YellowZonePolicy.swift */; };
+		3C14631EACFE5C7E24E1C30C /* ShelterSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCBDC49AED46F253BCF524D1 /* ShelterSearchService.swift */; };
 		3CB3DA25FF0B85362A2CB336 /* MainTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E573AB6532B7D8E07E0D96C2 /* MainTabBarView.swift */; };
 		3D4D10C3B231D4BB81B0D8A6 /* NotificationManager+Delegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5BEA136692ADB62BF70EBF /* NotificationManager+Delegate.swift */; };
 		3FEB076CAE81DF7D859DFAC9 /* AdminChronologyTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D32938646948B52EFBF900 /* AdminChronologyTab.swift */; };
@@ -40,6 +41,7 @@
 		4315A830BC873F1654AB0FC1 /* RegionPolygonsLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9AF2E195D0D8A85C298246E /* RegionPolygonsLayer.swift */; };
 		447FF66784501A8A47B4B4DF /* RegionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072FBEE04EAFD692F174A987 /* RegionRegistry.swift */; };
 		4558A3FD3CE2270D4C42CAD1 /* PremiumThreatToggleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7B837F3B025960ED2541C8 /* PremiumThreatToggleRow.swift */; };
+		45E6FA46EDCBC1C0EF106B06 /* ShelterRouteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3D295EA6449D5AFD708FBC /* ShelterRouteService.swift */; };
 		489D0CBA44F4F7F24F0C13EC /* RegionStatusBadgeAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D20DAE001BC56BFB82998B6 /* RegionStatusBadgeAnnotation.swift */; };
 		4A3023A7F775C7067D2C327A /* PremiumFeatureRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFAEC45F53C7CB79B2729E9 /* PremiumFeatureRow.swift */; };
 		4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7320EDE140411A78D11980 /* NetworkManager.swift */; };
@@ -64,6 +66,7 @@
 		855C6AB6373E40BE550CEC83 /* ThreatMapContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */; };
 		8DE395A72A39F9861D44A3EC /* RegionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34711DC64A7284E773156999 /* RegionHistoryView.swift */; };
 		903993D95B7D33869D8F786E /* SheltersAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6583F76C8A22105AB10D00EC /* SheltersAPI.swift */; };
+		9066D13836DE652C34D200C6 /* MapViewModel+ShelterSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838EFD6D57BCF7BC4B5521B4 /* MapViewModel+ShelterSearch.swift */; };
 		9403E553A5A9E5E41D24A6CD /* NotificationManager+PublicAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A15AB9558470FA36C99BA4 /* NotificationManager+PublicAPI.swift */; };
 		993042062355C64F10210B13 /* TelemetryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D05AA6EF664F667B662B2F /* TelemetryRow.swift */; };
 		9C2604C1882C919AF67F9B06 /* AdminControlTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB44D26EDD0483C6031770D3 /* AdminControlTab.swift */; };
@@ -197,7 +200,8 @@
 		80AA13725CEBE7B0899F8EE5 /* ThreatDetailCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatDetailCard.swift; sourceTree = "<group>"; };
 		81C77A307A65BE55B75601A8 /* YellowZonePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YellowZonePolicy.swift; sourceTree = "<group>"; };
 		83317973B3F38750FEC97E3E /* ContentView+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Theme.swift"; sourceTree = "<group>"; };
-		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		838EFD6D57BCF7BC4B5521B4 /* MapViewModel+ShelterSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MapViewModel+ShelterSearch.swift"; sourceTree = "<group>"; };
+		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; path = ukraine_regions.geojson; sourceTree = "<group>"; };
 		8B33387695CB0CE00D86B8F2 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		8B93847811D7F44E3D2C2EC3 /* AdminDashboardTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardTab.swift; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -216,7 +220,7 @@
 		AA5D4126E025C32D1D8961A9 /* SmallIconButtonV4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallIconButtonV4.swift; sourceTree = "<group>"; };
 		AAFAEC45F53C7CB79B2729E9 /* PremiumFeatureRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumFeatureRow.swift; sourceTree = "<group>"; };
 		AB44D26EDD0483C6031770D3 /* AdminControlTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminControlTab.swift; sourceTree = "<group>"; };
-		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE46490D4EB26BA8DBE64BEC /* AdminPalantirTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPalantirTab.swift; sourceTree = "<group>"; };
 		B4BEC6E3AD19979050C66D29 /* HistoryAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryAPI.swift; sourceTree = "<group>"; };
 		B5E63B1BD30FD14135FBF7A5 /* OperationalMonitoringCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationalMonitoringCardView.swift; sourceTree = "<group>"; };
@@ -226,7 +230,7 @@
 		B92F298B0419762B12E79367 /* NotificationSoundPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSoundPolicy.swift; sourceTree = "<group>"; };
 		BA1658C6134027D3CF2D1A69 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		BB7B09972E2AF61BEE6C45E7 /* SettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCard.swift; sourceTree = "<group>"; };
-		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD85FFE72DB672C49C09EDBB /* SirenUATests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SirenUATests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BDC4B8F6AB1B3CA3B41526F0 /* RegionTrackingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionTrackingCard.swift; sourceTree = "<group>"; };
 		BE867B838856194F6686E389 /* RegionSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSelectionSheet.swift; sourceTree = "<group>"; };
 		C04391E80219E2B099533C21 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -244,13 +248,15 @@
 		EAE9DD0C65FF1AC66F0CDE89 /* AlertViewModelV3+Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AlertViewModelV3+Helpers.swift"; sourceTree = "<group>"; };
 		EB815EE8030628CD766F7C6F /* ThreatMapContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatMapContent.swift; sourceTree = "<group>"; };
 		EE17530EBF283EB7EF73FB15 /* AIRadarHeroCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRadarHeroCardView.swift; sourceTree = "<group>"; };
+		EE3D295EA6449D5AFD708FBC /* ShelterRouteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterRouteService.swift; sourceTree = "<group>"; };
 		EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = warning.wav; sourceTree = "<group>"; };
 		F2D752F93354EFA192D5DFDF /* PremiumFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumFeature.swift; sourceTree = "<group>"; };
 		F4FCDD604237AFB48CCEBE29 /* AlertListOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertListOverlayView.swift; sourceTree = "<group>"; };
-		F543C9B98CDCFBCEE1AFCCE5 /* SirenUANotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SirenUANotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F543C9B98CDCFBCEE1AFCCE5 /* SirenUANotificationService.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SirenUANotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5BA08B04599460D6D7B4A64 /* TrajectoryCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrajectoryCalculator.swift; sourceTree = "<group>"; };
 		F9169F514BA9130B355270E0 /* AlertsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsAPI.swift; sourceTree = "<group>"; };
 		FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		FCBDC49AED46F253BCF524D1 /* ShelterSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterSearchService.swift; sourceTree = "<group>"; };
 		FCF634E9651E888F120FACE1 /* NavigationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -373,6 +379,15 @@
 				2C7B837F3B025960ED2541C8 /* PremiumThreatToggleRow.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		4E3EBE44AAE71EDEDCF48689 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				EE3D295EA6449D5AFD708FBC /* ShelterRouteService.swift */,
+				FCBDC49AED46F253BCF524D1 /* ShelterSearchService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		50B41AA21F56CF7D4B42990F /* Map */ = {
@@ -572,6 +587,7 @@
 				52B7DE3CC22AF8B6DE6F6AEC /* Managers */,
 				92CDF90F8B611D085C282E7B /* Models */,
 				A8528E618E19E0D442C79A7F /* Premium */,
+				4E3EBE44AAE71EDEDCF48689 /* Services */,
 				E5204E5FBCAB4D7F29D85B7D /* ViewModels */,
 				5926904C61E13B1EE40EDE26 /* Views */,
 			);
@@ -642,6 +658,7 @@
 				EAE9DD0C65FF1AC66F0CDE89 /* AlertViewModelV3+Helpers.swift */,
 				253AD282B3FF1A5930AE4EA9 /* AlertViewModelV3+Threats.swift */,
 				B67D7E51B19A85354D587BD2 /* MapViewModel.swift */,
+				838EFD6D57BCF7BC4B5521B4 /* MapViewModel+ShelterSearch.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -713,7 +730,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2650;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					6FED4E7D2C5E3F833E549231 = {
 						DevelopmentTeam = B7WVJ3B4B7;
@@ -823,6 +840,7 @@
 				3CB3DA25FF0B85362A2CB336 /* MainTabBarView.swift in Sources */,
 				0E920DA5C4CD37C174939E2B /* MapLegendPillView.swift in Sources */,
 				FE7A8CA504D33A38F764851F /* MapSettingsCard.swift in Sources */,
+				9066D13836DE652C34D200C6 /* MapViewModel+ShelterSearch.swift in Sources */,
 				E3C088B7279101706D18B9C1 /* MapViewModel.swift in Sources */,
 				0E50948AD94AF6FB81C85E06 /* NavigationOverlay.swift in Sources */,
 				4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */,
@@ -861,6 +879,8 @@
 				52AAFCE4428FBA2166F00F30 /* ShareSheet.swift in Sources */,
 				FD89E25DBACB25F8AA5B958C /* ShelterDetailView.swift in Sources */,
 				DAB0109DBB6DDEE3BEFD4973 /* ShelterItem.swift in Sources */,
+				45E6FA46EDCBC1C0EF106B06 /* ShelterRouteService.swift in Sources */,
+				3C14631EACFE5C7E24E1C30C /* ShelterSearchService.swift in Sources */,
 				903993D95B7D33869D8F786E /* SheltersAPI.swift in Sources */,
 				A3634B7287039BF6F62D9DCF /* SirenUAApp.swift in Sources */,
 				DC10839A225D7821729BB7F8 /* SmallIconButtonV4.swift in Sources */,
@@ -909,6 +929,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -931,6 +952,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sources/SirenUA/SirenUA.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				INFOPLIST_FILE = Sources/SirenUA/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -952,6 +974,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sources/SirenUA/SirenUA.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				INFOPLIST_FILE = Sources/SirenUA/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -971,6 +994,7 @@
 				CODE_SIGNING_REQUIRED = YES;
 				CODE_SIGN_ENTITLEMENTS = Sources/SirenUANotificationService/SirenUANotificationService.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				INFOPLIST_FILE = Sources/SirenUANotificationService/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -990,6 +1014,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1039,10 +1064,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1062,7 +1085,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -1075,6 +1097,7 @@
 				CODE_SIGNING_REQUIRED = YES;
 				CODE_SIGN_ENTITLEMENTS = Sources/SirenUANotificationService/SirenUANotificationService.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				INFOPLIST_FILE = Sources/SirenUANotificationService/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1124,10 +1147,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = B7WVJ3B4B7;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -1140,7 +1161,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;

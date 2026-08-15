@@ -13,38 +13,17 @@ struct ShelterDetailView: View {
     let onStartNavigation: () -> Void
 
     private var shelterIcon: String {
-        let nameLower = (shelter.name ?? "").lowercased()
-        if nameLower.contains("метро") || nameLower.contains("subway") {
-            return "tram.fill"
-        } else if nameLower.contains("паркінг") || nameLower.contains("парковка") || nameLower.contains("parking") {
-            return "parkingsign.circle.fill"
-        } else if nameLower.contains("протирадіаційн") || nameLower.contains("пру") || nameLower.contains("радіаці") {
-            return "radiation"
-        } else if nameLower.contains("бункер") || nameLower.contains("bunker") {
-            return "shield.checkered"
-        } else {
-            return "shield.fill"
-        }
+        ShelterType.iconName(for: shelter.name ?? "")
     }
 
     private var distanceText: String? {
         guard let route else { return nil }
-        let meters = Int(route.distance)
-        return meters >= 1000
-            ? String(format: "%.1f км", Double(meters) / 1000)
-            : "\(meters) м"
+        return ShelterFormatter.formatDistance(meters: route.distance)
     }
 
     private var timeText: String? {
         guard let route else { return nil }
-        let minutes = Int(route.expectedTravelTime / 60)
-        if minutes < 60 {
-            return "\(minutes) хв"
-        } else {
-            let h = minutes / 60
-            let m = minutes % 60
-            return m > 0 ? "\(h) год \(m) хв" : "\(h) год"
-        }
+        return ShelterFormatter.formatTravelTime(seconds: route.expectedTravelTime)
     }
 
     var body: some View {

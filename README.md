@@ -1,104 +1,82 @@
-# SirenUA - iOS додаток для відображення повітряних тривог
+# SirenUA - iOS додаток раннього попередження про повітряні загрози
 
-Це iOS додаток на SwiftUI, який відображає активні повітряні тривоги в Україні на інтерактивній карті.
+SirenUA — це сучасний iOS додаток на SwiftUI для моніторингу повітряних тривог, прогнозування векторів загроз (ракети, дрони, балістика) за допомогою ШІ та миттєвого пошуку найближчих захисних споруд і бомбосховищ.
 
-## 📱 Функціональність
+## 📱 Ключова функціональність
 
-- 🗺️ Інтерактивна карта України з точками тривог
-- 🚨 Відображення активних тривог (червоні індикатори)
-- ✅ Відображення неактивних тривог (зелені індикатори)
-- 📋 Картка статусу з кількістю активних тривог
-- 📄 Детальна інформація про кожну тривогу
+- 🗺️ **Інтерактивна карта України**: Візуалізація загроз у реальному часі (червоні зони тривог, жовті зони підвищеної небезпеки, комети траєкторій польоту БПЛА/ракет).
+- 🛡️ **Система пошуку укриттів та навігації**:
+  - **Миттєве центрування карти**: При пошуку укриття карта плавно фокусується на користувачеві.
+  - **Режими пошуку**: Пішохідний (`figure.walk`) та автомобільний (`car.fill`) із налаштуванням радіусу пошуку (0.5–5 км для пішоходів, 1–20 км для авто).
+  - **Маршрутизація**: Автоматична побудова безпечного маршруту через `MKDirections` з відображенням відстані та часу пересування.
+  - **Фільтрація та дедуплікація**: Використання виключно об'єктів цивільного захисту (бомбосховища, станції метро, підземні паркінги, ПРУ).
+- 🤖 **ШІ-Радар та Аналітика**: Оцінка вірогідності загроз, динамічний ETA підльоту та автоматична агрегація даних.
+- 🔔 **Гнучкі сповіщення**: 6 незалежних тогглів (критичні сповіщення, тривога, ШІ-загрози, відбій, вібрація) з підтримкою Notification Service Extension.
+- 🧭 **4-панельна навігація**: Таббар Glassmorphism (Карта, Хронологія, Укриття, Профіль).
 
-## 🏗️ Архітектура
+## 🏗️ Архітектура додатку
 
-### Мережевий шар (NetworkManager)
-- Async/Await для асинхронних запитів
-- Мок-дані для симуляції API (alerts.in.ua)
-- ObservableObject для управління станом
+### Модулі та сервіси (`Sources/SirenUA/`)
 
-### SwiftUI компоненти
-- **MapView**: Карта з анотаціями тривог
-- **AlertStatusCard**: Картка статусу внизу екрана
-- **AlertDetailView**: Детальний вигляд тривоги
-- **SirenUAApp**: Main entry point
+```text
+Sources/SirenUA/
+├── Models/
+│   ├── AlertRegion.swift               # Модель областей, статусів тривог та загроз
+│   ├── ShelterItem.swift               # ShelterItem, ShelterType enum, ShelterFormatter
+│   ├── EventType.swift                 # Типи подій (alarm, threat, clear) та звукова політика
+│   └── ThreatConstants.swift           # Константи типів загроз (Shahed, Ballistic тощо)
+├── Services/
+│   ├── ShelterSearchService.swift      # Пошук укриттів (OSM API + MKLocalSearch fallback)
+│   └── ShelterRouteService.swift       # Розрахунок маршрутів та адаптивної камери карти
+├── ViewModels/
+│   ├── AlertViewModelV3.swift          # Управління станом тривог та ШІ-загроз
+│   ├── MapViewModel.swift              # Управління станом карти, фокусом та таббаром
+│   └── MapViewModel+ShelterSearch.swift# Розширення пошуку укриттів і центрування
+├── Managers/
+│   ├── NetworkManager.swift            # Мережевий шар API (Threats, Alerts, Shelters)
+│   ├── LocationManager.swift           # Робота з CoreLocation та GPS-фіксацією
+│   ├── NotificationManager.swift       # Делегат FCM пуш-сповіщень та підписок
+│   └── GeoJSONManager.swift            # Завантаження та парсинг геополігонів областей
+├── Views/
+│   ├── Main/
+│   │   ├── ContentView.swift           # Головний екран картографічного інтерфейсу
+│   │   ├── ContentView+MapLayers.swift # Полігони областей, стилі карти, трекінг
+│   │   └── ContentView+Sheets.swift    # Маршрутизація модальних вікон
+│   ├── Components/
+│   │   ├── MainTabBarView.swift        # 4-кнопковий Capsule Tab Bar з Glassmorphism
+│   │   ├── BottomDashboardV4.swift     # Інтерактивна панель пошуку укриттів
+│   │   ├── ShelterDetailView.swift     # Детальна картка знайденого укриття та CTA
+│   │   ├── NavigationOverlay.swift     # HUD покрокової GPS-навігації
+│   │   └── ThreatMapContent.swift      # MapContent шари, анотації та комети
+│   └── Settings/
+│       └── Cards/MapSettingsCard.swift # Налаштування радіусу пішки / на авто
+```
 
-## 🚀 Запуск проєкту
+## 🚀 Збірка та запуск
 
 ### Вимоги
 - iOS 17.0+
-- Xcode 15.0+
+- Xcode 15.0+ / Xcode 16+
+- XcodeGen (`brew install xcodegen`)
 
-### Інструкції
+### Команди збірки
 
-1. **Відкрийте проєкт у Xcode:**
+1. **Генерація проекту через XcodeGen:**
    ```bash
-   open SirenUA/SirenUA.xcodeproj
+   cd SirenUA
+   xcodegen generate
    ```
 
-2. **Виберіть ціль:** `SirenUA`
-3. **Виберіть симулятор:** iPhone 16 Pro Max або будь-який інший iOS 17+ симулятор
-4. **Натисніть Run (⌘R)**
+2. **Запуск збірки через xcodebuild:**
+   ```bash
+   xcodebuild -project SirenUA.xcodeproj -scheme SirenUA -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build CODE_SIGNING_ALLOWED=NO
+   ```
 
-### Команда для командного рядка
-
-```bash
-cd SirenUA
-swift build
-```
-
-## 📁 Структура проєкту
-
-```
-SirenUA/
-├── Sources/SirenUA/
-│   ├── SirenUAApp.swift       # Main app entry point
-│   ├── SceneDelegate.swift    # Scene delegate for UIKit integration
-│   ├── NetworkManager.swift   # Network layer with mock data
-│   ├── ContentView.swift      # Main view with map
-│   ├── MapView.swift          # Interactive map
-│   ├── AlertStatusCard.swift  # Status card
-│   └── AlertDetailView.swift  # Alert details
-├── Tests/SirenUATests/
-│   └── SirenUATests.swift     # Unit tests
-├── Package.swift              # Swift Package Manager config
-├── Info.plist                 # App configuration
-└── create_xcode_project.sh    # Script to create Xcode project
-```
-
-## 🎨 Дизайн
-
-- **Активні тривоги**: Червоні індикатори на карті
-- **Неактивні тривоги**: Зелені індикатори
-- **UI**: Сучасний SwiftUI дизайн з закругленими кутами та тінями
-- **Кольори**: Дотримуються гайдлайнів Apple Human Interface Guidelines
-
-## 📝 Додаткова інформація
-
-### Мок-дані
-Зараз додаток використовує статичні мок-дані для демонстрації:
-```json
-[
-  {
-    "id": "1",
-    "region": "Kyiv",
-    "active": true,
-    "type": "air_raid",
-    "changed": "2026-06-26T12:00:00Z"
-  }
-]
-```
-
-### Майбутнє розширення
-- Реалізація справжнього API alerts.in.ua
-- Підтримка оновлення в реальному часі через WebSocket
-- Геолокація для визначення близьких тривог
-- Налаштування сповіщень
+3. **Запуск юніт-тестів:**
+   ```bash
+   xcodebuild test -project SirenUA.xcodeproj -scheme SirenUA -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
+   ```
 
 ## 📄 Ліцензія
 
-MIT
-
-## 🤝 Внесок
-
-Звітите про проблеми та пропонуйте покращення через GitHub Issues.
+Proprietary / SirenUA Team
