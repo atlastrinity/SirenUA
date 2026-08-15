@@ -137,14 +137,14 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
     var id: String { threat_id }
 
     var originCoordinate: CLLocationCoordinate2D? {
+        if let transit = transit_from, let coord = RegionRegistry.regionalCoordinates[transit] {
+            return coord
+        }
         if let lat = origin_latitude, let lon = origin_longitude {
             return CLLocationCoordinate2D(latitude: lat, longitude: lon)
         }
         if let lat = launch_sector_latitude, let lon = launch_sector_longitude {
             return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        }
-        if let transit = transit_from, let coord = RegionRegistry.regionalCoordinates[transit] {
-            return coord
         }
         return nil
     }
