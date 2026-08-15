@@ -56,11 +56,11 @@ final class MapViewModel: ObservableObject {
     @Published var routeErrorMessage: String? = nil
     @Published var shelterInfoMessage: String? = nil
     
-    // Initial camera focused on Ukraine overview
+    // Initial camera focused on Ukraine combat theater overview
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 48.6, longitude: 31.5),
-            span: MKCoordinateSpan(latitudeDelta: 5.5, longitudeDelta: 8.5)
+            center: CLLocationCoordinate2D(latitude: 48.6, longitude: 31.8),
+            span: MKCoordinateSpan(latitudeDelta: 5.2, longitudeDelta: 7.8)
         )
     )
 
@@ -142,12 +142,12 @@ final class MapViewModel: ObservableObject {
                 let centerLat = (minLat + maxLat) / 2.0
                 let centerLon = (minLon + maxLon) / 2.0
                 
-                // Дельта-запас для вертикальних екранів iPhone
-                let rawLatDelta = max((maxLat - minLat) * 1.55, 2.5)
-                let rawLonDelta = max((maxLon - minLon) * 1.65, 3.8)
+                // Оптимальний запас для екрану iPhone без надмірного віддалення
+                let rawLatDelta = max((maxLat - minLat) * 1.18, 2.2)
+                let rawLonDelta = max((maxLon - minLon) * 1.18, 3.0)
                 
-                let latDelta = min(rawLatDelta, 18.0)
-                let lonDelta = min(rawLonDelta, 28.0)
+                let latDelta = min(rawLatDelta, 5.2)
+                let lonDelta = min(rawLonDelta, 7.8)
                 
                 let region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
@@ -164,10 +164,10 @@ final class MapViewModel: ObservableObject {
             }
         }
         
-        // Масштаб за замовчуванням (Україна з полями)
+        // Масштаб за замовчуванням (Театр дій України без вильоту за кордон)
         let defaultRegion = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656),
-            span: MKCoordinateSpan(latitudeDelta: 9.5, longitudeDelta: 16.5)
+            center: CLLocationCoordinate2D(latitude: 48.6, longitude: 31.8),
+            span: MKCoordinateSpan(latitudeDelta: 5.2, longitudeDelta: 7.8)
         )
         if animated {
             withAnimation(.easeInOut(duration: 1.5)) {
