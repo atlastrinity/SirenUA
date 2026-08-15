@@ -9,19 +9,69 @@ extension AdminViewModel {
     func performDiagnostics() async {
         let startTime = Date()
         
-        // 1. Alerts server ping
+        // 1. Tier 1: UkraineAlarm API v3 ping
+        do {
+            var req = URLRequest(url: URL(string: "https://api.ukrainealarm.com/api/v3/alerts")!)
+            req.timeoutInterval = 3.0
+            req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
+            let start = Date()
+            let (_, res) = try await URLSession.shared.data(for: req)
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
+            if let http = res as? HTTPURLResponse {
+                if http.statusCode == 200 {
+                    ukraineAlarmStatus = "ONLINE (\(ms) ms)"
+                } else if http.statusCode == 401 || http.statusCode == 403 {
+                    ukraineAlarmStatus = "ОЧІКУЄ КЛЮЧ (\(ms) ms)"
+                } else {
+                    ukraineAlarmStatus = "HTTP \(http.statusCode)"
+                }
+            } else {
+                ukraineAlarmStatus = "ERROR"
+            }
+        } catch { ukraineAlarmStatus = "OFFLINE" }
+        
+        // 2. Tier 2: UBilling Дзеркало ping
         do {
             var req = URLRequest(url: URL(string: "https://ubilling.net.ua/aerialalerts/")!)
             req.timeoutInterval = 3.0
+            let start = Date()
             let (_, res) = try await URLSession.shared.data(for: req)
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
             if let http = res as? HTTPURLResponse, http.statusCode == 200 {
-                alertsStatus = "ONLINE"
+                ubillingStatus = "ONLINE (\(ms) ms)"
+                alertsStatus = ubillingStatus
             } else {
+                ubillingStatus = "ERROR"
                 alertsStatus = "ERROR"
             }
-        } catch { alertsStatus = "OFFLINE" }
+        } catch { 
+            ubillingStatus = "OFFLINE"
+            alertsStatus = "OFFLINE"
+        }
         
-        // 2. Analytics threat server ping
+        // 3. Tier 3: Alerts.in.ua API ping
+        do {
+            var req = URLRequest(url: URL(string: "https://api.alerts.in.ua/v1/alerts/active.json")!)
+            req.timeoutInterval = 3.0
+            let start = Date()
+            let (_, res) = try await URLSession.shared.data(for: req)
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
+            if let http = res as? HTTPURLResponse {
+                if http.statusCode == 200 {
+                    alertsInUaStatus = "ONLINE (\(ms) ms)"
+                } else if http.statusCode == 401 || http.statusCode == 403 {
+                    alertsInUaStatus = "ОЧІКУЄ ТОКЕН (\(ms) ms)"
+                } else if http.statusCode == 429 {
+                    alertsInUaStatus = "ЛІМІТ ЗАПИТІВ"
+                } else {
+                    alertsInUaStatus = "HTTP \(http.statusCode)"
+                }
+            } else {
+                alertsInUaStatus = "ERROR"
+            }
+        } catch { alertsInUaStatus = "OFFLINE" }
+        
+        // 4. Analytics threat server backend ping
         guard let threatsUrl = URL(string: "\(serverURL)/api/threats") else { return }
         do {
             let req = makeAdminRequest(url: threatsUrl)
@@ -30,6 +80,7 @@ extension AdminViewModel {
             if let http = res as? HTTPURLResponse {
                 if http.statusCode == 200 {
                     threatsStatus = "ONLINE (\(latency) ms)"
+                    serverLatencyMs = latency
                 } else {
                     threatsStatus = "ERROR (\(http.statusCode))"
                 }
@@ -41,14 +92,15 @@ extension AdminViewModel {
             serverLatencyMs = nil
         }
         
-        // 3. Gemini status ping
+        // 5. Gemini status ping
         guard let geminiUrl = URL(string: "\(serverURL)/api/gemini/status") else { return }
         do {
             let (data, _) = try await fetchAdminData(from: geminiUrl)
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let status = json["status"] as? String {
                 if status == "ok" {
-                    geminiStatus = "АКТИВНИЙ (OK)"
+                    let keys = json["keys_count"] as? Int ?? 1
+                    geminiStatus = "АКТИВНИЙ (\(keys) key)"
                 } else if status == "mock" {
                     geminiStatus = "MOCK РЕЖИМ"
                 } else {

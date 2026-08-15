@@ -15,6 +15,9 @@ public enum ThreatConstants {
     public static let su35Alt = "su35"
     public static let iskander = "iskander"
     public static let artillery = "artillery"
+    public static let urbanFights = "urban_fights"
+    public static let chemical = "chemical"
+    public static let nuclear = "nuclear"
     public static let zircon = "zircon"
     public static let mlrs = "mlrs"
     public static let fpv = "fpv"
@@ -34,6 +37,9 @@ public enum ThreatConstants {
         su35,
         iskander,
         artillery,
+        urbanFights,
+        chemical,
+        nuclear,
         zircon,
         mlrs,
         fpv,
@@ -57,6 +63,9 @@ public enum ThreatConstants {
         case su35, su35Alt: return "Су-35/Су-57 (тактична авіація)"
         case iskander: return "Іскандер-М"
         case artillery: return "Артилерія"
+        case urbanFights: return "Вуличні бої"
+        case chemical: return "Хімічна загроза"
+        case nuclear: return "Радіаційна небезпека"
         case zircon: return "Гіперзвукова ракета 3M22 Циркон"
         case mlrs: return "РСЗВ (Торнадо-С / Град / Ураган)"
         case fpv: return "FPV дрон / Ланцет"
@@ -80,6 +89,9 @@ public enum ThreatConstants {
         case su35, su35Alt: return "Су-35"
         case iskander: return "Іскандер-М"
         case artillery: return "обстріл"
+        case urbanFights: return "вуличні бої"
+        case chemical: return "хімнебезпека"
+        case nuclear: return "радіація"
         case zircon: return "Циркон"
         case mlrs: return "РСЗВ"
         case fpv: return "FPV-дрон"
@@ -115,6 +127,12 @@ public enum ThreatConstants {
             return "Відбій загрози: Іскандер"
         case artillery:
             return "Відбій загрози: Артилерія"
+        case urbanFights:
+            return "Відбій загрози: Вуличні бої"
+        case chemical:
+            return "Відбій загрози: Хімічна небезпека"
+        case nuclear:
+            return "Відбій загрози: Радіаційна небезпека"
         case zircon:
             return "Відбій загрози: Циркон"
         case mlrs:
@@ -170,6 +188,9 @@ public enum ThreatConstants {
         case tu95, tu22m3, su35, su35Alt: return "✈️"
         case iskander: return "🎯"
         case artillery, mlrs: return "💥"
+        case urbanFights: return "🛡"
+        case chemical: return "🧪"
+        case nuclear: return "☢️"
         case fpv: return "🛸"
         case recon, reconUav: return "👁"
         case officialAlarm: return "🚨"
@@ -191,6 +212,9 @@ public enum ThreatConstants {
         case su35, su35Alt: return "airplane.departure"
         case iskander: return "flame.fill"
         case artillery: return "burst.fill"
+        case urbanFights: return "shield.slash.fill"
+        case chemical: return "smoke.fill"
+        case nuclear: return "atom"
         case zircon: return "bolt.horizontal.fill"
         case mlrs: return "sparkles"
         case fpv: return "viewfinder"
@@ -211,6 +235,9 @@ public enum ThreatConstants {
         case tu95, tu22m3: return .red
         case su35, su35Alt: return .orange
         case artillery: return .orange
+        case urbanFights: return .red
+        case chemical: return .yellow
+        case nuclear: return .purple
         case fpv: return .yellow
         case recon, reconUav: return .blue
         case officialAlarm: return .red
@@ -234,6 +261,9 @@ public enum ThreatConstants {
         case mlrs: return 2200.0
         case fpv: return 140.0
         case artillery: return 1200.0
+        case urbanFights: return 0.0
+        case chemical: return 50.0
+        case nuclear: return 0.0
         case recon, reconUav: return 120.0
         case officialAlarm: return 0.0
         default: return 300.0
@@ -254,6 +284,9 @@ public enum ThreatConstants {
         case su35, su35Alt: return isRegex ? 3600 : 2700
         case iskander: return isRegex ? 1800 : 1200
         case artillery: return 1800
+        case urbanFights: return 3600
+        case chemical: return 3600
+        case nuclear: return 7200
         case zircon: return isRegex ? 1200 : 600
         case mlrs: return isRegex ? 1800 : 1200
         case fpv: return 1800
@@ -277,6 +310,9 @@ public enum ThreatConstants {
         case su35, su35Alt: return isRegex ? "до 15 хв" : "до 20 хв"
         case iskander: return isRegex ? "до 5 хв" : "до 25 хв"
         case artillery: return isRegex ? "до 5 хв" : "до 10 хв"
+        case urbanFights: return "в зоні"
+        case chemical: return isRegex ? "до 15 хв" : "до 30 хв"
+        case nuclear: return "в зоні"
         case zircon: return isRegex ? "до 3 хв" : "до 5 хв"
         case mlrs: return isRegex ? "до 5 хв" : "до 10 хв"
         case fpv: return isRegex ? "до 15 хв" : "до 20 хв"
@@ -301,6 +337,9 @@ public enum ThreatConstants {
         case iskander:       return "ударів балістичними ракетами Іскандер-М"
         case zircon:         return "гіперзвукових ракет Циркон"
         case artillery:      return "артилерійського обстрілу"
+        case urbanFights:   return "вуличних боїв"
+        case chemical:       return "хімічної загрози"
+        case nuclear:        return "радіаційної небезпеки"
         case mlrs:           return "обстрілу з реактивних систем залпового вогню (РСЗВ)"
         case fpv:            return "атаки FPV-дронів"
         case recon, reconUav: return "розвідувальних БпЛА"
@@ -323,6 +362,9 @@ public enum ThreatConstants {
         case su35, su35Alt:  threatName = "Активність Су-34/35 (КАБ/ракети)"
         case iskander:       threatName = "Загроза Іскандер-М"
         case artillery:      threatName = "Загроза артобстрілу"
+        case urbanFights:   threatName = "Загроза вуличних боїв"
+        case chemical:       threatName = "Хімічна небезпека"
+        case nuclear:        threatName = "Радіаційна небезпека"
         case zircon:         threatName = "Загроза ракети Циркон"
         case mlrs:           threatName = "Загроза обстрілу РСЗВ"
         case fpv:            threatName = "Загроза FPV-дронів"

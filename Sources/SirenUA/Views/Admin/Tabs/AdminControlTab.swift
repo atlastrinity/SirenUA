@@ -631,8 +631,10 @@ struct AdminControlTab: View {
             }
             
             VStack(spacing: 8) {
-                adminStatusRow(name: "Офіційні тривоги (ubilling API)", status: viewModel.alertsStatus)
-                adminStatusRow(name: "Бекенд загроз (SirenUA Backend)", status: viewModel.threatsStatus)
+                adminStatusRow(name: "1. UkraineAlarm API v3 (Tier 1)", status: viewModel.ukraineAlarmStatus)
+                adminStatusRow(name: "2. UBilling Дзеркало (Tier 2)", status: viewModel.ubillingStatus)
+                adminStatusRow(name: "3. Alerts.in.ua API (Tier 3)", status: viewModel.alertsInUaStatus)
+                adminStatusRow(name: "Сервер загроз (SirenUA Backend)", status: viewModel.threatsStatus)
                 adminStatusRow(name: "Аналізатор ШІ (Gemini 2.5 Flash)", status: viewModel.geminiStatus)
             }
         }
@@ -667,7 +669,7 @@ struct AdminControlTab: View {
         if upper.contains("ONLINE") || upper.contains("АКТИВНИЙ") || upper.contains("OK") {
             return ChartColorTheme.confirmed
         }
-        if upper.contains("CHECKING") || upper.contains("MOCK") {
+        if upper.contains("CHECKING") || upper.contains("MOCK") || upper.contains("ОЧІКУЄ") || upper.contains("ПЕРЕВІРКА") {
             return ChartColorTheme.active
         }
         return ChartColorTheme.overestimated

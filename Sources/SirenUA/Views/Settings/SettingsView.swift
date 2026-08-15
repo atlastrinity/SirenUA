@@ -32,7 +32,9 @@ struct SettingsView: View {
         case online(label: String)
         case offline(error: String)
     }
-    @State private var alertsServerStatus:  ServerStatus = .checking
+    @State private var ukraineAlarmStatus:  ServerStatus = .checking
+    @State private var ubillingStatus:      ServerStatus = .checking
+    @State private var alertsInUaStatus:    ServerStatus = .checking
     @State private var threatsServerStatus: ServerStatus = .checking
     @State private var geminiServerStatus:  ServerStatus = .checking
     // MARK: Region list — uses centralized RegionRegistry
@@ -49,15 +51,21 @@ struct SettingsView: View {
         // Delay slightly to let the sheet transition animation complete smoothly
         try? await Task.sleep(nanoseconds: 350_000_000)
         
-        alertsServerStatus  = .checking
+        ukraineAlarmStatus  = .checking
+        ubillingStatus      = .checking
+        alertsInUaStatus    = .checking
         threatsServerStatus = .checking
         geminiServerStatus  = .checking
 
-        async let alertsPing  = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
-        async let threatsPing = ping(url: "\(NetworkManager.serverURL)/api/threats", method: "GET")
-        async let geminiPing  = checkGeminiStatus()
+        async let uaPing       = ping(url: "https://api.ukrainealarm.com/api/v3/alerts", method: "GET")
+        async let ubillingPing = ping(url: "https://ubilling.net.ua/aerialalerts/", method: "HEAD")
+        async let alertsInPing = ping(url: "https://api.alerts.in.ua/v1/alerts/active.json", method: "GET")
+        async let threatsPing  = ping(url: "\(NetworkManager.serverURL)/api/threats", method: "GET")
+        async let geminiPing   = checkGeminiStatus()
 
-        alertsServerStatus  = await alertsPing
+        ukraineAlarmStatus  = await uaPing
+        ubillingStatus      = await ubillingPing
+        alertsInUaStatus    = await alertsInPing
         threatsServerStatus = await threatsPing
         geminiServerStatus  = await geminiPing
     }
@@ -78,7 +86,8 @@ struct SettingsView: View {
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let status = json["status"] as? String {
                     if status == "ok" {
-                        return .online(label: "Активний (\(ms) ms)")
+                        let keys = json["keys_count"] as? Int ?? 1
+                        return .online(label: "Активний (\(keys) key · \(ms) ms)")
                     } else if status == "mock" {
                         return .online(label: "Mock режим")
                     } else {
@@ -98,13 +107,22 @@ struct SettingsView: View {
         guard let url = URL(string: urlString) else { return .offline(error: "Невірна URL") }
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 5.0
+        request.timeoutInterval = 4.0
+        request.setValue("SirenUA/1.0", forHTTPHeaderField: "User-Agent")
         do {
             let start = Date()
             let (_, response) = try await URLSession.shared.data(for: request)
             let ms = Int(Date().timeIntervalSince(start) * 1000)
-            if let http = response as? HTTPURLResponse, (200...399).contains(http.statusCode) {
-                return .online(label: "\(ms) ms")
+            if let http = response as? HTTPURLResponse {
+                if (200...299).contains(http.statusCode) {
+                    return .online(label: "\(ms) ms")
+                } else if http.statusCode == 401 || http.statusCode == 403 {
+                    return .online(label: "Очікує ключ (\(ms) ms)")
+                } else if http.statusCode == 429 {
+                    return .online(label: "Ліміт запитів")
+                } else {
+                    return .offline(error: "HTTP \(http.statusCode)")
+                }
             }
             return .offline(error: "HTTP помилка")
         } catch {
@@ -267,12 +285,16 @@ struct SettingsView: View {
 
     private var diagnosticsCard: some View {
         ServerDiagnosticsCard(
-            alertsServerStatus: alertsServerStatus,
+            ukraineAlarmStatus: ukraineAlarmStatus,
+            ubillingStatus: ubillingStatus,
+            alertsInUaStatus: alertsInUaStatus,
             threatsServerStatus: threatsServerStatus,
             geminiServerStatus: geminiServerStatus,
             onRefresh: {
                 haptic(.medium)
-                alertsServerStatus  = .checking
+                ukraineAlarmStatus  = .checking
+                ubillingStatus      = .checking
+                alertsInUaStatus    = .checking
                 threatsServerStatus = .checking
                 geminiServerStatus  = .checking
                 Task { await checkServerStatus() }

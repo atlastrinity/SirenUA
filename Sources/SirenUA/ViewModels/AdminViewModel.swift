@@ -12,6 +12,9 @@ import UIKit
 @MainActor
 class AdminViewModel: ObservableObject {
     // Server status pings
+    @Published var ukraineAlarmStatus: String = "Перевірка..."
+    @Published var ubillingStatus: String = "Перевірка..."
+    @Published var alertsInUaStatus: String = "Перевірка..."
     @Published var alertsStatus: String = "Перевірка..."
     @Published var threatsStatus: String = "Перевірка..."
     @Published var geminiStatus: String = "Перевірка..."
@@ -478,17 +481,17 @@ class AdminViewModel: ObservableObject {
         triggerHaptic("medium")
         do {
             let req = makeAdminRequest(url: url, method: "POST")
-            _ = try? await URLSession.shared.data(for: req)
+            _ = try await URLSession.shared.data(for: req)
             
             // Wait 2.5 seconds for process restart
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            try await Task.sleep(nanoseconds: 2_500_000_000)
             
             // Poll health check to confirm server is back online
             for _ in 0..<10 {
                 if await checkServerAlive() {
                     break
                 }
-                try? await Task.sleep(nanoseconds: 800_000_000)
+                try await Task.sleep(nanoseconds: 800_000_000)
             }
             
             simSuccessText = "Сервер успішно перезавантажено!"

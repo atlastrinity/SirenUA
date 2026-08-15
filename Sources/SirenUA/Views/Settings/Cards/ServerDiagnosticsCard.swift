@@ -1,31 +1,49 @@
 import SwiftUI
 
 struct ServerDiagnosticsCard: View {
-    let alertsServerStatus: SettingsView.ServerStatus
+    let ukraineAlarmStatus: SettingsView.ServerStatus
+    let ubillingStatus: SettingsView.ServerStatus
+    let alertsInUaStatus: SettingsView.ServerStatus
     let threatsServerStatus: SettingsView.ServerStatus
     let geminiServerStatus: SettingsView.ServerStatus
     let onRefresh: () -> Void
 
     var body: some View {
-        SettingsCard(title: "Діагностика з'єднання", icon: "network", iconColor: .purple) {
+        SettingsCard(title: "Діагностика з'єднання та API", icon: "network", iconColor: .purple) {
             ServerStatusRow(
-                name: "Основний сервер тривог",
-                url: "ubilling.net.ua",
-                status: alertsServerStatus
+                name: "1. UkraineAlarm API v3 (Tier 1)",
+                url: "api.ukrainealarm.com",
+                status: ukraineAlarmStatus
             )
 
             StyledDivider()
 
             ServerStatusRow(
-                name: "Сервер загроз (Premium)",
-                url: "sirenua-threatserver.onrender.com",
+                name: "2. UBilling Дзеркало (Tier 2)",
+                url: "ubilling.net.ua",
+                status: ubillingStatus
+            )
+
+            StyledDivider()
+
+            ServerStatusRow(
+                name: "3. Alerts.in.ua API (Tier 3)",
+                url: "api.alerts.in.ua",
+                status: alertsInUaStatus
+            )
+
+            StyledDivider()
+
+            ServerStatusRow(
+                name: "Сервер загроз (SirenUA Backend)",
+                url: NetworkManager.serverURL.replacingOccurrences(of: "https://", with: "").replacingOccurrences(of: "http://", with: ""),
                 status: threatsServerStatus
             )
 
             StyledDivider()
 
             ServerStatusRow(
-                name: "Аналізатор ШІ (Gemini)",
+                name: "Аналізатор ШІ (Gemini 2.5)",
                 url: "gemini-2.5-flash",
                 status: geminiServerStatus
             )
@@ -45,3 +63,4 @@ struct ServerDiagnosticsCard: View {
         }
     }
 }
+
