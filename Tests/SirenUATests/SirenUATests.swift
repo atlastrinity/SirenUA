@@ -719,5 +719,37 @@ final class SirenUATests: XCTestCase {
         let validNearby = farAwaySubset.filter { $0.distance_m <= maxSearchRadiusMeters }
         XCTAssertTrue(validNearby.isEmpty, "Shelters 350km away must be strictly excluded!")
     }
+
+    func testTrackedRegionsToggleAndExclusionLogic() {
+        let settings = NotificationSettings.shared
+        
+        // 1. All regions tracked -> isTracked is true for any region
+        settings.allRegionsTracked = true
+        settings.trackedRegionsString = RegionRegistry.allRegions.joined(separator: ";")
+        XCTAssertTrue(settings.isTracked("Київська область"))
+        XCTAssertTrue(settings.isTracked("Львівська область"))
+
+        // 2. Turning off all regions -> trackedRegionsString empty -> isTracked must be false for ALL regions
+        settings.allRegionsTracked = false
+        settings.trackedRegionsString = ""
+        XCTAssertFalse(settings.isTracked("Київська область"), "When allRegionsTracked is false and string is empty, isTracked must be false")
+        XCTAssertFalse(settings.isTracked("Львівська область"))
+        XCTAssertFalse(settings.isTracked("Одеська область"))
+
+        // 3. Enabling a specific single region
+        settings.setTracked("Львівська область", isOn: true)
+        XCTAssertTrue(settings.isTracked("Львівська область"))
+        XCTAssertFalse(settings.isTracked("Київська область"))
+        XCTAssertFalse(settings.allRegionsTracked)
+
+        // 4. Removing the single region
+        settings.setTracked("Львівська область", isOn: false)
+        XCTAssertFalse(settings.isTracked("Львівська область"))
+        XCTAssertFalse(settings.allRegionsTracked)
+
+        // Reset to default
+        settings.allRegionsTracked = true
+        settings.trackedRegionsString = RegionRegistry.allRegions.joined(separator: ";")
+    }
 }
 

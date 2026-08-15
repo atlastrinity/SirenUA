@@ -71,7 +71,7 @@ struct ContentView: View {
     private func isRegionTracked(_ name: String) -> Bool {
         if allRegionsTracked { return true }
         let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-        if list.isEmpty { return true }
+        if list.isEmpty { return false }
         return list.contains(name)
     }
 
@@ -123,7 +123,7 @@ struct ContentView: View {
                 }
             }
             
-            if currentList.isEmpty {
+            if currentList.count == allRegionsList.count {
                 allRegionsTracked = true
             } else {
                 allRegionsTracked = false

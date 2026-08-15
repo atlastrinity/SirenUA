@@ -231,7 +231,7 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         let allTracked = Self.sharedDefaults.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
         guard !allTracked else { return true }
         let trackedString = Self.sharedDefaults.string(forKey: Keys.trackedRegionsString) ?? ""
-        guard !trackedString.isEmpty else { return true }
+        guard !trackedString.isEmpty else { return false }
         let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
         return trackedList.contains(regionName)
     }
@@ -244,5 +244,10 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
             list.removeAll { $0 == regionName }
         }
         trackedRegionsString = list.joined(separator: ";")
+        if list.count == RegionRegistry.allRegions.count {
+            allRegionsTracked = true
+        } else {
+            allRegionsTracked = false
+        }
     }
 }

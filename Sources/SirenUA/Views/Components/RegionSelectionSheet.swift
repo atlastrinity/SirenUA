@@ -66,6 +66,8 @@ struct RegionSelectionSheet: View {
                             localAllTracked.toggle()
                             if localAllTracked {
                                 localSelectedSet = Set(allRegionsList)
+                            } else {
+                                localSelectedSet.removeAll()
                             }
                         }
                     }) {
@@ -115,14 +117,16 @@ struct RegionSelectionSheet: View {
                     ScrollView {
                         LazyVStack(spacing: 6) {
                             ForEach(filteredRegions, id: \.self) { regionName in
-                                let isSelected = localAllTracked || localSelectedSet.contains(regionName)
+                                let isSelected = localAllTracked ? true : localSelectedSet.contains(regionName)
 
                                 Button(action: {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                     withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                                         if localAllTracked {
                                             localAllTracked = false
-                                            localSelectedSet = [regionName]
+                                            var newSet = Set(allRegionsList)
+                                            newSet.remove(regionName)
+                                            localSelectedSet = newSet
                                         } else {
                                             if localSelectedSet.contains(regionName) {
                                                 localSelectedSet.remove(regionName)
@@ -132,6 +136,8 @@ struct RegionSelectionSheet: View {
                                         }
                                         if localSelectedSet.count == allRegionsList.count {
                                             localAllTracked = true
+                                        } else {
+                                            localAllTracked = false
                                         }
                                     }
                                 }) {
@@ -206,7 +212,7 @@ struct RegionSelectionSheet: View {
             .onAppear {
                 localAllTracked = allRegionsTracked
                 let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-                if localAllTracked || list.isEmpty {
+                if localAllTracked {
                     localSelectedSet = Set(allRegionsList)
                 } else {
                     localSelectedSet = Set(list)
@@ -217,7 +223,7 @@ struct RegionSelectionSheet: View {
 
     private func saveAndConfirm() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        if localAllTracked || localSelectedSet.isEmpty || localSelectedSet.count == allRegionsList.count {
+        if localAllTracked || localSelectedSet.count == allRegionsList.count {
             allRegionsTracked = true
             trackedRegionsString = allRegionsList.joined(separator: ";")
         } else {
