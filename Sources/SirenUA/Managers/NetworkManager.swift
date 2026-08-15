@@ -19,7 +19,7 @@ final class NetworkManager: Sendable {
             let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
         }
-        return "https://37f7-2a02-2378-104a-46ac-2cc0-171e-561d-efe4.ngrok-free.app"
+        return "https://e349-185-94-219-55.ngrok-free.app"
     }
     static let alertsBaseURL  = "https://ubilling.net.ua/aerialalerts/"
     static let userAgent      = "ios-sirenua/4.2"

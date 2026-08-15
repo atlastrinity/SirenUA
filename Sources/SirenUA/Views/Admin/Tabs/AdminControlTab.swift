@@ -142,8 +142,8 @@ struct AdminControlTab: View {
                         }
 
                         Button(action: {
-                            viewModel.customServerURLSetting = "https://37f7-2a02-2378-104a-46ac-2cc0-171e-561d-efe4.ngrok-free.app"
-                            viewModel.setServerURL("https://37f7-2a02-2378-104a-46ac-2cc0-171e-561d-efe4.ngrok-free.app")
+                            viewModel.customServerURLSetting = "https://e349-185-94-219-55.ngrok-free.app"
+                            viewModel.setServerURL("https://e349-185-94-219-55.ngrok-free.app")
                         }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.triangle.swap")
