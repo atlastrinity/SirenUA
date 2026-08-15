@@ -8,14 +8,12 @@ private let mapLogger = Logger(subsystem: "com.sirenua", category: "Map")
 enum ActiveSheet: Identifiable, Equatable {
     case settings
     case admin
-    case share
     case shelterDetail(MKMapItem)
     
     var id: String {
         switch self {
         case .settings:           return "settings"
         case .admin:              return "admin"
-        case .share:              return "share"
         case .shelterDetail(let item):
             return "shelter_\(item.placemark.coordinate.latitude)_\(item.placemark.coordinate.longitude)"
         }
@@ -68,6 +66,7 @@ struct ContentView: View {
     @AppStorage("trackedRegionsString", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var trackedRegionsString = ""
     @State var showRegionPickerSheet = false
     @State private var showBottomOperationalToast = false
+    @State var showLocationPermissionAlert = false
 
     private func isRegionTracked(_ name: String) -> Bool {
         if allRegionsTracked { return true }
@@ -297,7 +296,25 @@ struct ContentView: View {
                     }
 
                     // Нижній таббар
-                    MainTabBarView(selectedTab: $mapViewModel.selectedTab)
+                    MainTabBarView(
+                        selectedTab: $mapViewModel.selectedTab,
+                        onTabTapped: { tabIndex in
+                            switch tabIndex {
+                            case 0:
+                                mapViewModel.hideShelterPanel()
+                            case 1:
+                                mapViewModel.hideShelterPanel()
+                                mapViewModel.showHistory = true
+                            case 2:
+                                mapViewModel.showShelterPanel(autoHideAfter: 10.0)
+                            case 3:
+                                mapViewModel.hideShelterPanel()
+                                mapViewModel.activeSheet = .settings
+                            default:
+                                break
+                            }
+                        }
+                    )
                 }
             }
             .padding(.bottom, 12)
@@ -348,6 +365,19 @@ struct ContentView: View {
                     )
                 }
         )
+        .alert("Геолокація вимкнена", isPresented: $showLocationPermissionAlert) {
+            Button("Параметри") {
+                #if os(iOS)
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString),
+                   UIApplication.shared.canOpenURL(settingsURL) {
+                    UIApplication.shared.open(settingsURL)
+                }
+                #endif
+            }
+            Button("Скасувати", role: .cancel) { }
+        } message: {
+            Text("Для пошуку найближчих укриттів та прокладання безпечного маршруту дозвольте SirenUA доступ до вашої геопозиції у Параметрах.")
+        }
         .tabHandlers(mapViewModel: mapViewModel)
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
@@ -582,14 +612,15 @@ struct ContentView: View {
             transportType: $mapViewModel.transportType,
             onFindShelter: {
                 mapViewModel.findNearestShelter(
-                    userLoc: currentUserCoordinate,
                     walkingSearchRadius: 1.5,
                     drivingSearchRadius: 10.0,
                     serverURL: NetworkManager.serverURL,
-                    presentSheet: true
+                    presentSheet: true,
+                    onLocationDenied: {
+                        showLocationPermissionAlert = true
+                    }
                 )
             },
-            onShare: { mapViewModel.activeSheet = .share },
             onStatusTap: {
                 if let reg = primaryThreatRegion ?? trackedAlerts.first(where: { $0.isActive }) {
                     mapViewModel.selectedRegionForDetail = reg

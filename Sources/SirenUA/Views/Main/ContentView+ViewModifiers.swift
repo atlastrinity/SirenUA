@@ -9,6 +9,7 @@ struct ContentViewTabHandlers: ViewModifier {
                 switch newValue {
                 case 0:
                     mapViewModel.showHistory = false
+                    mapViewModel.hideShelterPanel()
                 case 1:
                     mapViewModel.hideShelterPanel()
                     mapViewModel.showHistory = true

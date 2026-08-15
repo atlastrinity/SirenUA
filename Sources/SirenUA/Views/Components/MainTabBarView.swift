@@ -5,6 +5,7 @@ import UIKit
 
 struct MainTabBarView: View {
     @Binding var selectedTab: Int
+    var onTabTapped: ((Int) -> Void)? = nil
     
     var body: some View {
         HStack(spacing: 6) {
@@ -44,6 +45,7 @@ struct MainTabBarView: View {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
                 selectedTab = tabIndex
             }
+            onTabTapped?(tabIndex)
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }) {
             VStack(spacing: 3) {

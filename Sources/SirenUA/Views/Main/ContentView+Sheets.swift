@@ -16,19 +16,6 @@ extension ContentView {
         case .admin:
             AdminDashboardView()
 
-        case .share:
-            let shareText: String = {
-                if let shelter = mapViewModel.foundShelter {
-                    let lat = shelter.placemark.coordinate.latitude
-                    let lon = shelter.placemark.coordinate.longitude
-                    let name = shelter.name ?? ""
-                    return "🚨 Увага! Повітряна тривога.\nЗнайдено найближче укриття: \(name)\nКоординати: \(String(format: "%.5f", lat)), \(String(format: "%.5f", lon))"
-                } else {
-                    return "🚨 Увага! Повітряна тривога.\nЗнайдіть найближче безпечне місце."
-                }
-            }()
-            ShareSheet(activityItems: [shareText])
-
         case .shelterDetail(let shelter):
             if !mapViewModel.isNavigating {
                 ShelterDetailView(
@@ -88,14 +75,31 @@ extension ContentView {
         HStack {
             // Ліва прозора кнопка: Наведення на власну локацію
             Button(action: {
-                let coord = currentUserCoordinate
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    mapViewModel.cameraPosition = .region(
-                        MKCoordinateRegion(
-                            center: coord,
-                            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+                if locationManager.isLocationDenied || !locationManager.isLocationServicesEnabled {
+                    showLocationPermissionAlert = true
+                } else if let loc = locationManager.location {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        mapViewModel.cameraPosition = .region(
+                            MKCoordinateRegion(
+                                center: loc.coordinate,
+                                span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+                            )
                         )
-                    )
+                    }
+                } else {
+                    locationManager.requestPermission()
+                    Task {
+                        if let coord = await locationManager.resolveUserCoordinate() {
+                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                mapViewModel.cameraPosition = .region(
+                                    MKCoordinateRegion(
+                                        center: coord,
+                                        span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
             }) {
                 Image(systemName: "location.fill")

@@ -95,16 +95,24 @@ final class MapViewModel: ObservableObject {
     private static let fallbackCoordinate = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
 
     func findNearestShelter(
-        userLoc: CLLocationCoordinate2D,
+        userLoc: CLLocationCoordinate2D? = nil,
         walkingSearchRadius: Double,
         drivingSearchRadius: Double,
         serverURL: String,
-        presentSheet: Bool = false
+        presentSheet: Bool = false,
+        onLocationDenied: (() -> Void)? = nil
     ) {
         guard !isRoutingToShelter else {
             mapVMLogger.debug("Shelter search already in progress — ignoring duplicate request")
             return
         }
+
+        let locManager = LocationManager.shared
+        if locManager.isLocationDenied || !locManager.isLocationServicesEnabled {
+            onLocationDenied?()
+            return
+        }
+
         isRoutingToShelter = true
 
         withAnimation {
@@ -115,18 +123,38 @@ final class MapViewModel: ObservableObject {
         let currentRadius = transportType == .automobile ? drivingSearchRadius : walkingSearchRadius
         let preferredRadiusMeters = max(currentRadius, 0.5) * 1000
         let maxSearchRadiusMeters = transportType == .automobile ? max(preferredRadiusMeters, 20000) : max(preferredRadiusMeters, 5000)
-        
-        mapVMLogger.info("Shelter search started. User: (\(userLoc.latitude), \(userLoc.longitude)), preferred radius: \(preferredRadiusMeters)m, max search radius: \(maxSearchRadiusMeters)m")
 
         Task {
+            // Asynchronously resolve the real live coordinate instead of jumping to a stale/fallback location
+            let resolvedCoord: CLLocationCoordinate2D?
+            if let userLoc = userLoc {
+                resolvedCoord = userLoc
+            } else {
+                resolvedCoord = await locManager.resolveUserCoordinate()
+            }
+
+            guard let finalUserLoc = resolvedCoord else {
+                await MainActor.run {
+                    self.isRoutingToShelter = false
+                    if locManager.isLocationDenied || !locManager.isLocationServicesEnabled {
+                        onLocationDenied?()
+                    } else {
+                        self.routeErrorMessage = "Не вдалося визначити вашу точну геопозицію. Будь ласка, перевірте сигнал GPS та спробуйте ще раз."
+                    }
+                }
+                return
+            }
+
+            mapVMLogger.info("Shelter search started. User: (\(finalUserLoc.latitude), \(finalUserLoc.longitude)), preferred radius: \(preferredRadiusMeters)m, max search radius: \(maxSearchRadiusMeters)m")
+
             // 1. Priority 1: Our server API (real OSM data)
             var apiShelters: [ShelterItem] = []
             do {
                 let networkManager = NetworkManager()
                 apiShelters = try await networkManager.fetchShelters(
                     serverURL: serverURL,
-                    lat: userLoc.latitude,
-                    lon: userLoc.longitude,
+                    lat: finalUserLoc.latitude,
+                    lon: finalUserLoc.longitude,
                     radiusMeters: maxSearchRadiusMeters
                 )
                 mapVMLogger.info("API returned \(apiShelters.count) shelters")
@@ -179,7 +207,7 @@ final class MapViewModel: ObservableObject {
                     self.route = nil
                     self.routeErrorMessage = nil
                     self.isCalculatingRoute = false
-                    self.calculateRoute(from: userLoc, to: closestMapItem)
+                    self.calculateRoute(from: finalUserLoc, to: closestMapItem)
 
                     withAnimation(.easeInOut(duration: 1.0)) {
                         self.cameraPosition = .region(
@@ -195,7 +223,7 @@ final class MapViewModel: ObservableObject {
 
             // 2. Priority 2: Fallback to Apple MKLocalSearch (Civil defense bomb shelters, subway stations & underground parkings only)
             mapVMLogger.info("Falling back to MKLocalSearch for civil defense bomb shelters & underground parkings...")
-            let searchRegion = MKCoordinateRegion(center: userLoc, latitudinalMeters: maxSearchRadiusMeters, longitudinalMeters: maxSearchRadiusMeters)
+            let searchRegion = MKCoordinateRegion(center: finalUserLoc, latitudinalMeters: maxSearchRadiusMeters, longitudinalMeters: maxSearchRadiusMeters)
 
             // Strictly target civil defense bomb shelters, subway stations & underground parkings (excluding rain shelters/bus stops)
             let queries = [
@@ -269,7 +297,7 @@ final class MapViewModel: ObservableObject {
                 }
             }
 
-            let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
+            let userLocation = CLLocation(latitude: finalUserLoc.latitude, longitude: finalUserLoc.longitude)
             let itemsWithDistance = uniqueItems.map { item -> (item: MKMapItem, distance: Double) in
                 let itemLocation = CLLocation(
                     latitude: item.placemark.coordinate.latitude,
@@ -324,7 +352,7 @@ final class MapViewModel: ObservableObject {
                 self.routeErrorMessage = nil
                 self.shelterInfoMessage = warningMsg
                 self.isCalculatingRoute = false
-                self.calculateRoute(from: userLoc, to: closestItem)
+                self.calculateRoute(from: finalUserLoc, to: closestItem)
 
                 withAnimation(.easeInOut(duration: 1.0)) {
                     self.cameraPosition = .region(

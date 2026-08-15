@@ -644,4 +644,44 @@ final class SirenUATests: XCTestCase {
             )
         }
     }
+
+    func testShelterPanelDismissalAndAutoReset() async {
+        let mapVM = await MainActor.run { () -> MapViewModel in
+            let vm = MapViewModel()
+            vm.selectedTab = 2
+            vm.showShelterPanel(autoHideAfter: 0.05)
+            XCTAssertTrue(vm.isShelterPanelVisible)
+            return vm
+        }
+
+        try? await Task.sleep(nanoseconds: 120_000_000)
+
+        await MainActor.run {
+            XCTAssertFalse(mapVM.isShelterPanelVisible)
+            XCTAssertEqual(mapVM.selectedTab, 0)
+
+            mapVM.selectedTab = 2
+            mapVM.isShelterPanelVisible = true
+            mapVM.hideShelterPanel()
+            XCTAssertFalse(mapVM.isShelterPanelVisible)
+            XCTAssertEqual(mapVM.selectedTab, 0)
+        }
+    }
+
+    func testLocationManagerPermissionsAndResolution() async {
+        await MainActor.run {
+            let locManager = LocationManager.shared
+            XCTAssertNotNil(locManager.authorizationStatus)
+            if locManager.authorizationStatus == .denied || locManager.authorizationStatus == .restricted {
+                XCTAssertTrue(locManager.isLocationDenied)
+                XCTAssertFalse(locManager.isLocationAuthorized)
+            }
+        }
+
+        let coord = await LocationManager.shared.resolveUserCoordinate(timeoutSeconds: 0.1)
+        if let location = await MainActor.run(body: { LocationManager.shared.location }) {
+            XCTAssertEqual(coord?.latitude, location.coordinate.latitude)
+            XCTAssertEqual(coord?.longitude, location.coordinate.longitude)
+        }
+    }
 }

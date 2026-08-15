@@ -11,7 +11,6 @@ struct BottomDashboardV4: View {
     let isSearchingShelter: Bool
     @Binding var transportType: MKDirectionsTransportType
     var onFindShelter: () -> Void
-    var onShare: () -> Void
     var onStatusTap: () -> Void
 
     let threatConfidence: Int?
@@ -33,7 +32,7 @@ struct BottomDashboardV4: View {
     }
     
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
             // ЛІВА ЧАСТИНА: Статус загрози, Регіон та ШІ-Концентрація
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -56,7 +55,7 @@ struct BottomDashboardV4: View {
                         .font(.system(size: 12, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.85)
                     
                     if let conf = threatConfidence {
                         HStack(spacing: 3) {
@@ -79,10 +78,10 @@ struct BottomDashboardV4: View {
                 HStack(spacing: 6) {
                     HStack(spacing: 3) {
                         Image(systemName: "location.fill")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.cyan)
                         Text(primaryRegionName ?? "Україна")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(.white.opacity(0.95))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
@@ -109,55 +108,21 @@ struct BottomDashboardV4: View {
             
             Spacer(minLength: 4)
             
-            // ПРАВА ЧАСТИНА: Збільшені та покращені ергономічні кнопки
+            // ПРАВА ЧАСТИНА: Перемикач транспорту та Кнопка Укриття
             HStack(spacing: 8) {
-                // Перемикач транспорту (Пішки / Авто) зі збільшеним розміром
+                // Перемикач транспорту (Пішки / Авто)
                 HStack(spacing: 2) {
                     transportButton(icon: "figure.walk", mode: .walking)
                     transportButton(icon: "car.fill", mode: .automobile)
                 }
                 .padding(3)
-                .background(Color.black.opacity(0.35))
+                .background(Color.black.opacity(0.28))
                 .clipShape(Capsule())
                 .overlay(
-                    Capsule().stroke(Color.white.opacity(0.16), lineWidth: 0.9)
+                    Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8)
                 )
 
-                // Кнопка "Поділитися" зі збільшеним тачем (38x38pt)
-                Button(action: {
-                    #if os(iOS)
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    #endif
-                    onShare()
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.95))
-                        .frame(width: 38, height: 38)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.18), Color.white.opacity(0.08)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle().stroke(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.35), Color.cyan.opacity(0.20)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1.0
-                            )
-                        )
-                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                // Головна кнопка "ЗНАЙТИ УКРИТТЯ" (збільшена до 44pt з яскравим світінням)
+                // Головна кнопка "ЗНАЙТИ УКРИТТЯ"
                 Button(action: {
                     #if os(iOS)
                     let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -184,12 +149,12 @@ struct BottomDashboardV4: View {
                     }
                     .padding(.vertical, 10)
                     .padding(.horizontal, 14)
-                    .frame(minHeight: 40)
+                    .frame(minHeight: 38)
                     .background(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.05, green: 0.55, blue: 0.95).opacity(0.55),
-                                Color(red: 0.10, green: 0.35, blue: 0.85).opacity(0.40)
+                                Color(red: 0.05, green: 0.55, blue: 0.95).opacity(0.50),
+                                Color(red: 0.10, green: 0.35, blue: 0.85).opacity(0.35)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -200,23 +165,23 @@ struct BottomDashboardV4: View {
                         Capsule()
                             .stroke(
                                 LinearGradient(
-                                    colors: [Color.cyan.opacity(0.85), Color.blue.opacity(0.45)],
+                                    colors: [Color.cyan.opacity(0.85), Color.blue.opacity(0.40)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 1.2
+                                lineWidth: 1.1
                             )
                     )
-                    .shadow(color: Color.cyan.opacity(0.4), radius: 8, x: 0, y: 2)
+                    .shadow(color: Color.cyan.opacity(0.35), radius: 6, x: 0, y: 1)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .disabled(isSearchingShelter)
             }
         }
-        .padding(.vertical, 11)
+        .padding(.vertical, 10)
         .padding(.horizontal, 14)
         .background(
-            Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.68)
+            Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.32)
         )
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -225,19 +190,19 @@ struct BottomDashboardV4: View {
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.35),
-                            Color.cyan.opacity(0.25),
-                            Color.white.opacity(0.08)
+                            Color.white.opacity(0.28),
+                            Color.cyan.opacity(0.20),
+                            Color.white.opacity(0.06)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1.0
+                    lineWidth: 0.9
                 )
         )
         .padding(.horizontal, 12)
-        .shadow(color: Color.black.opacity(0.35), radius: 12, x: 0, y: 5)
-        .shadow(color: Color.cyan.opacity(0.12), radius: 16, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.28), radius: 12, x: 0, y: 5)
+        .shadow(color: Color.cyan.opacity(0.10), radius: 14, x: 0, y: 4)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 isPulsating = true
