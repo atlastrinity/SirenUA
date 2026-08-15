@@ -3,6 +3,7 @@ import Charts
 
 struct AdminErrorsTab: View {
     @ObservedObject var viewModel: AdminViewModel
+    @State private var showingClearConfirmation = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -13,6 +14,23 @@ struct AdminErrorsTab: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white.opacity(0.4))
                     Spacer()
+                    if (viewModel.errorStats?.total ?? 0) > 0 {
+                        Button(role: .destructive, action: {
+                            showingClearConfirmation = true
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("Очистити логи")
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.red.opacity(0.15))
+                            .cornerRadius(6)
+                        }
+                    }
                 }
                 
                 HStack(spacing: 8) {
@@ -205,6 +223,17 @@ struct AdminErrorsTab: View {
             }
             .onChange(of: viewModel.errDaysFilter) { _, _ in
                 Task { await viewModel.fetchErrors() }
+            }
+            .confirmationDialog("Очистити логи помилок?", isPresented: $showingClearConfirmation, titleVisibility: .visible) {
+                Button("Очистити всі логи", role: .destructive) {
+                    Task { await viewModel.clearErrors() }
+                }
+                if !viewModel.errSourceFilter.isEmpty || !viewModel.errTypeFilter.isEmpty {
+                    Button("Очистити за поточним фільтром", role: .destructive) {
+                        Task { await viewModel.clearErrors(source: viewModel.errSourceFilter, errorType: viewModel.errTypeFilter) }
+                    }
+                }
+                Button("Скасувати", role: .cancel) {}
             }
         }
     }

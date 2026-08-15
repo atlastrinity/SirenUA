@@ -369,6 +369,23 @@ class AdminViewModel: ObservableObject {
         } catch {}
     }
     
+    func clearErrors(source: String? = nil, errorType: String? = nil) async {
+        var queryItems: [String] = []
+        if let s = source, !s.isEmpty { queryItems.append("source=\(s)") }
+        if let t = errorType, !t.isEmpty { queryItems.append("error_type=\(t)") }
+        let queryString = queryItems.isEmpty ? "" : "?" + queryItems.joined(separator: "&")
+        
+        guard let url = URL(string: "\(serverURL)/api/admin/errors\(queryString)") else { return }
+        let req = makeAdminRequest(url: url, method: "DELETE")
+        do {
+            _ = try await URLSession.shared.data(for: req)
+            await fetchErrors()
+            await fetchDashboardStats()
+        } catch {
+            adminLogger.error("Failed to clear errors: \(error)")
+        }
+    }
+    
     func fetchPalantirOverview() async {
         guard let url = URL(string: "\(serverURL)/api/admin/palantir/overview?days=\(palantirDaysFilter)") else { return }
         do {
