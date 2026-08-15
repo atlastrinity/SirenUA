@@ -59,8 +59,8 @@ final class MapViewModel: ObservableObject {
     // Initial camera focused on Ukraine overview
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 49.0, longitude: 34.0),
-            span: MKCoordinateSpan(latitudeDelta: 2.8, longitudeDelta: 4.2)
+            center: CLLocationCoordinate2D(latitude: 48.6, longitude: 31.5),
+            span: MKCoordinateSpan(latitudeDelta: 5.5, longitudeDelta: 8.5)
         )
     )
 
