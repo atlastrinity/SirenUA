@@ -676,9 +676,12 @@ final class SirenUATests: XCTestCase {
                 XCTAssertTrue(locManager.isLocationDenied)
                 XCTAssertFalse(locManager.isLocationAuthorized)
             }
+            // Check initialized properties exist and are properly typed
+            _ = locManager.hasLiveLocationFix
+            _ = locManager.isLocationInitialized
         }
 
-        let coord = await LocationManager.shared.resolveUserCoordinate(timeoutSeconds: 0.1)
+        let coord = await LocationManager.shared.resolveUserCoordinate(timeoutSeconds: 0.1, forceFresh: false)
         if let location = await MainActor.run(body: { LocationManager.shared.location }) {
             XCTAssertEqual(coord?.latitude, location.coordinate.latitude)
             XCTAssertEqual(coord?.longitude, location.coordinate.longitude)

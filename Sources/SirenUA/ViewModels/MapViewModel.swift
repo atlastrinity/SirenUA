@@ -130,7 +130,7 @@ final class MapViewModel: ObservableObject {
             if let userLoc = userLoc {
                 resolvedCoord = userLoc
             } else {
-                resolvedCoord = await locManager.resolveUserCoordinate()
+                resolvedCoord = await locManager.resolveUserCoordinate(forceFresh: true)
             }
 
             guard let finalUserLoc = resolvedCoord else {

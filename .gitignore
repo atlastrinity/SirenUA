@@ -20,6 +20,7 @@ build/
 *.log
 build_log.txt
 build_sim/
+build_test/
 fastlane/report.xml
 
 # Xcode Build & Test Artifacts
@@ -27,4 +28,7 @@ fastlane/report.xml
 *.xcresult/
 ExportOptions.plist
 threat_server/
+.agents/
+.claw/
+
 
