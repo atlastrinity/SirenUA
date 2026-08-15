@@ -60,6 +60,7 @@ class AdminViewModel: ObservableObject {
     @Published var isTriggeringScenario: String? = nil
     @Published var isClearingThreats: Bool = false
     @Published var isTriggeringLearner: Bool = false
+    @Published var isRestartingServer: Bool = false
     @Published var serverLatencyMs: Int? = nil
     @Published var showSimSuccessMessage = false
     @Published var simSuccessText = ""
@@ -469,6 +470,49 @@ class AdminViewModel: ObservableObject {
             adminLogger.error("Post-Mortem trigger error: \(error)")
         }
         isTriggeringPostMortem = false
+    }
+    
+    func restartServer() async {
+        guard let url = URL(string: "\(serverURL)/api/admin/restart") else { return }
+        isRestartingServer = true
+        triggerHaptic("medium")
+        do {
+            let req = makeAdminRequest(url: url, method: "POST")
+            _ = try? await URLSession.shared.data(for: req)
+            
+            // Wait 2.5 seconds for process restart
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            
+            // Poll health check to confirm server is back online
+            for _ in 0..<10 {
+                if await checkServerAlive() {
+                    break
+                }
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+            
+            simSuccessText = "Сервер успішно перезавантажено!"
+            showSimSuccessMessage = true
+            triggerHaptic("heavy")
+            await refreshAllData()
+            await performDiagnostics()
+            
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            showSimSuccessMessage = false
+        } catch {
+            adminLogger.error("Restart server error: \(error)")
+        }
+        isRestartingServer = false
+    }
+    
+    private func checkServerAlive() async -> Bool {
+        guard let url = URL(string: "\(serverURL)/api/gemini/status") else { return false }
+        do {
+            let (data, res) = try await fetchAdminData(from: url)
+            return (res as? HTTPURLResponse)?.statusCode == 200 && !data.isEmpty
+        } catch {
+            return false
+        }
     }
     
     // MARK: - Helpers

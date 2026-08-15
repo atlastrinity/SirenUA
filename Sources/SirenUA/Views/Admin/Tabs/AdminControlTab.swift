@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AdminControlTab: View {
     @ObservedObject var viewModel: AdminViewModel
+    @State private var showingRestartConfirmation = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -48,6 +49,14 @@ struct AdminControlTab: View {
             if viewModel.customServerURLSetting.isEmpty {
                 viewModel.customServerURLSetting = NetworkManager.serverURL
             }
+        }
+        .confirmationDialog("Перезавантажити сервер?", isPresented: $showingRestartConfirmation, titleVisibility: .visible) {
+            Button("Перезавантажити зараз", role: .destructive) {
+                Task { await viewModel.restartServer() }
+            }
+            Button("Скасувати", role: .cancel) {}
+        } message: {
+            Text("Сервер виконає плавне перезавантаження (процес оновиться за 2-3 секунди).")
         }
     }
 
@@ -162,6 +171,33 @@ struct AdminControlTab: View {
                         }
                     }
                 }
+                
+                Divider().background(Color.white.opacity(0.08)).padding(.vertical, 2)
+                
+                // Server Restart Button
+                Button(action: {
+                    showingRestartConfirmation = true
+                }) {
+                    HStack(spacing: 8) {
+                        if viewModel.isRestartingServer {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.white)
+                            Text("Перезавантаження сервера...")
+                        } else {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("Перезавантажити сервер (Restart)")
+                        }
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.red.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .disabled(viewModel.isRestartingServer)
             }
         }
         .padding(14)
