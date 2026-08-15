@@ -16,6 +16,8 @@ struct AdminDashboardView: View {
         "Керування"
     ]
 
+    private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -90,6 +92,11 @@ struct AdminDashboardView: View {
             .task {
                 await viewModel.loadRegions()
                 await viewModel.refreshAllData()
+            }
+            .onReceive(refreshTimer) { _ in
+                Task {
+                    await viewModel.refreshCurrentTab(selectedTab: selectedTab)
+                }
             }
             .onChange(of: selectedTab) { _, newTab in
                 Task { await viewModel.refreshCurrentTab(selectedTab: newTab) }

@@ -20,7 +20,11 @@ struct AdminDashboardTab: View {
                         statBox(title: "✅ Підтверджено", value: "\(d.accuracy?.confirmed ?? 0)", color: ChartColorTheme.confirmed)
                         statBox(title: "🛡️ Збито/РЕБ", value: "\(d.accuracy?.mitigated ?? 0)", color: ChartColorTheme.mitigated)
                         statBox(title: "❌ Помилкові", value: "\(d.accuracy?.overestimated ?? 0)", color: ChartColorTheme.overestimated)
-                        statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h ?? 0)", color: ChartColorTheme.orange)
+                        if let cleared = d.accuracy?.cleared, cleared > 0 {
+                            statBox(title: "🔄 Інші / Знято", value: "\(cleared)", color: ChartColorTheme.cleared)
+                        } else {
+                            statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h ?? 0)", color: ChartColorTheme.orange)
+                        }
                     }
                     
                     // Accuracy sector map
@@ -33,20 +37,30 @@ struct AdminDashboardTab: View {
                             SectorMark(angle: .value("Count", d.accuracy?.confirmed ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.confirmed)
                                 .annotation(position: .overlay) {
-                                    Text("\(d.accuracy?.confirmed ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    if (d.accuracy?.confirmed ?? 0) > 0 {
+                                        Text("\(d.accuracy?.confirmed ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    }
                                 }
                             SectorMark(angle: .value("Count", d.accuracy?.mitigated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.mitigated)
                                 .annotation(position: .overlay) {
-                                    Text("\(d.accuracy?.mitigated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    if (d.accuracy?.mitigated ?? 0) > 0 {
+                                        Text("\(d.accuracy?.mitigated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    }
                                 }
                             SectorMark(angle: .value("Count", d.accuracy?.overestimated ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.overestimated)
                                 .annotation(position: .overlay) {
-                                    Text("\(d.accuracy?.overestimated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    if (d.accuracy?.overestimated ?? 0) > 0 {
+                                        Text("\(d.accuracy?.overestimated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    }
                                 }
                             SectorMark(angle: .value("Count", d.accuracy?.active ?? 0), innerRadius: .ratio(0.6), angularInset: 1.5)
                                 .foregroundStyle(ChartColorTheme.active)
+                            if let cleared = d.accuracy?.cleared, cleared > 0 {
+                                SectorMark(angle: .value("Count", cleared), innerRadius: .ratio(0.6), angularInset: 1.5)
+                                    .foregroundStyle(ChartColorTheme.cleared)
+                            }
                         }
                         .frame(height: 140)
                         
@@ -55,6 +69,9 @@ struct AdminDashboardTab: View {
                             legendItem(title: "Збито", color: ChartColorTheme.mitigated)
                             legendItem(title: "Помилк.", color: ChartColorTheme.overestimated)
                             legendItem(title: "Актив.", color: ChartColorTheme.active)
+                            if (d.accuracy?.cleared ?? 0) > 0 {
+                                legendItem(title: "Знято", color: ChartColorTheme.cleared)
+                            }
                         }
                         .font(.system(size: 11))
                         .frame(maxWidth: .infinity, alignment: .center)

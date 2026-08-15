@@ -83,9 +83,12 @@ struct AdminCorrelationTab: View {
                 statBox(title: "🛡️ Збито", value: "\(corr.stats?["mitigated"] ?? 0)", color: ChartColorTheme.mitigated)
             }
             
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 statBox(title: "❌ Помилкові", value: "\(corr.stats?["overestimated"] ?? 0)", color: ChartColorTheme.overestimated)
                 statBox(title: "⏱️ Активні", value: "\(corr.stats?["active"] ?? 0)", color: ChartColorTheme.active)
+                if (corr.stats?["cleared"] ?? 0) > 0 {
+                    statBox(title: "🔄 Інші / Знято", value: "\(corr.stats?["cleared"] ?? 0)", color: ChartColorTheme.cleared)
+                }
             }
             
             dailyAccuracyChart(corr: corr)

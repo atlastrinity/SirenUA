@@ -174,6 +174,7 @@ struct DashboardAccuracyStats: Codable {
     let mitigated: Int?
     let overestimated: Int?
     let active: Int?
+    let cleared: Int?
     let total: Int?
 }
 
