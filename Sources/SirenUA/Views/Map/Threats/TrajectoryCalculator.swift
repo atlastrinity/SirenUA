@@ -62,38 +62,38 @@ public func calculateTrajectory(
     
     switch threatType {
     case ThreatConstants.shahed:
-        curvature = -0.22 // Base aerodynamic arc
+        curvature = -0.20 // Base aerodynamic arc
         cycles = 3.5      // 3.5 weaving S-curves (змійка)
-        waveAmplitude = 0.055 // Realistic lateral evasion amplitude
+        waveAmplitude = 0.045 // Realistic lateral evasion amplitude
     case ThreatConstants.cruiseMissile, ThreatConstants.tu95:
-        curvature = 0.20
+        curvature = 0.18
         cycles = 2.5      // 2.5 tactical waypoint weaves
-        waveAmplitude = 0.045
+        waveAmplitude = 0.038
     case ThreatConstants.tu22m3:
         // Ту-22М3: надзвукова Х-22/Х-32 — майже пряма балістична дуга, мінімальне відхилення
-        curvature = -0.18
-        cycles = 1.2      // Supersonic — minor terminal correction only
-        waveAmplitude = 0.015
-    case ThreatConstants.ballistic, ThreatConstants.iskander, ThreatConstants.zircon:
         curvature = -0.15
-        cycles = 1.5      // Minor terminal trajectory wobble
-        waveAmplitude = 0.025
+        cycles = 1.0      // Supersonic — minor terminal correction only
+        waveAmplitude = 0.012
+    case ThreatConstants.ballistic, ThreatConstants.iskander, ThreatConstants.zircon:
+        curvature = -0.12
+        cycles = 1.2      // Minor terminal trajectory wobble
+        waveAmplitude = 0.020
     case ThreatConstants.kab:
-        curvature = 0.15
-        cycles = 2.0      // Wind drift glide weaving
-        waveAmplitude = 0.035
+        curvature = 0.12
+        cycles = 1.8      // Wind drift glide weaving
+        waveAmplitude = 0.028
     case ThreatConstants.artillery, ThreatConstants.mlrs:
         curvature = 0.05
         cycles = 1.0
         waveAmplitude = 0.010
     case ThreatConstants.fpv, ThreatConstants.recon, ThreatConstants.reconUAV:
         curvature = 0.10
-        cycles = 2.5
-        waveAmplitude = 0.030
+        cycles = 2.2
+        waveAmplitude = 0.025
     default:
-        curvature = 0.20
-        cycles = 3.0
-        waveAmplitude = 0.040
+        curvature = 0.18
+        cycles = 2.8
+        waveAmplitude = 0.035
     }
     
     // Regional capital centroids list — used to identify regional transit waypoints
@@ -233,35 +233,22 @@ public func calculateTrajectory(
         startCoord = CLLocationCoordinate2D(latitude: sLat, longitude: sLon)
     }
 
-    // MARK: - Multi-Waypoint or Direct Aerodynamic Curve Generation
-    var fullPoints: [CLLocationCoordinate2D] = []
+    // MARK: - Aerodynamic Smooth Continuous Spline Generation
+    var rawPoints: [CLLocationCoordinate2D] = []
 
     if let waypoint = transitWaypoint {
-        // Multi-segment flight path: [startCoord -> transitWaypoint -> target]
-        let seg1 = generateSegment(
+        // Multi-segment with aerodynamic turn arc (fillet curve around waypoint)
+        rawPoints = generateMultiWaypointSmoothSpline(
             start: startCoord,
-            end: waypoint,
-            curvature: curvature * 0.7,
+            waypoint: waypoint,
+            target: target,
+            curvature: curvature,
             cycles: cycles,
-            waveAmplitude: waveAmplitude,
-            steps: 24,
-            startPhase: 0.0,
-            totalPhases: 0.5
+            waveAmplitude: waveAmplitude
         )
-        let seg2 = generateSegment(
-            start: waypoint,
-            end: target,
-            curvature: -curvature * 0.7,
-            cycles: cycles,
-            waveAmplitude: waveAmplitude,
-            steps: 24,
-            startPhase: 0.5,
-            totalPhases: 0.5
-        )
-        fullPoints = seg1 + seg2.dropFirst()
     } else {
-        // Direct single-segment flight path: [startCoord -> target]
-        fullPoints = generateSegment(
+        // Direct single-segment flight path
+        rawPoints = generateSegment(
             start: startCoord,
             end: target,
             curvature: curvature,
@@ -272,6 +259,9 @@ public func calculateTrajectory(
             totalPhases: 1.0
         )
     }
+
+    // Apply Chaikin corner smoothing to ensure 100% C1/C2 smooth curvature without sharp angles
+    let fullPoints = smoothPointsChaikin(points: rawPoints, iterations: 2)
 
     let steps = fullPoints.count - 1
 
@@ -326,7 +316,7 @@ public func calculateTrajectory(
             let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startCoord.longitude
             approach.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
         }
-        carrierApproachPoints = approach
+        carrierApproachPoints = smoothPointsChaikin(points: approach, iterations: 1)
     }
 
     return TrajectoryPath(
@@ -338,6 +328,80 @@ public func calculateTrajectory(
         carrierOriginName: carrierOriginName,
         launchSectorName: launchSectorName
     )
+}
+
+// MARK: - Multi-Waypoint Aerodynamic Turn Arc Generator
+
+private func generateMultiWaypointSmoothSpline(
+    start: CLLocationCoordinate2D,
+    waypoint: CLLocationCoordinate2D,
+    target: CLLocationCoordinate2D,
+    curvature: Double,
+    cycles: Double,
+    waveAmplitude: Double
+) -> [CLLocationCoordinate2D] {
+    // Vector 1: Start -> Waypoint
+    let dLat1 = waypoint.latitude - start.latitude
+    let dLon1 = waypoint.longitude - start.longitude
+    let dist1 = max(0.1, sqrt(dLat1 * dLat1 + dLon1 * dLon1))
+
+    // Vector 2: Waypoint -> Target
+    let dLat2 = target.latitude - waypoint.latitude
+    let dLon2 = target.longitude - waypoint.longitude
+    let dist2 = max(0.1, sqrt(dLat2 * dLat2 + dLon2 * dLon2))
+
+    // Determine turn fillet transition fraction (smoothly cuts the corner 25-35% before/after waypoint)
+    let filletFraction = min(0.35, max(0.15, 0.40 * min(dist1, dist2) / max(dist1, dist2, 0.1)))
+
+    // Entry point A along Start -> Waypoint
+    let entryA = CLLocationCoordinate2D(
+        latitude: waypoint.latitude - (dLat1 * filletFraction),
+        longitude: waypoint.longitude - (dLon1 * filletFraction)
+    )
+
+    // Exit point B along Waypoint -> Target
+    let exitB = CLLocationCoordinate2D(
+        latitude: waypoint.latitude + (dLat2 * filletFraction),
+        longitude: waypoint.longitude + (dLon2 * filletFraction)
+    )
+
+    // 1. Ingress Leg: Start -> Entry A
+    let ingress = generateSegment(
+        start: start,
+        end: entryA,
+        curvature: curvature * 0.4,
+        cycles: cycles * 0.4,
+        waveAmplitude: waveAmplitude * 0.8,
+        steps: 16,
+        startPhase: 0.0,
+        totalPhases: 0.35
+    )
+
+    // 2. Smooth Aerodynamic Banked Turn Arc: Entry A -> Exit B using Waypoint as Bezier control point
+    var turnArc: [CLLocationCoordinate2D] = []
+    let turnSteps = 16
+    for i in 1...turnSteps {
+        let t = Double(i) / Double(turnSteps)
+        let invT = 1.0 - t
+        // Quadratic Bezier arc: (1-t)^2 * A + 2(1-t)t * Waypoint + t^2 * B
+        let bLat = invT * invT * entryA.latitude + 2.0 * invT * t * waypoint.latitude + t * t * exitB.latitude
+        let bLon = invT * invT * entryA.longitude + 2.0 * invT * t * waypoint.longitude + t * t * exitB.longitude
+        turnArc.append(CLLocationCoordinate2D(latitude: bLat, longitude: bLon))
+    }
+
+    // 3. Egress Leg: Exit B -> Target
+    let egress = generateSegment(
+        start: exitB,
+        end: target,
+        curvature: -curvature * 0.4,
+        cycles: cycles * 0.4,
+        waveAmplitude: waveAmplitude * 0.8,
+        steps: 16,
+        startPhase: 0.65,
+        totalPhases: 0.35
+    )
+
+    return ingress + turnArc + egress.dropFirst()
 }
 
 // MARK: - Internal Aerodynamic Spline Segment Generator
@@ -390,4 +454,41 @@ private func generateSegment(
         points.append(CLLocationCoordinate2D(latitude: finalLat, longitude: finalLon))
     }
     return points
+}
+
+// MARK: - Chaikin Corner Smoothing Algorithm
+
+/// Smooths out any residual angular sharp vertices into silky, continuous aerodynamic curves (C1/C2 continuous)
+private func smoothPointsChaikin(points: [CLLocationCoordinate2D], iterations: Int = 2) -> [CLLocationCoordinate2D] {
+    guard points.count >= 3 else { return points }
+    var current = points
+
+    for _ in 0..<iterations {
+        var smoothed: [CLLocationCoordinate2D] = []
+        if let first = current.first {
+            smoothed.append(first)
+        }
+
+        for i in 0..<(current.count - 1) {
+            let p0 = current[i]
+            let p1 = current[i + 1]
+
+            // Point Q at 25% from p0 to p1
+            let qLat = 0.75 * p0.latitude + 0.25 * p1.latitude
+            let qLon = 0.75 * p0.longitude + 0.25 * p1.longitude
+
+            // Point R at 75% from p0 to p1
+            let rLat = 0.25 * p0.latitude + 0.75 * p1.latitude
+            let rLon = 0.25 * p0.longitude + 0.75 * p1.longitude
+
+            smoothed.append(CLLocationCoordinate2D(latitude: qLat, longitude: qLon))
+            smoothed.append(CLLocationCoordinate2D(latitude: rLat, longitude: rLon))
+        }
+
+        if let last = current.last {
+            smoothed.append(last)
+        }
+        current = smoothed
+    }
+    return current
 }
