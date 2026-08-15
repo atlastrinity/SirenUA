@@ -617,9 +617,9 @@ struct ContentView: View {
             transportType: $mapViewModel.transportType,
             onFindShelter: {
                 mapViewModel.findNearestShelter(
-                    walkingSearchRadius: 1.5,
-                    drivingSearchRadius: 10.0,
-                    serverURL: NetworkManager.serverURL,
+                    walkingSearchRadius: walkingSearchRadius,
+                    drivingSearchRadius: drivingSearchRadius,
+                    serverURL: viewModel.threatServerURL,
                     presentSheet: true,
                     onLocationDenied: {
                         showLocationPermissionAlert = true

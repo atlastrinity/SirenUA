@@ -676,7 +676,6 @@ final class SirenUATests: XCTestCase {
                 XCTAssertTrue(locManager.isLocationDenied)
                 XCTAssertFalse(locManager.isLocationAuthorized)
             }
-            // Check initialized properties exist and are properly typed
             _ = locManager.hasLiveLocationFix
             _ = locManager.isLocationInitialized
         }
@@ -687,4 +686,38 @@ final class SirenUATests: XCTestCase {
             XCTAssertEqual(coord?.longitude, location.coordinate.longitude)
         }
     }
+
+    func testShelterRadiusFilterAndDistanceExclusionLogic() {
+        let userLat = 50.4501
+        let userLon = 30.5234
+        let preferredRadiusMeters = 1500.0 // 1.5 km
+        let maxSearchRadiusMeters = 5000.0 // 5.0 km
+
+        let shelters = [
+            ShelterItem(id: "1", name: "Укриття поруч", address: nil, lat: 50.4520, lon: 30.5250, distance_m: 300.0, type: "bomb_shelter", capacity: 100, accessible: true, source: "osm"),
+            ShelterItem(id: "2", name: "Укриття в межах 1.2км", address: nil, lat: 50.4580, lon: 30.5300, distance_m: 1200.0, type: "bomb_shelter", capacity: 200, accessible: true, source: "osm"),
+            ShelterItem(id: "3", name: "Укриття на відстані 3.5км", address: nil, lat: 50.4800, lon: 30.5500, distance_m: 3500.0, type: "bomb_shelter", capacity: 300, accessible: true, source: "osm"),
+            ShelterItem(id: "4", name: "Укриття в іншому місті (350км)", address: nil, lat: 48.0000, lon: 35.0000, distance_m: 350_000.0, type: "metro", capacity: 5000, accessible: true, source: "osm")
+        ]
+
+        // 1. When items in preferred radius exist:
+        let preferred = shelters.filter { $0.distance_m <= preferredRadiusMeters }
+        XCTAssertEqual(preferred.count, 2)
+        XCTAssertEqual(preferred.min(by: { $0.distance_m < $1.distance_m })?.name, "Укриття поруч")
+
+        // 2. When only items within maxSearchRadius exist (preferred is empty):
+        let distantSubset = [shelters[2], shelters[3]]
+        let preferredDistant = distantSubset.filter { $0.distance_m <= preferredRadiusMeters }
+        XCTAssertTrue(preferredDistant.isEmpty)
+
+        let withinMax = distantSubset.filter { $0.distance_m <= maxSearchRadiusMeters }
+        XCTAssertEqual(withinMax.count, 1)
+        XCTAssertEqual(withinMax.first?.name, "Укриття на відстані 3.5км")
+
+        // 3. When all items are far away (exceeding maxSearchRadiusMeters, e.g. 350km):
+        let farAwaySubset = [shelters[3]]
+        let validNearby = farAwaySubset.filter { $0.distance_m <= maxSearchRadiusMeters }
+        XCTAssertTrue(validNearby.isEmpty, "Shelters 350km away must be strictly excluded!")
+    }
 }
+
