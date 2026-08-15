@@ -721,6 +721,36 @@ final class SirenUATests: XCTestCase {
         XCTAssertTrue(validNearby.isEmpty, "Shelters 350km away must be strictly excluded!")
     }
 
+    func testProgressiveShelterCascadeForRuralVillages() {
+        // Simulating user in Uhersko village where local shelter is 350m (Lyceum) and district shelter is 5.4km (Stryi)
+        let userCoord = CLLocation(latitude: 49.3005, longitude: 23.8966)
+        let lyceumShelter = ShelterItem(id: "uhersko_1", name: "Угерський ліцей (Найпростіше укриття)", address: "вул. Івана Франка 2", lat: 49.3005, lon: 23.8966, distance_m: 0.0, type: "bomb_shelter", capacity: 350, accessible: true, source: "gov")
+        let stryiShelter = ShelterItem(id: "stryi_1", name: "Стрийська лікарня (Сховище)", address: "вул. Басараб 15, м. Стрий", lat: 49.2620, lon: 23.8650, distance_m: 5400.0, type: "radiation_shelter", capacity: 600, accessible: true, source: "gov")
+
+        let targetRadiusMeters = 1500.0
+        let localExtendedMeters = 6000.0
+        let regionalExtendedMeters = 15000.0
+
+        // Case A: Immediate local shelter found
+        let listWithLyceum = [lyceumShelter, stryiShelter]
+        let strictFound = listWithLyceum.filter { $0.distance_m <= targetRadiusMeters }
+        XCTAssertEqual(strictFound.count, 1)
+        XCTAssertEqual(strictFound.first?.name, "Угерський ліцей (Найпростіше укриття)")
+
+        // Case B: Only distant district center found (e.g. Stryi at 5.4km)
+        let listOnlyStryi = [stryiShelter]
+        let strictEmpty = listOnlyStryi.filter { $0.distance_m <= targetRadiusMeters }
+        XCTAssertTrue(strictEmpty.isEmpty)
+
+        let localExt = listOnlyStryi.filter { $0.distance_m <= localExtendedMeters }
+        XCTAssertEqual(localExt.count, 1)
+        XCTAssertEqual(localExt.first?.name, "Стрийська лікарня (Сховище)")
+
+        // Case C: District regional fallback
+        let regionalExt = listOnlyStryi.filter { $0.distance_m <= regionalExtendedMeters }
+        XCTAssertEqual(regionalExt.count, 1)
+    }
+
     func testTrackedRegionsToggleAndExclusionLogic() {
         let settings = NotificationSettings.shared
         

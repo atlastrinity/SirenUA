@@ -30,21 +30,26 @@ final class ShelterSearchService {
         drivingRadiusKm: Double,
         serverURL: String
     ) async -> ShelterSearchResult {
-        // 1. Determine active search radius based on transport mode
+        // 1. Determine active search radii: Strict user radius, local extended, and regional district fallback
         let configuredKm = transportType == .automobile ? drivingRadiusKm : walkingRadiusKm
         let minRadiusKm = transportType == .automobile ? 1.0 : 0.5
         let maxRadiusKm = transportType == .automobile ? 30.0 : 10.0
         let targetRadiusKm = min(max(configuredKm, minRadiusKm), maxRadiusKm)
         let targetRadiusMeters = targetRadiusKm * 1000.0
 
-        // Extended fallback radius to locate the nearest shelter if none exist within the strict perimeter
-        let extendedSearchRadiusMeters = transportType == .automobile
+        // Stage 2: Local extended perimeter
+        let localExtendedRadiusMeters = transportType == .automobile
             ? max(targetRadiusMeters, 15_000.0)
-            : max(targetRadiusMeters, 4_000.0)
+            : max(targetRadiusMeters, 6_000.0)
 
-        searchLogger.info("Starting shelter search for mode \(transportType == .automobile ? "automobile" : "walking"). User: (\(userCoordinate.latitude), \(userCoordinate.longitude)), Target radius: \(Int(targetRadiusMeters))m, Extended: \(Int(extendedSearchRadiusMeters))m")
+        // Stage 3: Regional district perimeter (to cover neighboring towns/villages in rural areas like Uhersko/Stryi)
+        let regionalExtendedRadiusMeters = transportType == .automobile
+            ? max(localExtendedRadiusMeters, 30_000.0)
+            : max(localExtendedRadiusMeters, 15_000.0)
 
-        // 2. Priority 1: Backend ThreatServer API (OSM & official civil defense datasets)
+        searchLogger.info("Starting shelter search for mode \(transportType == .automobile ? "automobile" : "walking"). User: (\(userCoordinate.latitude), \(userCoordinate.longitude)), Target: \(Int(targetRadiusMeters))m, LocalExtended: \(Int(localExtendedRadiusMeters))m, Regional: \(Int(regionalExtendedRadiusMeters))m")
+
+        // 2. Priority 1: Backend ThreatServer API (Pre-seeded registry, Firestore, and OSM Overpass)
         var apiShelters: [ShelterItem] = []
         do {
             let networkManager = NetworkManager()
@@ -52,16 +57,16 @@ final class ShelterSearchService {
                 serverURL: serverURL,
                 lat: userCoordinate.latitude,
                 lon: userCoordinate.longitude,
-                radiusMeters: extendedSearchRadiusMeters
+                radiusMeters: regionalExtendedRadiusMeters
             )
             searchLogger.info("Backend API returned \(apiShelters.count) shelters")
         } catch {
             searchLogger.warning("Backend Shelter API failed, falling back to MKLocalSearch: \(error.localizedDescription)")
         }
 
+        let userLoc = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
+
         if !apiShelters.isEmpty {
-            let userLoc = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
-            
             // Re-verify exact Haversine distance and sort
             let sortedWithDistance = apiShelters.map { shelter -> (shelter: ShelterItem, distance: Double) in
                 let shelterLoc = CLLocation(latitude: shelter.lat, longitude: shelter.lon)
@@ -70,7 +75,8 @@ final class ShelterSearchService {
             }.sorted { $0.distance < $1.distance }
 
             let strictlyWithin = sortedWithDistance.filter { $0.distance <= targetRadiusMeters }
-            let withinExtended = sortedWithDistance.filter { $0.distance <= extendedSearchRadiusMeters }
+            let withinLocalExtended = sortedWithDistance.filter { $0.distance <= localExtendedRadiusMeters }
+            let withinRegionalExtended = sortedWithDistance.filter { $0.distance <= regionalExtendedRadiusMeters }
 
             if let closest = strictlyWithin.first {
                 let mapItems = strictlyWithin.map { self.createMapItem(from: $0.shelter) }
@@ -82,13 +88,25 @@ final class ShelterSearchService {
                     warningMessage: nil,
                     errorMessage: nil
                 )
-            } else if let closestExtended = withinExtended.first {
-                let mapItem = createMapItem(from: closestExtended.shelter)
-                let distText = ShelterFormatter.formatDistance(meters: closestExtended.distance)
-                let warn = "Найближче укриття знайдено поза межами обраного радіусу (\(distText))"
+            } else if let closestLocal = withinLocalExtended.first {
+                let mapItems = withinLocalExtended.map { self.createMapItem(from: $0.shelter) }
+                let closestMapItem = createMapItem(from: closestLocal.shelter)
+                let distText = ShelterFormatter.formatDistance(meters: closestLocal.distance)
+                let warn = "Найближче укриття знайдено на відстані \(distText) (поза обраним радіусом)"
                 return ShelterSearchResult(
-                    allFoundShelters: [mapItem],
-                    closestShelter: mapItem,
+                    allFoundShelters: mapItems,
+                    closestShelter: closestMapItem,
+                    targetRadiusMeters: targetRadiusMeters,
+                    warningMessage: warn,
+                    errorMessage: nil
+                )
+            } else if let closestRegional = withinRegionalExtended.first {
+                let closestMapItem = createMapItem(from: closestRegional.shelter)
+                let distText = ShelterFormatter.formatDistance(meters: closestRegional.distance)
+                let warn = "Поруч немає укриттів. Знайдено захисну споруду району (\(distText)). Радимо скористатися авто."
+                return ShelterSearchResult(
+                    allFoundShelters: [closestMapItem],
+                    closestShelter: closestMapItem,
                     targetRadiusMeters: targetRadiusMeters,
                     warningMessage: warn,
                     errorMessage: nil
@@ -100,10 +118,9 @@ final class ShelterSearchService {
         searchLogger.info("Executing MKLocalSearch for civil defense shelters...")
         let localSearchItems = await performLocalSearch(
             center: userCoordinate,
-            radiusMeters: extendedSearchRadiusMeters
+            radiusMeters: regionalExtendedRadiusMeters
         )
 
-        let userLoc = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
         let itemsWithDistance = localSearchItems.map { item -> (item: MKMapItem, distance: Double) in
             let itemLoc = CLLocation(
                 latitude: item.placemark.coordinate.latitude,
@@ -113,7 +130,8 @@ final class ShelterSearchService {
         }.sorted { $0.distance < $1.distance }
 
         let preferred = itemsWithDistance.filter { $0.distance <= targetRadiusMeters }
-        let extended = itemsWithDistance.filter { $0.distance <= extendedSearchRadiusMeters }
+        let localExt = itemsWithDistance.filter { $0.distance <= localExtendedRadiusMeters }
+        let regionalExt = itemsWithDistance.filter { $0.distance <= regionalExtendedRadiusMeters }
 
         if let closest = preferred.first {
             return ShelterSearchResult(
@@ -123,22 +141,32 @@ final class ShelterSearchService {
                 warningMessage: nil,
                 errorMessage: nil
             )
-        } else if let closestExtended = extended.first {
-            let distText = ShelterFormatter.formatDistance(meters: closestExtended.distance)
-            let warn = "Найближче укриття знайдено поза межами обраного радіусу (\(distText))"
+        } else if let closestLocal = localExt.first {
+            let distText = ShelterFormatter.formatDistance(meters: closestLocal.distance)
+            let warn = "Найближче укриття знайдено на відстані \(distText) (поза обраним радіусом)"
             return ShelterSearchResult(
-                allFoundShelters: [closestExtended.item],
-                closestShelter: closestExtended.item,
+                allFoundShelters: localExt.map { $0.item },
+                closestShelter: closestLocal.item,
+                targetRadiusMeters: targetRadiusMeters,
+                warningMessage: warn,
+                errorMessage: nil
+            )
+        } else if let closestRegional = regionalExt.first {
+            let distText = ShelterFormatter.formatDistance(meters: closestRegional.distance)
+            let warn = "Поруч немає укриттів. Знайдено захисну споруду району (\(distText)). Радимо скористатися авто."
+            return ShelterSearchResult(
+                allFoundShelters: [closestRegional.item],
+                closestShelter: closestRegional.item,
                 targetRadiusMeters: targetRadiusMeters,
                 warningMessage: warn,
                 errorMessage: nil
             )
         }
 
-        // 4. No shelters found
+        // 4. No shelters found even in regional perimeter
         let radiusStr = ShelterFormatter.formatDistance(meters: targetRadiusMeters)
         let modeStr = transportType == .automobile ? "авто" : "пішки"
-        let errorMsg = "Поблизу не знайдено укриттів для режиму «\(modeStr)» (у радіусі \(radiusStr)). Спробуйте збільшити радіус у налаштуваннях."
+        let errorMsg = "У радіусі \(radiusStr) не знайдено захисних споруд (режим «\(modeStr)»). У сільській місцевості під час тривоги використовуйте підвальні приміщення місцевого ліцею, школи, старостату або правило двох стін."
         
         return ShelterSearchResult(
             allFoundShelters: [],
@@ -169,8 +197,10 @@ final class ShelterSearchService {
         )
 
         let queries = [
-            "бомбосховище", "укриття цивільного захисту", "найпростіше укриття",
+            "укриття", "бомбосховище", "сховище", "захисна споруда",
+            "укриття цивільного захисту", "найпростіше укриття",
             "бункер", "протирадіаційне укриття", "ПРУ",
+            "пункт незламності", "ДСНС",
             "споруда подвійного призначення", "захисна споруда цивільного захисту",
             "станція метро", "підземний паркінг", "підземне сховище",
             "bomb shelter", "bunker"
