@@ -288,12 +288,9 @@ struct AdminCorrelationTab: View {
                 
                 Picker("Загроза", selection: $viewModel.corThreatTypeFilter) {
                     Text("Всі типи").tag("")
-                    Text("Shahed").tag("shahed")
-                    Text("МіГ-31К").tag("mig31k")
-                    Text("Крилаті ракети").tag("cruise_missile")
-                    Text("Балістика").tag("ballistic")
-                    Text("Обстріл").tag("artillery")
-                    Text("БПЛА").tag("recon")
+                    ForEach(ThreatConstants.all.filter { $0 != ThreatConstants.unknown }, id: \.self) { t in
+                        Text("\(ThreatConstants.emoji(for: t)) \(ThreatConstants.title(for: t))").tag(t)
+                    }
                 }
                 .pickerStyle(.menu)
                 .tint(.white)

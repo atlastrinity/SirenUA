@@ -565,12 +565,7 @@ struct AdminPalantirTab: View {
     // MARK: - Helpers
     
     private func threatIcon(_ type: String?) -> String {
-        guard let type = type else { return "⚠️" }
-        if type.contains("shahed") { return "✈️" }
-        if type.contains("ballistic") || type.contains("iskander") { return "🚀" }
-        if type.contains("cruise") || type.contains("tu95") { return "🚀" }
-        if type.contains("kab") { return "💣" }
-        return "⚡"
+        return ThreatConstants.emoji(for: type)
     }
     
     private func riskColor(_ score: Int) -> Color {
