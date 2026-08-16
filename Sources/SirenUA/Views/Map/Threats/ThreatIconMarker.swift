@@ -1,6 +1,94 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Arrowhead Shape ("Акуратна стрілочка, як у стрілі")
+
+public struct ArrowheadShape: Shape {
+    public init() {}
+
+    public func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let midX = rect.midX
+        let topY = rect.minY
+        let bottomY = rect.maxY
+        let leftX = rect.minX
+        let rightX = rect.maxX
+        let notchY = rect.minY + rect.height * 0.65
+
+        path.move(to: CGPoint(x: midX, y: topY))
+        path.addLine(to: CGPoint(x: rightX, y: bottomY))
+        path.addLine(to: CGPoint(x: midX, y: notchY))
+        path.addLine(to: CGPoint(x: leftX, y: bottomY))
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+// MARK: - Trajectory Arrowhead View
+
+public struct TrajectoryArrowheadView: View {
+    public let color: Color
+    public let angle: Double
+    public var zoomScale: CGFloat = 1.0
+
+    @State private var isPulsing = false
+
+    public init(color: Color, angle: Double, zoomScale: CGFloat = 1.0) {
+        self.color = color
+        self.angle = angle
+        self.zoomScale = zoomScale
+    }
+
+    public var body: some View {
+        ZStack(alignment: .center) {
+            // 1. Soft pulse ring radiating from arrowhead
+            Circle()
+                .stroke(color.opacity(isPulsing ? 0.0 : 0.60), lineWidth: 1.0)
+                .frame(width: 20, height: 20)
+                .scaleEffect(isPulsing ? 1.5 : 0.8)
+                .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: isPulsing)
+
+            // 2. Tactical Arrowhead Body ("як у стрілі")
+            ZStack {
+                // Background Arrowhead Gradient Fill (Inherits exact threat color)
+                ArrowheadShape()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white, color.opacity(0.95), color],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                // Central Luminous Spine Rib (3D Facet Effect)
+                Path { path in
+                    path.move(to: CGPoint(x: 5.5, y: 0))
+                    path.addLine(to: CGPoint(x: 5.5, y: 9.0))
+                }
+                .stroke(Color.white, lineWidth: 1.0)
+
+                // Razor White Outer Stroke
+                ArrowheadShape()
+                    .stroke(
+                        Color.white.opacity(0.95),
+                        style: StrokeStyle(lineWidth: 1.1, lineCap: .round, lineJoin: .round)
+                    )
+            }
+            .frame(width: 11, height: 14)
+            .shadow(color: color.opacity(0.95), radius: 4, x: 0, y: 0)
+            .shadow(color: .black.opacity(0.70), radius: 3, x: 0, y: 1)
+        }
+        .frame(width: 28, height: 28, alignment: .center)
+        .rotationEffect(.degrees(angle))
+        .scaleEffect(zoomScale)
+        .onAppear {
+            isPulsing = true
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Trajectory Flow Chevron View (Directional Pulsing Arrow + Threat Icon)
 
 public struct TrajectoryFlowChevronView: View {
@@ -180,12 +268,14 @@ public struct FlyingThreatMarkerView: View {
                         if let etaStr = eta, !etaStr.isEmpty {
                             Text(etaStr)
                                 .font(.system(size: 7, weight: .medium))
+                                .monospacedDigit()
                                 .foregroundColor(.white.opacity(0.8))
                                 .lineLimit(1)
                         }
                     }
                 }
             }
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(.ultraThinMaterial)

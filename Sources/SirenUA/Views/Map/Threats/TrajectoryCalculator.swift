@@ -22,6 +22,8 @@ public struct TrajectoryPath {
     public let flowArrows: [TrajectoryFlowArrow]
     public let lastCheckpointCoordinate: CLLocationCoordinate2D
     public let lastCheckpointAngle: Double
+    public let tipCoordinate: CLLocationCoordinate2D
+    public let tipAngle: Double
     public let carrierApproachPoints: [CLLocationCoordinate2D]?
     public let carrierOriginName: String?
     public let launchSectorName: String?
@@ -31,6 +33,8 @@ public struct TrajectoryPath {
         flowArrows: [TrajectoryFlowArrow],
         lastCheckpointCoordinate: CLLocationCoordinate2D,
         lastCheckpointAngle: Double,
+        tipCoordinate: CLLocationCoordinate2D? = nil,
+        tipAngle: Double? = nil,
         carrierApproachPoints: [CLLocationCoordinate2D]? = nil,
         carrierOriginName: String? = nil,
         launchSectorName: String? = nil
@@ -39,6 +43,8 @@ public struct TrajectoryPath {
         self.flowArrows = flowArrows
         self.lastCheckpointCoordinate = lastCheckpointCoordinate
         self.lastCheckpointAngle = lastCheckpointAngle
+        self.tipCoordinate = tipCoordinate ?? fullPoints.last ?? lastCheckpointCoordinate
+        self.tipAngle = tipAngle ?? lastCheckpointAngle
         self.carrierApproachPoints = carrierApproachPoints
         self.carrierOriginName = carrierOriginName
         self.launchSectorName = launchSectorName
@@ -261,7 +267,14 @@ public func calculateTrajectory(
     }
 
     // Apply Chaikin corner smoothing to ensure 100% C1/C2 smooth curvature without sharp angles
-    let fullPoints = smoothPointsChaikin(points: rawPoints, iterations: 2)
+    let smoothedPoints = smoothPointsChaikin(points: rawPoints, iterations: 2)
+
+    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~18 km gap)
+    let (fullPoints, tipCoord, tipAngle) = trimTrajectoryForStandoff(
+        points: smoothedPoints,
+        target: target,
+        desiredStandoffKm: 18.0
+    )
 
     let steps = fullPoints.count - 1
 
@@ -324,6 +337,8 @@ public func calculateTrajectory(
         flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
         lastCheckpointAngle: angleDeg,
+        tipCoordinate: tipCoord,
+        tipAngle: tipAngle,
         carrierApproachPoints: carrierApproachPoints,
         carrierOriginName: carrierOriginName,
         launchSectorName: launchSectorName
@@ -491,4 +506,75 @@ private func smoothPointsChaikin(points: [CLLocationCoordinate2D], iterations: I
         current = smoothed
     }
     return current
+}
+
+// MARK: - Standoff Trimming Algorithm
+
+/// Trims the spline before the target coordinate by `desiredStandoffKm`, leaving a clean standoff gap for the arrowhead and target marker
+private func trimTrajectoryForStandoff(
+    points: [CLLocationCoordinate2D],
+    target: CLLocationCoordinate2D,
+    desiredStandoffKm: Double = 18.0
+) -> (trimmedPoints: [CLLocationCoordinate2D], tipCoordinate: CLLocationCoordinate2D, tipAngle: Double) {
+    guard points.count >= 2 else {
+        let coord = points.first ?? target
+        return ([coord], coord, 0.0)
+    }
+
+    func distKm(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
+        let dLat = (a.latitude - b.latitude) * 111.0
+        let dLon = (a.longitude - b.longitude) * 111.0 * cos(b.latitude * .pi / 180.0)
+        return sqrt(dLat * dLat + dLon * dLon)
+    }
+
+    let totalDist = distKm(points.first!, target)
+    let effectiveStandoff = min(desiredStandoffKm, max(4.0, totalDist * 0.22))
+
+    var tipCoord = points.last!
+    var tipAngle = 0.0
+    var cutoffIndex = points.count - 1
+
+    for i in (0..<points.count).reversed() {
+        let d = distKm(points[i], target)
+        if d >= effectiveStandoff {
+            cutoffIndex = i
+            break
+        }
+    }
+
+    var result: [CLLocationCoordinate2D] = []
+    if cutoffIndex < points.count - 1 {
+        let pA = points[cutoffIndex]
+        let pB = points[cutoffIndex + 1]
+        let dA = distKm(pA, target)
+        let dB = distKm(pB, target)
+
+        let fraction: Double
+        if abs(dA - dB) > 0.0001 {
+            fraction = (dA - effectiveStandoff) / (dA - dB)
+        } else {
+            fraction = 0.5
+        }
+        let clampedFraction = max(0.0, min(1.0, fraction))
+
+        let interpLat = pA.latitude + (pB.latitude - pA.latitude) * clampedFraction
+        let interpLon = pA.longitude + (pB.longitude - pA.longitude) * clampedFraction
+        tipCoord = CLLocationCoordinate2D(latitude: interpLat, longitude: interpLon)
+
+        result = Array(points[0...cutoffIndex])
+        result.append(tipCoord)
+    } else {
+        result = points
+        tipCoord = points.last!
+    }
+
+    // Calculate exact vector pointing directly towards the center of the target region circle
+    let dLat = target.latitude - tipCoord.latitude
+    let dLon = (target.longitude - tipCoord.longitude) * cos(target.latitude * .pi / 180.0)
+    let angleRad = atan2(dLon, dLat)
+    var deg = angleRad * 180.0 / .pi
+    if deg < 0 { deg += 360.0 }
+    tipAngle = deg
+
+    return (result, tipCoord, tipAngle)
 }

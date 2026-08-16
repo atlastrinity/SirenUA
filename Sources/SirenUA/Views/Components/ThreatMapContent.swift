@@ -127,6 +127,7 @@ struct FlyingThreatMapOverlay: MapContent {
                         carrierOriginName: threatItem.carrier_origin_name,
                         launchSectorName: threatItem.launch_sector_name,
                         color: itemColor,
+                        zoomScale: zoomScale,
                         isPremium: isPremium
                     )
                 }
@@ -140,6 +141,7 @@ struct FlyingThreatMapOverlay: MapContent {
                     carrierOriginName: alert.currentThreat?.carrier_origin_name,
                     launchSectorName: alert.currentThreat?.launch_sector_name,
                     color: color,
+                    zoomScale: zoomScale,
                     isPremium: isPremium
                 )
             }
