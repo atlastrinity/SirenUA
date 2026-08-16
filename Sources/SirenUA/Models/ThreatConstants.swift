@@ -54,25 +54,46 @@ public enum ThreatConstants {
     public static func title(for threatType: String?) -> String {
         guard let threatType = threatType?.lowercased() else { return "Повітряна тривога" }
         switch threatType {
-        case shahed: return "БПЛА Shahed-136"
-        case cruiseMissile: return "Крилаті ракети"
-        case ballistic: return "Балістична ракета"
-        case mig31k: return "МіГ-31К (Кинджал)"
-        case kab: return "Керовані авіабомби (КАБ)"
-        case tu95: return "Ту-95МС (крилаті ракети)"
-        case tu22m3: return "Ту-22М3 (ракети Х-22/Х-32)"
-        case su35, su35Alt: return "Су-35/Су-57 (тактична авіація)"
-        case iskander: return "Іскандер-М"
-        case artillery: return "Артилерія"
-        case urbanFights: return "Вуличні бої"
-        case chemical: return "Хімічна загроза"
-        case nuclear: return "Радіаційна небезпека"
-        case zircon: return "Гіперзвукова ракета 3M22 Циркон"
-        case mlrs: return "РСЗВ (Торнадо-С / Град / Ураган)"
-        case fpv: return "FPV дрон / Ланцет"
-        case recon, reconUav: return "Розвідувальний БПЛА"
-        case officialAlarm: return "Повітряна тривога"
-        default: return "Повітряна загроза"
+        case shahed, "shahed_136", "shahed_131", "geran", "drone", "uav", "kamikaze_drone":
+            return "БПЛА Shahed-136"
+        case "reactive_uav", "jet_shahed", "jet_drone":
+            return "Реактивний ударний БпЛА"
+        case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69", "kh_69":
+            return "Крилаті ракети"
+        case ballistic, "iskander_m", "kn23", "s300", "s400", "ballistic_missile":
+            return "Балістична ракета"
+        case mig31k, "kinzhal", "kh47m2":
+            return "МіГ-31К (Кинджал)"
+        case kab, "uab", "fab", "umpb", "odab", "rbk", "guided_bomb", "glide_bomb", "grom_e1":
+            return "Керовані авіабомби (КАБ)"
+        case tu95, "tu95ms":
+            return "Ту-95МС (крилаті ракети)"
+        case tu22m3, "kh22", "kh_22", "kh32", "kh_32":
+            return "Ту-22М3 (ракети Х-22/Х-32)"
+        case su35, su35Alt, "su34", "su57", "su30", "tactical_aviation", "tactical aviation":
+            return "Су-35/Су-57 (тактична авіація)"
+        case iskander, "iskander_k":
+            return "Іскандер-М"
+        case artillery:
+            return "Артилерія"
+        case urbanFights:
+            return "Вуличні бої"
+        case chemical:
+            return "Хімічна загроза"
+        case nuclear:
+            return "Радіаційна небезпека"
+        case zircon:
+            return "Гіперзвукова ракета 3M22 Циркон"
+        case mlrs, "tornado_s", "grad", "uragan", "smerch":
+            return "РСЗВ (Торнадо-С / Град / Ураган)"
+        case fpv, "lancet":
+            return "FPV дрон / Ланцет"
+        case recon, reconUav, "orlan", "zala", "supercam", "recon_drone":
+            return "Розвідувальний БПЛА"
+        case officialAlarm:
+            return "Повітряна тривога"
+        default:
+            return "Повітряна загроза"
         }
     }
 
@@ -80,25 +101,46 @@ public enum ThreatConstants {
     public static func shortName(for threatType: String?) -> String {
         guard let threatType = threatType?.lowercased() else { return "" }
         switch threatType {
-        case shahed: return "БпЛА"
-        case cruiseMissile: return "крилата ракета"
-        case ballistic: return "балістика"
-        case mig31k: return "МіГ-31К"
-        case kab: return "КАБ"
-        case tu95: return "Ту-95МС"
-        case tu22m3: return "Ту-22М3"
-        case su35, su35Alt: return "Су-35"
-        case iskander: return "Іскандер-М"
-        case artillery: return "обстріл"
-        case urbanFights: return "вуличні бої"
-        case chemical: return "хімнебезпека"
-        case nuclear: return "радіація"
-        case zircon: return "Циркон"
-        case mlrs: return "РСЗВ"
-        case fpv: return "FPV-дрон"
-        case recon, reconUav: return "розвідник"
-        case officialAlarm: return "тривога"
-        default: return "загроза"
+        case shahed, "shahed_136", "shahed_131", "geran", "drone", "uav", "kamikaze_drone":
+            return "БпЛА"
+        case "reactive_uav", "jet_shahed", "jet_drone":
+            return "реактивний БпЛА"
+        case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69", "kh_69":
+            return "крилата ракета"
+        case ballistic, "iskander_m", "kn23", "s300", "s400", "ballistic_missile":
+            return "балістика"
+        case mig31k, "kinzhal", "kh47m2":
+            return "МіГ-31К"
+        case kab, "uab", "fab", "umpb", "odab", "rbk", "guided_bomb", "glide_bomb", "grom_e1":
+            return "КАБ"
+        case tu95, "tu95ms":
+            return "Ту-95МС"
+        case tu22m3, "kh22", "kh_22", "kh32", "kh_32":
+            return "Ту-22М3"
+        case su35, su35Alt, "su34", "su57", "su30", "tactical_aviation", "tactical aviation":
+            return "Су-35"
+        case iskander, "iskander_k":
+            return "Іскандер-М"
+        case artillery:
+            return "обстріл"
+        case urbanFights:
+            return "вуличні бої"
+        case chemical:
+            return "хімнебезпека"
+        case nuclear:
+            return "радіація"
+        case zircon:
+            return "Циркон"
+        case mlrs, "tornado_s", "grad", "uragan", "smerch":
+            return "РСЗВ"
+        case fpv, "lancet":
+            return "FPV-дрон"
+        case recon, reconUav, "orlan", "zala", "supercam", "recon_drone":
+            return "розвідник"
+        case officialAlarm:
+            return "тривога"
+        default:
+            return "загроза"
         }
     }
 
