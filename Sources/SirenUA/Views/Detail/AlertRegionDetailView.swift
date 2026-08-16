@@ -30,9 +30,22 @@ struct AlertRegionDetailView: View {
     }
     
     private var selectedThreat: SingleThreatInfo? {
-        guard !liveRegion.activeThreats.isEmpty else { return nil }
-        let idx = min(selectedThreatIndex, liveRegion.activeThreats.count - 1)
-        return liveRegion.activeThreats[idx]
+        if !liveRegion.activeThreats.isEmpty {
+            let idx = min(selectedThreatIndex, liveRegion.activeThreats.count - 1)
+            return liveRegion.activeThreats[idx]
+        }
+        if let level = liveRegion.threatLevel {
+            return SingleThreatInfo(
+                threat_id: "region_\(liveRegion.id)",
+                level: level,
+                type: liveRegion.threatType,
+                detail: effectiveThreatDetail,
+                confidence: liveRegion.threatConfidence,
+                eta: liveRegion.threatETA,
+                is_predictive: liveRegion.isThreatPredictive
+            )
+        }
+        return nil
     }
     
     private func getThreatDescription(_ type: String?) -> String {

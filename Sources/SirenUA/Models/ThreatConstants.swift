@@ -425,4 +425,71 @@ public enum ThreatConstants {
         }
         return "\(indicator): \(threatName) (\(region))"
     }
+
+    // 9. База тактичних аеродромів та носіїв (Зліт)
+    public static func carrierOrigin(for threatType: String?, detail: String? = nil) -> String? {
+        let det = detail?.lowercased() ?? ""
+        if det.contains("саваслейк") { return "Аеродром Саваслейка (Нижньогородська обл. РФ)" }
+        if det.contains("олень") { return "Аеродром Оленья (Мурманська обл. РФ)" }
+        if det.contains("енгельс") { return "Аеродром Енгельс-2 (Саратовська обл. РФ)" }
+        if det.contains("шайковк") { return "Аеродром Шайковка (Калузька обл. РФ)" }
+        if det.contains("моздок") { return "Аеродром Моздок (Північна Осетія РФ)" }
+        if det.contains("міллерово") { return "Аеродром Міллерово (Ростовська обл. РФ)" }
+        if det.contains("балтимор") || det.contains("воронеж") { return "Аеродром Балтимор (Воронеж РФ)" }
+        if det.contains("халіно") || det.contains("курськ") { return "Аеродром Халіно (Курськ РФ)" }
+        if det.contains("єйськ") || det.contains("ейск") { return "Аеродром Єйськ (Краснодарський край РФ)" }
+        if det.contains("приморсько") || det.contains("ахтарськ") { return "Приморсько-Ахтарськ (Краснодарський край РФ)" }
+        if det.contains("чауд") { return "Мис Чауда (ТОТ Крим)" }
+        if det.contains("севастопол") || det.contains("бельбек") { return "Аеродром Бельбек / Севастополь (ТОТ Крим)" }
+
+        guard let type = threatType?.lowercased() else { return nil }
+        switch type {
+        case mig31k, "kinzhal", "kh47m2":
+            return "Аеродром Саваслейка (Нижньогородська обл. РФ)"
+        case tu95, "tu95ms":
+            return "Аеродром Оленья / Енгельс-2"
+        case tu22m3, "kh22", "kh32":
+            return "Аеродром Шайковка / Моздок"
+        case su35, su35Alt, "su34", "su57", "tactical_aviation", "tactical aviation":
+            return "Аеродроми базування тактичної авіації РФ"
+        case kab, "uab", "fab", "umpb", "odab", "rbk":
+            return "Су-34/Су-35 (Тактична авіація РФ)"
+        case shahed, "shahed_136", "reactive_uav":
+            return "Пускові райони БпЛА (Чауда / Приморсько-Ахтарськ / Курськ)"
+        default:
+            return nil
+        }
+    }
+
+    // 10. База рубежів пуску та секторів (Рубіж)
+    public static func launchSector(for threatType: String?, detail: String? = nil, region: String? = nil) -> String? {
+        let det = detail?.lowercased() ?? ""
+        if det.contains("курськ") { return "Курська область (РФ)" }
+        if det.contains("бєлгород") || det.contains("белгород") { return "Бєлгородська область (РФ)" }
+        if det.contains("брянськ") || det.contains("брянск") { return "Брянська область (РФ)" }
+        if det.contains("чорн") || det.contains("мор") { return "Акваторія Чорного моря" }
+        if det.contains("азов") { return "Акваторія Азовського моря" }
+        if det.contains("каспій") { return "Район пусків Каспійське море" }
+        if det.contains("чауд") { return "Мис Чауда (ТОТ Крим)" }
+        if det.contains("тарханкут") { return "Мис Тарханкут (ТОТ Крим)" }
+        if det.contains("донбас") || det.contains("донецьк") { return "ТОТ Донецької області" }
+        if det.contains("запоріж") { return "ТОТ Запорізької області" }
+        if det.contains("херсон") { return "ТОТ Херсонської області" }
+
+        guard let type = threatType?.lowercased() else { return nil }
+        switch type {
+        case kab, "uab", "fab", "umpb", "odab", "rbk":
+            return "Рубежі пусків вздовж держкордону та лінії фронту"
+        case mig31k, "kinzhal":
+            return "Повітряний простір Рязанської / Тульської обл. РФ"
+        case tu95, "tu95ms":
+            return "Каспійське море / Енгельс (пусковий рубіж)"
+        case tu22m3:
+            return "Акваторія Чорного моря / Курська обл. РФ"
+        case ballistic, "iskander", "iskander_m":
+            return "Пускові райони ОТРК (Бєлгород / Крим / Ростов)"
+        default:
+            return nil
+        }
+    }
 }

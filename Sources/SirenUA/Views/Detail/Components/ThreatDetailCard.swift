@@ -45,7 +45,12 @@ struct ThreatDetailCard: View {
             }
             
             if let threat = threat {
-                if let carrierName = threat.carrier_origin_name, !carrierName.isEmpty {
+                let carrierName: String? = {
+                    if let n = threat.carrier_origin_name, !n.isEmpty { return n }
+                    return ThreatConstants.carrierOrigin(for: threat.type, detail: threat.detail)
+                }()
+
+                if let carrierName = carrierName, !carrierName.isEmpty {
                     HStack(spacing: 6) {
                         Image(systemName: "airplane.departure")
                             .foregroundStyle(themeColor)
@@ -63,7 +68,12 @@ struct ThreatDetailCard: View {
                     .cornerRadius(8)
                 }
 
-                if let sector = threat.launch_sector_name, !sector.isEmpty {
+                let sectorName: String? = {
+                    if let s = threat.launch_sector_name, !s.isEmpty { return s }
+                    return ThreatConstants.launchSector(for: threat.type, detail: threat.detail)
+                }()
+
+                if let sector = sectorName, !sector.isEmpty {
                     HStack(spacing: 6) {
                         Image(systemName: "scope")
                             .foregroundStyle(themeColor)
