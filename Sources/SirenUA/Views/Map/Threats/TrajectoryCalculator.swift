@@ -15,10 +15,44 @@ public struct TrajectoryFlowArrow {
     }
 }
 
+// MARK: - Trajectory Tapered Segment (Progressive aerodynamic thinning towards target)
+
+public struct TrajectoryTaperedSegment: Identifiable {
+    public let id: Int
+    public let coordinates: [CLLocationCoordinate2D]
+    public let glowWidth: CGFloat
+    public let beamWidth: CGFloat
+    public let coreWidth: CGFloat
+    public let glowOpacity: Double
+    public let beamOpacity: Double
+    public let coreOpacity: Double
+
+    public init(
+        id: Int,
+        coordinates: [CLLocationCoordinate2D],
+        glowWidth: CGFloat,
+        beamWidth: CGFloat,
+        coreWidth: CGFloat,
+        glowOpacity: Double,
+        beamOpacity: Double,
+        coreOpacity: Double
+    ) {
+        self.id = id
+        self.coordinates = coordinates
+        self.glowWidth = glowWidth
+        self.beamWidth = beamWidth
+        self.coreWidth = coreWidth
+        self.glowOpacity = glowOpacity
+        self.beamOpacity = beamOpacity
+        self.coreOpacity = coreOpacity
+    }
+}
+
 // MARK: - Trajectory Path Data
 
 public struct TrajectoryPath {
     public let fullPoints: [CLLocationCoordinate2D]
+    public let taperedSegments: [TrajectoryTaperedSegment]
     public let flowArrows: [TrajectoryFlowArrow]
     public let lastCheckpointCoordinate: CLLocationCoordinate2D
     public let lastCheckpointAngle: Double
@@ -30,6 +64,7 @@ public struct TrajectoryPath {
 
     public init(
         fullPoints: [CLLocationCoordinate2D],
+        taperedSegments: [TrajectoryTaperedSegment] = [],
         flowArrows: [TrajectoryFlowArrow],
         lastCheckpointCoordinate: CLLocationCoordinate2D,
         lastCheckpointAngle: Double,
@@ -40,6 +75,7 @@ public struct TrajectoryPath {
         launchSectorName: String? = nil
     ) {
         self.fullPoints = fullPoints
+        self.taperedSegments = taperedSegments
         self.flowArrows = flowArrows
         self.lastCheckpointCoordinate = lastCheckpointCoordinate
         self.lastCheckpointAngle = lastCheckpointAngle
@@ -331,9 +367,46 @@ public func calculateTrajectory(
         }
         carrierApproachPoints = smoothPointsChaikin(points: approach, iterations: 1)
     }
+    // Progressive Tapering: Generate 6 continuous segments that gracefully narrow from launch origin to target tip
+    var taperedSegments: [TrajectoryTaperedSegment] = []
+    let segmentCount = 6
+    if fullPoints.count >= 2 {
+        let totalPoints = fullPoints.count
+        for i in 0..<segmentCount {
+            let startIdx = (i * (totalPoints - 1)) / segmentCount
+            let endIdx = min(totalPoints - 1, ((i + 1) * (totalPoints - 1)) / segmentCount + 1)
+            if startIdx < endIdx && endIdx <= totalPoints {
+                let segPoints = Array(fullPoints[startIdx...min(endIdx, totalPoints - 1)])
+                if segPoints.count >= 2 {
+                    let progress = Double(i) / Double(max(1, segmentCount - 1))
+                    // Tapering parameters: Wide and luminous at launch -> Narrow and razor-sharp at target region
+                    let glowW = CGFloat(8.0 - (progress * 4.6))    // 8.0pt -> 3.4pt
+                    let beamW = CGFloat(4.4 - (progress * 2.5))    // 4.4pt -> 1.9pt
+                    let coreW = CGFloat(1.8 - (progress * 0.9))    // 1.8pt -> 0.9pt
+                    let glowO = 0.32 - (progress * 0.12)           // 0.32 -> 0.20
+                    let beamO = 0.95 - (progress * 0.10)           // 0.95 -> 0.85
+                    let coreO = 0.98 - (progress * 0.08)           // 0.98 -> 0.90
+                    
+                    taperedSegments.append(
+                        TrajectoryTaperedSegment(
+                            id: i,
+                            coordinates: segPoints,
+                            glowWidth: glowW,
+                            beamWidth: beamW,
+                            coreWidth: coreW,
+                            glowOpacity: glowO,
+                            beamOpacity: beamO,
+                            coreOpacity: coreO
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     return TrajectoryPath(
         fullPoints: fullPoints,
+        taperedSegments: taperedSegments,
         flowArrows: flowArrows,
         lastCheckpointCoordinate: p1,
         lastCheckpointAngle: angleDeg,

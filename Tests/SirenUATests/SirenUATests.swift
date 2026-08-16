@@ -1219,5 +1219,34 @@ final class SirenUATests: XCTestCase {
         // Direction from Kursk to Kyiv is West-Southwest (~240°-270°)
         XCTAssertTrue(trajectory.tipAngle > 180.0 && trajectory.tipAngle < 300.0, "Tip angle should point towards Kyiv, got \(trajectory.tipAngle)")
     }
+
+    func testTrajectoryTaperingProgression() {
+        let dniproTarget = CLLocationCoordinate2D(latitude: 48.4647, longitude: 35.0462)
+        let azovOrigin = CLLocationCoordinate2D(latitude: 46.20, longitude: 36.50)
+
+        let trajectory = calculateTrajectory(
+            target: dniproTarget,
+            threatType: "shahed",
+            customOrigin: azovOrigin
+        )
+
+        XCTAssertFalse(trajectory.taperedSegments.isEmpty, "Trajectory should have tapered segments")
+        XCTAssertEqual(trajectory.taperedSegments.count, 6, "Trajectory should produce 6 aerodynamic tapered segments")
+
+        let firstSegment = trajectory.taperedSegments.first!
+        let lastSegment = trajectory.taperedSegments.last!
+
+        // Assert that origin segment is wider than target tip segment
+        XCTAssertGreaterThan(firstSegment.beamWidth, lastSegment.beamWidth, "Launch segment must be wider than tip segment")
+        XCTAssertGreaterThan(firstSegment.glowWidth, lastSegment.glowWidth, "Launch glow must be wider than tip glow")
+        XCTAssertGreaterThan(firstSegment.coreWidth, lastSegment.coreWidth, "Launch core must be wider than tip core")
+
+        // Assert strictly decreasing beam width progression
+        for i in 0..<(trajectory.taperedSegments.count - 1) {
+            let current = trajectory.taperedSegments[i]
+            let next = trajectory.taperedSegments[i + 1]
+            XCTAssertGreaterThanOrEqual(current.beamWidth, next.beamWidth, "Beam width must smoothly decrease or remain monotonic")
+        }
+    }
 }
 

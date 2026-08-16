@@ -30,17 +30,24 @@ public struct ArrowheadShape: Shape {
 public struct TrajectoryArrowheadView: View {
     public let color: Color
     public let angle: Double
+    public var standoffDistance: CGFloat = 34.0
     public var zoomScale: CGFloat = 1.0
 
     @State private var isPulsing = false
 
-    public init(color: Color, angle: Double, zoomScale: CGFloat = 1.0) {
+    public init(color: Color, angle: Double, standoffDistance: CGFloat = 34.0, zoomScale: CGFloat = 1.0) {
         self.color = color
         self.angle = angle
+        self.standoffDistance = standoffDistance
         self.zoomScale = zoomScale
     }
 
     public var body: some View {
+        let angleRad = angle * .pi / 180.0
+        let effectiveStandoff = standoffDistance * max(0.85, min(1.2, zoomScale))
+        let offsetX = -sin(angleRad) * effectiveStandoff
+        let offsetY = cos(angleRad) * effectiveStandoff
+
         ZStack(alignment: .center) {
             // 1. Soft pulse ring radiating from arrowhead
             Circle()
@@ -81,6 +88,7 @@ public struct TrajectoryArrowheadView: View {
         }
         .frame(width: 28, height: 28, alignment: .center)
         .rotationEffect(.degrees(angle))
+        .offset(x: offsetX, y: offsetY)
         .scaleEffect(zoomScale)
         .onAppear {
             isPulsing = true

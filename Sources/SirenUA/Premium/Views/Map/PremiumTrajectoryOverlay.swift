@@ -62,8 +62,47 @@ struct PremiumTrajectoryOverlay: MapContent {
                     .mapOverlayLevel(level: .aboveLabels)
             }
 
-            if n >= 2 {
-                // 1. Шар 1: М'який радарний ореол розмиття (Atmospheric Aura Glow) — суцільна лінія без артефактів нарізання
+            if !trajectory.taperedSegments.isEmpty {
+                // Динамічне аеродинамічне звуження: широкий початок на рубежі запуску -> плавне звуження до області
+                ForEach(trajectory.taperedSegments) { segment in
+                    // Шар 1: М'який радарний ореол розмиття (Atmospheric Aura Glow)
+                    MapPolyline(coordinates: segment.coordinates)
+                        .stroke(
+                            color.opacity(segment.glowOpacity),
+                            style: StrokeStyle(lineWidth: segment.glowWidth, lineCap: .round, lineJoin: .round)
+                        )
+                        .mapOverlayLevel(level: .aboveLabels)
+
+                    // Шар 2: Насичене основне тіло тактичного вектору (Kinetic Tactical Beam)
+                    MapPolyline(coordinates: segment.coordinates)
+                        .stroke(
+                            color.opacity(segment.beamOpacity),
+                            style: StrokeStyle(lineWidth: segment.beamWidth, lineCap: .round, lineJoin: .round)
+                        )
+                        .mapOverlayLevel(level: .aboveLabels)
+
+                    // Шар 3: Висококонтрастне центральне ядро (Razor Luminous Core)
+                    MapPolyline(coordinates: segment.coordinates)
+                        .stroke(
+                            Color(red: 1.0, green: 0.98, blue: 0.90).opacity(segment.coreOpacity),
+                            style: StrokeStyle(lineWidth: segment.coreWidth, lineCap: .round, lineJoin: .round)
+                        )
+                        .mapOverlayLevel(level: .aboveLabels)
+                }
+
+                // Шар 4: Акуратна тактична стрілочка на вістрі траєкторії, статично зафіксована строго в центр кружечка області
+                Annotation(coordinate: targetCoordinate) {
+                    TrajectoryArrowheadView(
+                        color: color,
+                        angle: trajectory.tipAngle,
+                        standoffDistance: 34.0,
+                        zoomScale: zoomScale
+                    )
+                } label: {
+                    EmptyView()
+                }
+            } else if n >= 2 {
+                // Резервне відображення цільної лінії (Fallback)
                 MapPolyline(coordinates: trajectory.fullPoints)
                     .stroke(
                         color.opacity(0.24),
@@ -71,7 +110,6 @@ struct PremiumTrajectoryOverlay: MapContent {
                     )
                     .mapOverlayLevel(level: .aboveLabels)
 
-                // 2. Шар 2: Насичене основне тіло тактичного вектору (Kinetic Tactical Beam)
                 MapPolyline(coordinates: trajectory.fullPoints)
                     .stroke(
                         color.opacity(0.90),
@@ -79,7 +117,6 @@ struct PremiumTrajectoryOverlay: MapContent {
                     )
                     .mapOverlayLevel(level: .aboveLabels)
 
-                // 3. Шар 3: Висококонтрастне центральне ядро (Razor Luminous Core)
                 MapPolyline(coordinates: trajectory.fullPoints)
                     .stroke(
                         Color(red: 1.0, green: 0.98, blue: 0.90).opacity(0.96),
@@ -87,11 +124,11 @@ struct PremiumTrajectoryOverlay: MapContent {
                     )
                     .mapOverlayLevel(level: .aboveLabels)
 
-                // 4. Шар 4: Акуратна тактична стрілочка на вістрі траєкторії перед кружечком області ("як у стрілі")
-                Annotation(coordinate: trajectory.tipCoordinate) {
+                Annotation(coordinate: targetCoordinate) {
                     TrajectoryArrowheadView(
                         color: color,
                         angle: trajectory.tipAngle,
+                        standoffDistance: 34.0,
                         zoomScale: zoomScale
                     )
                 } label: {
