@@ -445,9 +445,15 @@ struct AdminPalantirTab: View {
                                 Text(hub.name ?? "Хаб")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(.orange)
-                                Text("Координати: \(hub.lat ?? 0.0, specifier: "%.2f"), \(hub.lon ?? 0.0, specifier: "%.2f")")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.4))
+                                if let lat = hub.lat, let lon = hub.lon, lat > 0.1 && lon > 0.1 {
+                                    Text("Координати: \(lat, specifier: "%.2f"), \(lon, specifier: "%.2f")")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.4))
+                                } else {
+                                    Text("Сектор пусків / Базовий район")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.4))
+                                }
                             }
                             Spacer()
                             Text("\(hub.total_launches ?? 0) пусків")
