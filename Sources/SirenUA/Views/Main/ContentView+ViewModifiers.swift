@@ -76,11 +76,14 @@ struct ContentViewMapStateHandlers: ViewModifier {
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
+                    // Center map immediately so user sees their map position without any network wait!
+                    triggerMapCenter(animated: false)
+                    mapViewModel.showShelterPanel(autoHideAfter: 10.0)
+
+                    // Fetch fresh threats asynchronously in background
                     Task {
                         await viewModel.fetchThreatState()
-                        triggerMapCenter(animated: true)
                     }
-                    mapViewModel.showShelterPanel(autoHideAfter: 10.0)
                 }
             }
             .onChange(of: viewModel.alerts) { _, _ in
@@ -88,7 +91,7 @@ struct ContentViewMapStateHandlers: ViewModifier {
             }
             .onChange(of: geoManager.isLoaded) { _, newValue in
                 if newValue {
-                    triggerMapCenter()
+                    triggerMapCenter(animated: false)
                 }
             }
     }

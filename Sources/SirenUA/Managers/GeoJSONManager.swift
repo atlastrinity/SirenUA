@@ -23,6 +23,10 @@ struct RegionPolygon: Identifiable, Equatable {
     let mkPolygons: [MKPolygon]
     let identifiablePolygons: [IdentifiableMKPolygon]
     let center: CLLocationCoordinate2D
+    let minLat: Double
+    let maxLat: Double
+    let minLon: Double
+    let maxLon: Double
 
     static func == (lhs: RegionPolygon, rhs: RegionPolygon) -> Bool {
         lhs.id == rhs.id
@@ -80,7 +84,8 @@ final class GeoJSONManager: ObservableObject {
 
             let (nameEn, nameUk) = extractNames(from: feature)
             let (polygons, mkPolygons) = extractPolygons(from: feature)
-            let center = computeCenter(from: polygons) ?? fallbackCenter
+            let bounds = computeBounds(from: polygons)
+            let center = bounds.map { CLLocationCoordinate2D(latitude: ($0.minLat + $0.maxLat) / 2.0, longitude: ($0.minLon + $0.maxLon) / 2.0) } ?? fallbackCenter
 
             let identifiable = mkPolygons.enumerated().map { idx, poly in
                 IdentifiableMKPolygon(id: "\(nameUk)_\(idx)", polygon: poly)
@@ -92,7 +97,11 @@ final class GeoJSONManager: ObservableObject {
                 polygons: polygons,
                 mkPolygons: mkPolygons,
                 identifiablePolygons: identifiable,
-                center: center
+                center: center,
+                minLat: bounds?.minLat ?? center.latitude,
+                maxLat: bounds?.maxLat ?? center.latitude,
+                minLon: bounds?.minLon ?? center.longitude,
+                maxLon: bounds?.maxLon ?? center.longitude
             )
             result.append(region)
         }
@@ -176,7 +185,7 @@ final class GeoJSONManager: ObservableObject {
         return coordinates
     }
 
-    private nonisolated static func computeCenter(from polygons: [[CLLocationCoordinate2D]]) -> CLLocationCoordinate2D? {
+    private nonisolated static func computeBounds(from polygons: [[CLLocationCoordinate2D]]) -> (minLat: Double, maxLat: Double, minLon: Double, maxLon: Double)? {
         let flat = polygons.flatMap { $0 }
         guard !flat.isEmpty,
               let minLat = flat.map(\.latitude).min(),
@@ -185,9 +194,14 @@ final class GeoJSONManager: ObservableObject {
               let maxLon = flat.map(\.longitude).max()
         else { return nil }
 
+        return (minLat, maxLat, minLon, maxLon)
+    }
+
+    private nonisolated static func computeCenter(from polygons: [[CLLocationCoordinate2D]]) -> CLLocationCoordinate2D? {
+        guard let bounds = computeBounds(from: polygons) else { return nil }
         return CLLocationCoordinate2D(
-            latitude:  (minLat + maxLat) / 2.0,
-            longitude: (minLon + maxLon) / 2.0
+            latitude:  (bounds.minLat + bounds.maxLat) / 2.0,
+            longitude: (bounds.minLon + bounds.maxLon) / 2.0
         )
     }
 }

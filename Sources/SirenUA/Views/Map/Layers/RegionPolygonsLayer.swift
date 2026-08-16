@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct BorderPolyline: Identifiable {
     let id: String
@@ -7,25 +8,76 @@ struct BorderPolyline: Identifiable {
     let color: Color
 }
 
-struct RegionPolygonsLayer: MapContent {
-    let safeRegions: [RegionPolygon]
-    let activeThreatRegions: [RegionPolygon]
-    let activeAlertRegions: [RegionPolygon]
-    let alertsDict: [String: AlertRegion]
-    let lastAlertedRegionName: String?
+// MARK: - High-Performance Cached Border Lines Generator
 
-    private func segmentKey(_ c1: CLLocationCoordinate2D, _ c2: CLLocationCoordinate2D) -> String {
-        let latSum = Int(round((c1.latitude + c2.latitude) * 500))
-        let lonSum = Int(round((c1.longitude + c2.longitude) * 500))
-        return "\(latSum)_\(lonSum)"
+private struct SegmentCoordKey: Hashable {
+    let lat: Int32
+    let lon: Int32
+}
+
+@MainActor
+private final class BorderLinesCache {
+    static let shared = BorderLinesCache()
+    private var cachedKey: String = ""
+    private var cachedLines: [BorderPolyline] = []
+
+    func getLines(
+        activeAlertRegions: [RegionPolygon],
+        activeThreatRegions: [RegionPolygon],
+        safeRegions: [RegionPolygon],
+        alertsDict: [String: AlertRegion]
+    ) -> [BorderPolyline] {
+        let key = makeFootprint(
+            activeAlertRegions: activeAlertRegions,
+            activeThreatRegions: activeThreatRegions,
+            safeRegions: safeRegions,
+            alertsDict: alertsDict
+        )
+        if key == cachedKey && !cachedLines.isEmpty {
+            return cachedLines
+        }
+
+        let lines = computeLines(
+            activeAlertRegions: activeAlertRegions,
+            activeThreatRegions: activeThreatRegions,
+            safeRegions: safeRegions,
+            alertsDict: alertsDict
+        )
+        cachedKey = key
+        cachedLines = lines
+        return lines
     }
 
-    private var deduplicatedBorderLines: [BorderPolyline] {
+    private func makeFootprint(
+        activeAlertRegions: [RegionPolygon],
+        activeThreatRegions: [RegionPolygon],
+        safeRegions: [RegionPolygon],
+        alertsDict: [String: AlertRegion]
+    ) -> String {
+        let a = activeAlertRegions.map(\.nameUK).joined(separator: ",")
+        let t = activeThreatRegions.map { "\($0.nameUK)_\(alertsDict[$0.nameUK]?.threatLevel ?? "")" }.joined(separator: ",")
+        return "\(a)|\(t)|\(safeRegions.count)"
+    }
+
+    private func computeLines(
+        activeAlertRegions: [RegionPolygon],
+        activeThreatRegions: [RegionPolygon],
+        safeRegions: [RegionPolygon],
+        alertsDict: [String: AlertRegion]
+    ) -> [BorderPolyline] {
         var result: [BorderPolyline] = []
-        var seenSegments = Set<String>()
+        var seenSegments = Set<SegmentCoordKey>()
+        seenSegments.reserveCapacity(4096)
         var lineCounter = 0
 
-        // Priority 1 (Highest): Active Alert Regions (Vivid Red)
+        @inline(__always)
+        func makeKey(_ c1: CLLocationCoordinate2D, _ c2: CLLocationCoordinate2D) -> SegmentCoordKey {
+            let latSum = Int32(round((c1.latitude + c2.latitude) * 500))
+            let lonSum = Int32(round((c1.longitude + c2.longitude) * 500))
+            return SegmentCoordKey(lat: latSum, lon: lonSum)
+        }
+
+        // Priority 1: Active Alert Regions (Vivid Red)
         for (rIdx, region) in activeAlertRegions.enumerated() {
             let color = Color.red.opacity(0.95)
             for (pIdx, polyCoords) in region.polygons.enumerated() {
@@ -35,7 +87,7 @@ struct RegionPolygonsLayer: MapContent {
                 for i in 0..<(polyCoords.count - 1) {
                     let c1 = polyCoords[i]
                     let c2 = polyCoords[i + 1]
-                    let key = segmentKey(c1, c2)
+                    let key = makeKey(c1, c2)
 
                     if !seenSegments.contains(key) {
                         seenSegments.insert(key)
@@ -59,7 +111,7 @@ struct RegionPolygonsLayer: MapContent {
             }
         }
 
-        // Priority 2 (Medium): Active Threat Regions (Yellow / Orange - overwrites Blue)
+        // Priority 2: Active Threat Regions (Yellow / Orange)
         for (rIdx, region) in activeThreatRegions.enumerated() {
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let color = threatColor.opacity(0.95)
@@ -71,7 +123,7 @@ struct RegionPolygonsLayer: MapContent {
                 for i in 0..<(polyCoords.count - 1) {
                     let c1 = polyCoords[i]
                     let c2 = polyCoords[i + 1]
-                    let key = segmentKey(c1, c2)
+                    let key = makeKey(c1, c2)
 
                     if !seenSegments.contains(key) {
                         seenSegments.insert(key)
@@ -95,7 +147,7 @@ struct RegionPolygonsLayer: MapContent {
             }
         }
 
-        // Priority 3 (Lowest): Safe Regions (Cyan / Blue)
+        // Priority 3: Safe Regions (Cyan / Blue)
         let cyanColor = Color.cyan.opacity(0.85)
         for (rIdx, region) in safeRegions.enumerated() {
             for (pIdx, polyCoords) in region.polygons.enumerated() {
@@ -105,7 +157,7 @@ struct RegionPolygonsLayer: MapContent {
                 for i in 0..<(polyCoords.count - 1) {
                     let c1 = polyCoords[i]
                     let c2 = polyCoords[i + 1]
-                    let key = segmentKey(c1, c2)
+                    let key = makeKey(c1, c2)
 
                     if !seenSegments.contains(key) {
                         seenSegments.insert(key)
@@ -130,6 +182,25 @@ struct RegionPolygonsLayer: MapContent {
         }
 
         return result
+    }
+}
+
+// MARK: - RegionPolygonsLayer
+
+struct RegionPolygonsLayer: MapContent {
+    let safeRegions: [RegionPolygon]
+    let activeThreatRegions: [RegionPolygon]
+    let activeAlertRegions: [RegionPolygon]
+    let alertsDict: [String: AlertRegion]
+    let lastAlertedRegionName: String?
+
+    private var borderLines: [BorderPolyline] {
+        BorderLinesCache.shared.getLines(
+            activeAlertRegions: activeAlertRegions,
+            activeThreatRegions: activeThreatRegions,
+            safeRegions: safeRegions,
+            alertsDict: alertsDict
+        )
     }
 
     var body: some MapContent {
@@ -174,7 +245,7 @@ struct RegionPolygonsLayer: MapContent {
         // PASS 2: DEDUPLICATED BORDER STROKES (Red > Yellow > Blue, 0.85px Single Line)
         // =========================================================================
 
-        ForEach(deduplicatedBorderLines) { line in
+        ForEach(borderLines) { line in
             MapPolyline(coordinates: line.coordinates)
                 .stroke(line.color, style: StrokeStyle(lineWidth: thinStrokeWidth, lineCap: .round, lineJoin: .round))
                 .mapOverlayLevel(level: .aboveRoads)

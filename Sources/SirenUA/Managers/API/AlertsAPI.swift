@@ -7,26 +7,39 @@ private let alertsLogger = Logger(subsystem: "com.sirenua", category: "AlertsAPI
 
 extension NetworkManager {
 
-    /// Fetches the live air-raid alerts map from ubilling.
+    /// Fetches the live air-raid alerts map from ubilling with up to 3 automatic retries.
     /// Returns a dictionary mapping Ukrainian region name → AerialAlertState.
-    func fetchLiveAlerts() async throws -> [String: AerialAlertState] {
+    func fetchLiveAlerts(maxAttempts: Int = 3) async throws -> [String: AerialAlertState] {
         guard let url = URL(string: Self.alertsBaseURL) else {
             throw NetworkError.invalidURL(Self.alertsBaseURL)
         }
 
         let request = makeRequest(url: url, agent: Self.userAgent)
-        alertsLogger.info("Fetching live alerts from \(Self.alertsBaseURL)")
+        alertsLogger.info("Fetching live alerts from \(Self.alertsBaseURL) (max \(maxAttempts) attempts)")
 
-        let data = try await fetch(request: request)
-
-        do {
-            let decoded = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
-            alertsLogger.info("Decoded \(decoded.states.count) region states")
-            return decoded.states
-        } catch {
-            alertsLogger.error("Alert decoding failed: \(error.localizedDescription)")
-            throw NetworkError.decodingFailed(error)
+        var lastError: Error? = nil
+        for attempt in 1...maxAttempts {
+            do {
+                let data = try await fetch(request: request)
+                let decoded = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
+                alertsLogger.info("Decoded \(decoded.states.count) region states on attempt \(attempt)")
+                return decoded.states
+            } catch {
+                lastError = error
+                alertsLogger.warning("Attempt \(attempt)/\(maxAttempts) failed to fetch alerts: \(error.localizedDescription)")
+                if attempt < maxAttempts {
+                    try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s backoff
+                }
+            }
         }
+
+        if let lastError = lastError {
+            if let networkErr = lastError as? NetworkError {
+                throw networkErr
+            }
+            throw NetworkError.decodingFailed(lastError)
+        }
+        throw NetworkError.invalidResponse(statusCode: nil)
     }
 }
 

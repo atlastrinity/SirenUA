@@ -250,8 +250,9 @@ struct ContentView: View {
                         .padding(.top, 90)
                 }
 
-                // Spacer for map navigation
+                // Spacer for map navigation - allow touches through to the map
                 Spacer()
+                    .allowsHitTesting(false)
                 
                 if mapViewModel.isNavigating {
                     NavigationOverlay(route: mapViewModel.route) {
@@ -473,9 +474,8 @@ struct ContentView: View {
             NotificationManager.shared.pendingTappedRegion = nil
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            triggerMapCenter()
-        }
+        // Center map immediately on appear without any delay
+        triggerMapCenter(animated: false)
     }
 
     private func handleTimerTick() {

@@ -111,57 +111,61 @@ final class MapViewModel: ObservableObject {
         let activeNames = Set(relevantAlerts.map { $0.name })
         let activeRegions = regions.filter { activeNames.contains($0.nameUK) }
         
-        var allCoordinates: [CLLocationCoordinate2D] = []
+        var minLat: Double?
+        var maxLat: Double?
+        var minLon: Double?
+        var maxLon: Double?
+
         for region in activeRegions {
-            for polygon in region.polygons {
-                allCoordinates.append(contentsOf: polygon)
+            minLat = min(minLat ?? region.minLat, region.minLat)
+            maxLat = max(maxLat ?? region.maxLat, region.maxLat)
+            minLon = min(minLon ?? region.minLon, region.minLon)
+            maxLon = max(maxLon ?? region.maxLon, region.maxLon)
+        }
+
+        if minLat == nil && !allTracked && !trackedList.isEmpty {
+            let monitoredRegions = regions.filter { trackedList.contains($0.nameUK) }
+            for region in monitoredRegions {
+                minLat = min(minLat ?? region.minLat, region.minLat)
+                maxLat = max(maxLat ?? region.maxLat, region.maxLat)
+                minLon = min(minLon ?? region.minLon, region.minLon)
+                maxLon = max(maxLon ?? region.maxLon, region.maxLon)
             }
         }
         
-        if allCoordinates.isEmpty {
-            allCoordinates = relevantAlerts.map { $0.coordinate }
+        if minLat == nil && !relevantAlerts.isEmpty {
+            let lats = relevantAlerts.map { $0.coordinate.latitude }
+            let lons = relevantAlerts.map { $0.coordinate.longitude }
+            minLat = lats.min()
+            maxLat = lats.max()
+            minLon = lons.min()
+            maxLon = lons.max()
         }
         
-        if allCoordinates.isEmpty {
-            if !allTracked && !trackedList.isEmpty {
-                let monitoredRegions = regions.filter { trackedList.contains($0.nameUK) }
-                for region in monitoredRegions {
-                    for polygon in region.polygons {
-                        allCoordinates.append(contentsOf: polygon)
-                    }
+        if let minLat = minLat, let maxLat = maxLat,
+           let minLon = minLon, let maxLon = maxLon {
+            let centerLat = (minLat + maxLat) / 2.0
+            let centerLon = (minLon + maxLon) / 2.0
+            
+            // Оптимальний запас для екрану iPhone без надмірного віддалення
+            let rawLatDelta = max((maxLat - minLat) * 1.18, 2.2)
+            let rawLonDelta = max((maxLon - minLon) * 1.18, 3.0)
+            
+            let latDelta = min(rawLatDelta, 5.2)
+            let lonDelta = min(rawLonDelta, 7.8)
+            
+            let region = MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
+            )
+            if animated {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                    self.cameraPosition = .region(region)
                 }
+            } else {
+                self.cameraPosition = region.toCameraPosition()
             }
-        }
-        
-        if !allCoordinates.isEmpty {
-            let lats = allCoordinates.map { $0.latitude }
-            let lons = allCoordinates.map { $0.longitude }
-            if let minLat = lats.min(), let maxLat = lats.max(),
-               let minLon = lons.min(), let maxLon = lons.max() {
-                
-                let centerLat = (minLat + maxLat) / 2.0
-                let centerLon = (minLon + maxLon) / 2.0
-                
-                // Оптимальний запас для екрану iPhone без надмірного віддалення
-                let rawLatDelta = max((maxLat - minLat) * 1.18, 2.2)
-                let rawLonDelta = max((maxLon - minLon) * 1.18, 3.0)
-                
-                let latDelta = min(rawLatDelta, 5.2)
-                let lonDelta = min(rawLonDelta, 7.8)
-                
-                let region = MKCoordinateRegion(
-                    center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
-                    span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
-                )
-                if animated {
-                    withAnimation(.easeInOut(duration: 1.2)) {
-                        self.cameraPosition = .region(region)
-                    }
-                } else {
-                    self.cameraPosition = region.toCameraPosition()
-                }
-                return
-            }
+            return
         }
         
         // Масштаб за замовчуванням (Театр дій України без вильоту за кордон)
@@ -170,7 +174,7 @@ final class MapViewModel: ObservableObject {
             span: MKCoordinateSpan(latitudeDelta: 5.2, longitudeDelta: 7.8)
         )
         if animated {
-            withAnimation(.easeInOut(duration: 1.5)) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
                 self.cameraPosition = .region(defaultRegion)
             }
         } else {
@@ -183,30 +187,25 @@ final class MapViewModel: ObservableObject {
             selectedRegionForDetail = alertReg
         }
         
-        if let geoRegion = geoManager.regions.first(where: { $0.nameUK == regionName }),
-           let polygon = geoRegion.polygons.first, !polygon.isEmpty {
-            let lats = polygon.map { $0.latitude }
-            let lons = polygon.map { $0.longitude }
-            if let minLat = lats.min(), let maxLat = lats.max(),
-               let minLon = lons.min(), let maxLon = lons.max() {
-                let center = CLLocationCoordinate2D(
-                    latitude: (minLat + maxLat) / 2.0,
-                    longitude: (minLon + maxLon) / 2.0
-                )
-                let span = MKCoordinateSpan(
-                    latitudeDelta: max((maxLat - minLat) * 1.5, 0.8),
-                    longitudeDelta: max((maxLon - minLon) * 1.5, 1.2)
-                )
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    self.cameraPosition = .region(MKCoordinateRegion(center: center, span: span))
-                }
+        if let geoRegion = geoManager.regions.first(where: { $0.nameUK == regionName }) {
+            let minLat = geoRegion.minLat
+            let maxLat = geoRegion.maxLat
+            let minLon = geoRegion.minLon
+            let maxLon = geoRegion.maxLon
+            let center = geoRegion.center
+            let span = MKCoordinateSpan(
+                latitudeDelta: max((maxLat - minLat) * 1.5, 0.8),
+                longitudeDelta: max((maxLon - minLon) * 1.5, 1.2)
+            )
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                self.cameraPosition = .region(MKCoordinateRegion(center: center, span: span))
             }
         } else if let alertReg = alerts.first(where: { $0.name == regionName }) {
             let region = MKCoordinateRegion(
                 center: alertReg.coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 1.2, longitudeDelta: 1.8)
             )
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                 self.cameraPosition = .region(region)
             }
         }
