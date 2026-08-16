@@ -257,11 +257,11 @@ final class ShelterSearchService {
             let name = closestSecondary.item.name ?? "Укриття"
             let warn: String
             if closestSecondary.isVehicle {
-                warn = "Офіційних бомбосховищ у радіусі не знайдено. Знайдено альтернативне укриття: \(name) (\(distText)). Заїзд для авто та цілодобовий доступ."
+                warn = "Офіційних бомбосховищ у радіусі немає. Знайдено паркінг: \(name) (\(distText)) — цілодобовий заїзд авто."
             } else if closestSecondary.isNight {
-                warn = "Офіційних бомбосховищ у радіусі не знайдено. Знайдено альтернативне укриття: \(name) (\(distText)). Цілодобовий доступ."
+                warn = "Офіційних бомбосховищ у радіусі немає. Знайдено укриття: \(name) (\(distText)) — доступне цілодобово."
             } else {
-                warn = "Офіційних бомбосховищ у радіусі не знайдено. Знайдено найпростіше укриття: \(name) (\(distText)). Вночі перевіряйте доступність."
+                warn = "Офіційних бомбосховищ у радіусі немає. Знайдено найпростіше укриття: \(name) (\(distText)). У нічний час перевіряйте доступність чергового."
             }
 
             return ShelterSearchResult(
@@ -326,13 +326,13 @@ final class ShelterSearchService {
     // MARK: - Helper Methods
 
     private func secondaryNoticeMessage(for shelter: ShelterItem, distText: String) -> String {
-        let name = shelter.displayName
+        let name = shelter.name ?? shelter.displayName
         if shelter.isVehicleAccessible {
-            return "Офіційних бомбосховищ у радіусі не знайдено. Знайдено альтернативне укриття: \(name) (\(distText)). Заїзд для авто та цілодобовий доступ."
+            return "Офіційних бомбосховищ у радіусі немає. Знайдено паркінг: \(name) (\(distText)) — цілодобовий заїзд авто."
         } else if shelter.isNightAccessible {
-            return "Офіційних бомбосховищ у радіусі не знайдено. Знайдено альтернативне укриття: \(name) (\(distText)). Цілодобовий доступ."
+            return "Офіційних бомбосховищ у радіусі немає. Знайдено укриття: \(name) (\(distText)) — доступне цілодобово."
         } else {
-            return "Офіційних бомбосховищ у радіусі не знайдено. Знайдено найпростіше укриття: \(name) (\(distText)). Вночі перевіряйте доступність."
+            return "Офіційних бомбосховищ у радіусі немає. Знайдено найпростіше укриття: \(name) (\(distText)). У нічний час перевіряйте доступність чергового."
         }
     }
 

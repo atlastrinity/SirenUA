@@ -552,30 +552,32 @@ struct ContentView: View {
             .padding(.top, 6)
             
             if let displayMessage = mapViewModel.routeErrorMessage ?? mapViewModel.shelterInfoMessage {
-                HStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.yellow)
                         .font(.title3)
+                        .padding(.top, 2)
                     
                     Text(displayMessage)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(3)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                     
-                    Spacer()
+                    Spacer(minLength: 8)
                     
                     Button(action: {
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             mapViewModel.routeErrorMessage = nil
                             mapViewModel.shelterInfoMessage = nil
                         }
                     }) {
                         Image(systemName: "xmark")
-                            .foregroundColor(.white.opacity(0.6))
-                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 11, weight: .bold))
                             .padding(6)
-                            .background(Color.white.opacity(0.1))
+                            .background(Color.white.opacity(0.12))
                             .clipShape(Circle())
                     }
                 }
