@@ -14,6 +14,25 @@ struct ShelterResponse: Codable {
     let shelters: [ShelterItem]
 }
 
+struct ShelterRegionSummary: Codable, Identifiable {
+    var id: String { region_code }
+    let region_code: String
+    let region_name: String
+    let centroid_lat: Double
+    let centroid_lon: Double
+    let total_count: Int
+    let primary_count: Int
+    let secondary_count: Int
+}
+
+struct ShelterRegionsResponse: Codable {
+    let total_regions: Int
+    let total_shelters: Int
+    let total_primary: Int
+    let total_secondary: Int
+    let regions: [ShelterRegionSummary]
+}
+
 // MARK: - Shelter Category
 enum ShelterCategory: String, Codable {
     case primary    // Офіційні бомбосховища, бункери, метро, ПРУ, ЦЗ
