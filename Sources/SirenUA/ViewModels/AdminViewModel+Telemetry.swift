@@ -1,8 +1,8 @@
-import SwiftUI
 import Foundation
+import SwiftUI
 
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 
 @MainActor
@@ -10,13 +10,15 @@ extension AdminViewModel {
     func performDiagnostics() async {
         let startTime = Date()
         let sUrl = self.serverURL
-        
+
         async let pingUA: String = {
             do {
-                var req = URLRequest(url: URL(string: "https://api.ukrainealarm.com/api/v3/alerts")!)
+                var req = URLRequest(
+                    url: URL(string: "https://api.ukrainealarm.com/api/v3/alerts")!)
                 req.timeoutInterval = 2.5
                 req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
                 let start = Date()
+
                 let (_, res) = try await URLSession.shared.data(for: req)
                 let ms = Int(Date().timeIntervalSince(start) * 1000)
                 if let http = res as? HTTPURLResponse {
@@ -31,7 +33,7 @@ extension AdminViewModel {
                 return "ERROR"
             } catch { return "OFFLINE" }
         }()
-        
+
         async let pingUB: String = {
             do {
                 var req = URLRequest(url: URL(string: "https://ubilling.net.ua/aerialalerts/")!)
@@ -45,10 +47,11 @@ extension AdminViewModel {
                 return "ERROR"
             } catch { return "OFFLINE" }
         }()
-        
+
         async let pingAlerts: String = {
             do {
-                var req = URLRequest(url: URL(string: "https://api.alerts.in.ua/v1/alerts/active.json")!)
+                var req = URLRequest(
+                    url: URL(string: "https://api.alerts.in.ua/v1/alerts/active.json")!)
                 req.timeoutInterval = 2.5
                 let start = Date()
                 let (_, res) = try await URLSession.shared.data(for: req)
@@ -67,9 +70,11 @@ extension AdminViewModel {
                 return "ERROR"
             } catch { return "OFFLINE" }
         }()
-        
+
         async let pingThr: (String, Int?) = {
-            guard let threatsUrl = URL(string: "\(sUrl)/api/threats") else { return ("OFFLINE", nil) }
+            guard let threatsUrl = URL(string: "\(sUrl)/api/threats") else {
+                return ("OFFLINE", nil)
+            }
             do {
                 var req = URLRequest(url: threatsUrl)
                 req.timeoutInterval = 5.0
@@ -86,7 +91,7 @@ extension AdminViewModel {
                 return ("ERROR", nil)
             } catch { return ("OFFLINE", nil) }
         }()
-        
+
         async let pingGem: String = {
             guard let geminiUrl = URL(string: "\(sUrl)/api/gemini/status") else { return "OFFLINE" }
             do {
@@ -95,7 +100,8 @@ extension AdminViewModel {
                 req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
                 let (data, _) = try await URLSession.shared.data(for: req)
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let status = json["status"] as? String {
+                    let status = json["status"] as? String
+                {
                     if status == "ok" {
                         let keys = json["keys_count"] as? Int ?? 1
                         return "АКТИВНИЙ (\(keys) key)"
@@ -108,7 +114,7 @@ extension AdminViewModel {
                 return "НЕВІДОМО"
             } catch { return "OFFLINE" }
         }()
-        
+
         let (ua, ub, al, (thr, lat), gem) = await (pingUA, pingUB, pingAlerts, pingThr, pingGem)
         self.ukraineAlarmStatus = ua
         self.ubillingStatus = ub
@@ -127,9 +133,9 @@ extension AdminViewModel {
                 "level": simLevel,
                 "threat_type": simThreatType,
                 "detail": simDetail,
-                "confidence": Int(simConfidence)
+                "confidence": Int(simConfidence),
             ]
-            
+
             if isAdvancedTelemetryExpanded {
                 var telemetry: [String: Any] = [:]
                 if let speed = Int(simSpeedKmh), speed > 0 {
@@ -145,10 +151,10 @@ extension AdminViewModel {
                     body["telemetry"] = telemetry
                 }
             }
-            
+
             let jsonData = try JSONSerialization.data(withJSONObject: body)
             let req = makeAdminRequest(url: url, method: "POST", body: jsonData)
-            
+
             let (data, res) = try await URLSession.shared.data(for: req)
             if let http = res as? HTTPURLResponse {
                 if http.statusCode == 200 {
@@ -160,8 +166,10 @@ extension AdminViewModel {
                     try? await Task.sleep(nanoseconds: 3_500_000_000)
                     showSimSuccessMessage = false
                 } else {
-                    if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let detail = errorJson["detail"] as? String {
+                    if let errorJson = try? JSONSerialization.jsonObject(with: data)
+                        as? [String: Any],
+                        let detail = errorJson["detail"] as? String
+                    {
                         simSuccessText = "⚠️ Помилка: \(detail)"
                     } else {
                         simSuccessText = "⚠️ Помилка сервера (\(http.statusCode))"
@@ -262,8 +270,9 @@ extension AdminViewModel {
             if let http = res as? HTTPURLResponse, http.statusCode == 200 {
                 triggerHaptic("heavy")
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let created = json["rules_created"] as? Int,
-                   let updated = json["rules_updated"] as? Int {
+                    let created = json["rules_created"] as? Int,
+                    let updated = json["rules_updated"] as? Int
+                {
                     simSuccessText = "🧠 Learner: створено \(created), оновлено \(updated) правил"
                 } else {
                     simSuccessText = "🧠 Rules Learner виконано успішно"
@@ -280,4 +289,3 @@ extension AdminViewModel {
         isTriggeringLearner = false
     }
 }
-
