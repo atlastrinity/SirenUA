@@ -21,9 +21,14 @@ extension NetworkManager {
         for attempt in 1...maxAttempts {
             do {
                 let data = try await fetch(request: request)
-                let decoded = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
-                alertsLogger.info("Decoded \(decoded.states.count) region states on attempt \(attempt)")
-                return decoded.states
+                do {
+                    let decoded = try JSONDecoder().decode(AerialAlertsResponse.self, from: data)
+                    alertsLogger.info("Decoded \(decoded.states.count) region states on attempt \(attempt)")
+                    return decoded.states
+                } catch {
+                    alertsLogger.error("Alert decoding failed: \(error.localizedDescription)")
+                    throw NetworkError.decodingFailed(error)
+                }
             } catch {
                 lastError = error
                 alertsLogger.warning("Attempt \(attempt)/\(maxAttempts) failed to fetch alerts: \(error.localizedDescription)")
@@ -34,10 +39,7 @@ extension NetworkManager {
         }
 
         if let lastError = lastError {
-            if let networkErr = lastError as? NetworkError {
-                throw networkErr
-            }
-            throw NetworkError.decodingFailed(lastError)
+            throw lastError
         }
         throw NetworkError.invalidResponse(statusCode: nil)
     }

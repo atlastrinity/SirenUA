@@ -28,6 +28,32 @@ struct RegionPolygon: Identifiable, Equatable {
     let minLon: Double
     let maxLon: Double
 
+    init(
+        id: String,
+        name: String,
+        nameUK: String,
+        polygons: [[CLLocationCoordinate2D]],
+        mkPolygons: [MKPolygon],
+        identifiablePolygons: [IdentifiableMKPolygon],
+        center: CLLocationCoordinate2D,
+        minLat: Double = 0.0,
+        maxLat: Double = 0.0,
+        minLon: Double = 0.0,
+        maxLon: Double = 0.0
+    ) {
+        self.id = id
+        self.name = name
+        self.nameUK = nameUK
+        self.polygons = polygons
+        self.mkPolygons = mkPolygons
+        self.identifiablePolygons = identifiablePolygons
+        self.center = center
+        self.minLat = minLat
+        self.maxLat = maxLat
+        self.minLon = minLon
+        self.maxLon = maxLon
+    }
+
     static func == (lhs: RegionPolygon, rhs: RegionPolygon) -> Bool {
         lhs.id == rhs.id
     }
