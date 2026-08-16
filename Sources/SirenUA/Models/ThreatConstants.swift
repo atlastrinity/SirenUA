@@ -426,7 +426,36 @@ public enum ThreatConstants {
         return "\(indicator): \(threatName) (\(region))"
     }
 
-    // 9. База тактичних аеродромів та носіїв (Зліт)
+    // 9. Динамічний підпис джерела запуску залежно від типу зброї
+    public static func originLabel(for threatType: String?, detail: String? = nil) -> (title: String, icon: String) {
+        let det = detail?.lowercased() ?? ""
+        let type = threatType?.lowercased() ?? ""
+
+        if type == artillery || type == mlrs || det.contains("арт") || det.contains("рсзв") || det.contains("обстріл") || det.contains("град") || det.contains("ураган") || det.contains("смерч") {
+            return ("Вогнева позиція:", "flame.fill")
+        }
+        if type == fpv || type == recon || type == reconUav || det.contains("фпв") || det.contains("fpv") || det.contains("ланцет") || det.contains("орлан") || det.contains("зала") || det.contains("суперкам") {
+            return ("Позиція операторів:", "antenna.radiowaves.left.and.right")
+        }
+        if type == urbanFights || det.contains("вуличні бої") || det.contains("міські бої") {
+            return ("Район бойових дій:", "shield.lefthalf.filled")
+        }
+        if type == chemical || type == nuclear || det.contains("хім") || det.contains("радіац") || det.contains("заес") {
+            return ("Зона небезпеки:", "exclamationmark.triangle.fill")
+        }
+        if type == ballistic || type == iskander || type == "iskander_m" || type == zircon || det.contains("балістик") || det.contains("іскандер") || det.contains("с-300") || det.contains("циркон") || det.contains("тарханкут") {
+            return ("Позиційний район:", "scope")
+        }
+        if (type == cruiseMissile || det.contains("калібр")) && (det.contains("мор") || det.contains("фрегат") || det.contains("варшавянк") || det.contains("новоросійськ")) {
+            return ("Базування флоту:", "ferry.fill")
+        }
+        if type == shahed || type == "shahed_136" || type == "reactive_uav" || det.contains("бпла") || det.contains("дрон") || det.contains("шахед") || det.contains("гербер") {
+            return ("Майданчик пуску:", "location.north.circle.fill")
+        }
+        return ("Аеродром зльоту:", "airplane.departure")
+    }
+
+    // 10. База тактичних аеродромів, полігонів та носіїв (Джерело)
     public static func carrierOrigin(for threatType: String?, detail: String? = nil) -> String? {
         let det = detail?.lowercased() ?? ""
         if det.contains("саваслейк") { return "Аеродром Саваслейка (Нижньогородська обл. РФ)" }
@@ -434,13 +463,34 @@ public enum ThreatConstants {
         if det.contains("енгельс") { return "Аеродром Енгельс-2 (Саратовська обл. РФ)" }
         if det.contains("шайковк") { return "Аеродром Шайковка (Калузька обл. РФ)" }
         if det.contains("моздок") { return "Аеродром Моздок (Північна Осетія РФ)" }
-        if det.contains("міллерово") { return "Аеродром Міллерово (Ростовська обл. РФ)" }
+        if det.contains("ахтубінськ") { return "Авіабаза Ахтубінськ (Астраханська обл. РФ)" }
+        if det.contains("дягілєв") { return "Аеродром Дягілєво (Рязанська обл. РФ)" }
+        if det.contains("сольці") { return "Аеродром Сольці (Новгородська обл. РФ)" }
         if det.contains("балтимор") || det.contains("воронеж") { return "Аеродром Балтимор (Воронеж РФ)" }
-        if det.contains("халіно") || det.contains("курськ") { return "Аеродром Халіно (Курськ РФ)" }
-        if det.contains("єйськ") || det.contains("ейск") { return "Аеродром Єйськ (Краснодарський край РФ)" }
+        if det.contains("бутурлинівк") { return "Аеродром Бутурлинівка (Воронезька обл. РФ)" }
+        if det.contains("морозовськ") { return "Аеродром Морозовськ (Ростовська обл. РФ)" }
+        if det.contains("халіно") { return "Аеродром Халіно (Курськ РФ)" }
+        if det.contains("сеща") { return "Авіабаза Сеща (Брянська обл. РФ)" }
+        if det.contains("липецьк") { return "Авіацентр Липецьк-2 (Липецька обл. РФ)" }
+        if det.contains("кримськ") { return "Аеродром Кримськ (Краснодарський край РФ)" }
+        if det.contains("таганрог") { return "Аеродром Таганрог-Центральний (Ростовська обл. РФ)" }
+        if det.contains("севастопол") || det.contains("бельбек") { return "Аеродром Бельбек (ТОТ Крим)" }
+        if det.contains("саки") || det.contains("новофедорівк") { return "Аеродром Саки / Новофедорівка (ТОТ Крим)" }
+        if det.contains("капустін") { return "Полігон Капустін Яр (Астраханська обл. РФ)" }
+        if det.contains("тарханкут") { return "Позиційний район мис Тарханкут (ТОТ Крим)" }
+        if det.contains("джанкой") { return "Позиційний район Джанкой (ТОТ Крим)" }
         if det.contains("приморсько") || det.contains("ахтарськ") { return "Приморсько-Ахтарськ (Краснодарський край РФ)" }
+        if det.contains("єйськ") || det.contains("ейск") { return "Єйськ (Краснодарський край РФ)" }
+        if det.contains("міллерово") { return "Міллерово (Ростовська обл. РФ)" }
+        if det.contains("орел") || det.contains("орьол") { return "Полігон Південний / Орел (РФ)" }
         if det.contains("чауд") { return "Мис Чауда (ТОТ Крим)" }
-        if det.contains("севастопол") || det.contains("бельбек") { return "Аеродром Бельбек / Севастополь (ТОТ Крим)" }
+        if det.contains("кінбурн") { return "Вогневі позиції Кінбурнська коса (ТОТ Херсон/Миколаїв)" }
+        if det.contains("енергодар") { return "Вогневі позиції ТОТ Запорізької обл. (Енергодар / Кам'янка)" }
+        if det.contains("олешки") || det.contains("каховк") { return "Вогневі позиції ТОТ Херсонської обл. (Олешки / Каховка)" }
+        if det.contains("горлівк") || det.contains("донецьк арт") { return "Вогневі позиції ТОТ Донецької обл." }
+        if det.contains("шебекіно") || det.contains("грайворон") { return "Вогневі позиції Бєлгородська обл. РФ" }
+        if det.contains("тьоткіно") || det.contains("глушково") { return "Вогневі позиції Курська обл. РФ" }
+        if det.contains("заес") { return "Зона ризику ЗАЕС (м. Енергодар)" }
 
         guard let type = threatType?.lowercased() else { return nil }
         switch type {
@@ -455,18 +505,38 @@ public enum ThreatConstants {
         case kab, "uab", "fab", "umpb", "odab", "rbk":
             return "Су-34/Су-35 (Тактична авіація РФ)"
         case shahed, "shahed_136", "reactive_uav":
-            return "Пускові райони БпЛА (Чауда / Приморсько-Ахтарськ / Курськ)"
+            if det.contains("чорн") || det.contains("мор") || det.contains("одес") || det.contains("миколаїв") {
+                return "Мис Чауда (ТОТ Крим)"
+            }
+            return "Пускові майданчики БпЛА (Чауда / Приморсько-Ахтарськ / Курськ)"
+        case cruiseMissile:
+            if det.contains("калібр") || det.contains("мор") {
+                return "Акваторія Чорного моря (Флот РФ)"
+            }
+            return "Стратегічна авіація РФ (Оленья / Енгельс-2)"
+        case ballistic, iskander, "iskander_m":
+            return "Позиційні райони ОТРК (Бєлгород / Крим / Курськ / Капустін Яр)"
+        case zircon:
+            return "БРК Бастіон / Кораблі ЧФ (ТОТ Крим / Севастополь)"
+        case artillery, mlrs:
+            return "Вогневі позиції ворога (ТОТ Запоріжжя / Херсонщини / Донбасу / прикордоння РФ)"
+        case fpv, recon, reconUav:
+            return "Передові позиції операторів БпЛА (ЛБЗ / прикордоння)"
+        case urbanFights:
+            return "Район активних контактних міських боїв"
+        case nuclear, chemical:
+            return "Зона підвищеного техногенного / радіаційного ризику"
         default:
             return nil
         }
     }
 
-    // 10. База рубежів пуску та секторів (Рубіж)
+    // 11. База рубежів пуску та коридорів (Рубіж)
     public static func launchSector(for threatType: String?, detail: String? = nil, region: String? = nil) -> String? {
         let det = detail?.lowercased() ?? ""
-        if det.contains("курськ") { return "Курська область (РФ)" }
-        if det.contains("бєлгород") || det.contains("белгород") { return "Бєлгородська область (РФ)" }
-        if det.contains("брянськ") || det.contains("брянск") { return "Брянська область (РФ)" }
+        if det.contains("курськ") { return "Рубіж Курська область (РФ)" }
+        if det.contains("бєлгород") || det.contains("белгород") { return "Рубіж Бєлгородська область (РФ)" }
+        if det.contains("брянськ") || det.contains("брянск") { return "Рубіж Брянська область (РФ)" }
         if det.contains("чорн") || det.contains("мор") { return "Акваторія Чорного моря" }
         if det.contains("азов") { return "Акваторія Азовського моря" }
         if det.contains("каспій") { return "Район пусків Каспійське море" }
@@ -488,6 +558,21 @@ public enum ThreatConstants {
             return "Акваторія Чорного моря / Курська обл. РФ"
         case ballistic, "iskander", "iskander_m":
             return "Пускові райони ОТРК (Бєлгород / Крим / Ростов)"
+        case zircon:
+            return "Акваторія Чорного моря / Мис Тарханкут"
+        case artillery, mlrs:
+            return "Прифронтова смуга / лінія зіткнення"
+        case fpv, recon, reconUav:
+            return "Тактична прифронтова зона (0-25 км від ЛБЗ)"
+        case urbanFights:
+            return "Міська забудова зони бойових дій"
+        case nuclear, chemical:
+            return "Район ураження радіаційного / хімічного фактору"
+        case shahed, "shahed_136":
+            if det.contains("одес") || det.contains("миколаїв") || det.contains("херсон") {
+                return "Акваторія Чорного моря"
+            }
+            return "Прикордонні райони РФ / АР Крим"
         default:
             return nil
         }

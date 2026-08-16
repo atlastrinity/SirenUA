@@ -29,9 +29,12 @@ struct AdminRulesTab: View {
                 HStack(spacing: 8) {
                     Picker("Тип правила", selection: $viewModel.rulesTypeFilter) {
                         Text("Всі типи").tag("")
+                        Text("Майданчик пуску").tag("launch_site_pattern")
+                        Text("Авіаудар").tag("aviation_strike_pattern")
                         Text("Маршрут").tag("route_pattern")
                         Text("Довіра").tag("confidence_correction")
                         Text("Часовий").tag("time_pattern")
+                        Text("ETA").tag("eta_math")
                     }
                     .pickerStyle(.menu)
                     .tint(.white)
@@ -374,9 +377,11 @@ struct GeminiRuleRow: View {
     
     private func ruleTypeColor(_ type: String) -> Color {
         switch type {
+        case "launch_site_pattern": return .orange
+        case "aviation_strike_pattern": return .red
         case "route_pattern": return .cyan
         case "confidence_correction": return .green
-        case "time_pattern": return .orange
+        case "time_pattern": return .yellow
         case "eta_math": return .purple
         case "post_mortem": return .pink
         default: return .blue
@@ -385,6 +390,8 @@ struct GeminiRuleRow: View {
     
     private func ruleTypeBadgeText(_ type: String) -> String {
         switch type {
+        case "launch_site_pattern": return "МАЙДАНЧИК"
+        case "aviation_strike_pattern": return "АВІАУДАР"
         case "route_pattern": return "МАРШРУТ"
         case "confidence_correction": return "ДОВІРА"
         case "time_pattern": return "ЧАС"

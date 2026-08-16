@@ -45,6 +45,7 @@ struct ThreatDetailCard: View {
             }
             
             if let threat = threat {
+                let originInfo = ThreatConstants.originLabel(for: threat.type, detail: threat.detail)
                 let carrierName: String? = {
                     if let n = threat.carrier_origin_name, !n.isEmpty { return n }
                     return ThreatConstants.carrierOrigin(for: threat.type, detail: threat.detail)
@@ -52,10 +53,10 @@ struct ThreatDetailCard: View {
 
                 if let carrierName = carrierName, !carrierName.isEmpty {
                     HStack(spacing: 6) {
-                        Image(systemName: "airplane.departure")
+                        Image(systemName: originInfo.icon)
                             .foregroundStyle(themeColor)
                             .font(.system(size: 12))
-                        Text("Зліт:")
+                        Text(originInfo.title)
                             .font(.system(size: 12, weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.6))
                         Text(carrierName)
@@ -75,10 +76,10 @@ struct ThreatDetailCard: View {
 
                 if let sector = sectorName, !sector.isEmpty {
                     HStack(spacing: 6) {
-                        Image(systemName: "scope")
+                        Image(systemName: "safari.fill")
                             .foregroundStyle(themeColor)
                             .font(.system(size: 12))
-                        Text("Рубіж:")
+                        Text("Рубіж / Коридор:")
                             .font(.system(size: 12, weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.6))
                         Text(sector)
