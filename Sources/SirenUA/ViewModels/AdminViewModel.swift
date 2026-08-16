@@ -195,19 +195,22 @@ class AdminViewModel: ObservableObject {
         }
     }
     
-    func refreshAllData() async {
-        isLoading = true
-        lastFetchError = nil
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.fetchDashboardStats() }
-            group.addTask { await self.fetchPalantirOverview() }
-            group.addTask { await self.fetchCorrelationV2() }
-            group.addTask { await self.fetchChronology() }
-            group.addTask { await self.fetchRules() }
-            group.addTask { await self.fetchErrors() }
-            group.addTask { await self.performDiagnostics() }
+    func refreshAllData(selectedTab: Int = 0) async {
+        if dashboardStats == nil && correlationV2Data == nil && palantirOverview == nil {
+            isLoading = true
         }
+        lastFetchError = nil
+        
+        // 1. Load active tab immediately so UI renders in <250ms
+        await refreshCurrentTab(selectedTab: selectedTab)
         isLoading = false
+        
+        // 2. Progressively fetch other tabs in background without blocking the UI
+        await fetchPalantirOverview()
+        await fetchCorrelationV2()
+        await fetchRules()
+        await fetchErrors()
+        await performDiagnostics()
     }
     
     func fetchDashboardStats() async {

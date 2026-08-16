@@ -9,107 +9,115 @@ extension AdminViewModel {
     func performDiagnostics() async {
         let startTime = Date()
         
-        // 1. Tier 1: UkraineAlarm API v3 ping
-        do {
-            var req = URLRequest(url: URL(string: "https://api.ukrainealarm.com/api/v3/alerts")!)
-            req.timeoutInterval = 3.0
-            req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
-            let start = Date()
-            let (_, res) = try await URLSession.shared.data(for: req)
-            let ms = Int(Date().timeIntervalSince(start) * 1000)
-            if let http = res as? HTTPURLResponse {
-                if http.statusCode == 200 {
-                    ukraineAlarmStatus = "ONLINE (\(ms) ms)"
-                } else if http.statusCode == 401 || http.statusCode == 403 {
-                    ukraineAlarmStatus = "ОЧІКУЄ КЛЮЧ (\(ms) ms)"
+        // Run all 5 diagnostic pings concurrently in parallel
+        async let pingUkraineAlarm: Void = {
+            do {
+                var req = URLRequest(url: URL(string: "https://api.ukrainealarm.com/api/v3/alerts")!)
+                req.timeoutInterval = 2.5
+                req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
+                let start = Date()
+                let (_, res) = try await URLSession.shared.data(for: req)
+                let ms = Int(Date().timeIntervalSince(start) * 1000)
+                if let http = res as? HTTPURLResponse {
+                    if http.statusCode == 200 {
+                        self.ukraineAlarmStatus = "ONLINE (\(ms) ms)"
+                    } else if http.statusCode == 401 || http.statusCode == 403 {
+                        self.ukraineAlarmStatus = "ОЧІКУЄ КЛЮЧ (\(ms) ms)"
+                    } else {
+                        self.ukraineAlarmStatus = "HTTP \(http.statusCode)"
+                    }
                 } else {
-                    ukraineAlarmStatus = "HTTP \(http.statusCode)"
+                    self.ukraineAlarmStatus = "ERROR"
                 }
-            } else {
-                ukraineAlarmStatus = "ERROR"
-            }
-        } catch { ukraineAlarmStatus = "OFFLINE" }
+            } catch { self.ukraineAlarmStatus = "OFFLINE" }
+        }()
         
-        // 2. Tier 2: UBilling Дзеркало ping
-        do {
-            var req = URLRequest(url: URL(string: "https://ubilling.net.ua/aerialalerts/")!)
-            req.timeoutInterval = 3.0
-            let start = Date()
-            let (_, res) = try await URLSession.shared.data(for: req)
-            let ms = Int(Date().timeIntervalSince(start) * 1000)
-            if let http = res as? HTTPURLResponse, http.statusCode == 200 {
-                ubillingStatus = "ONLINE (\(ms) ms)"
-                alertsStatus = ubillingStatus
-            } else {
-                ubillingStatus = "ERROR"
-                alertsStatus = "ERROR"
-            }
-        } catch { 
-            ubillingStatus = "OFFLINE"
-            alertsStatus = "OFFLINE"
-        }
-        
-        // 3. Tier 3: Alerts.in.ua API ping
-        do {
-            var req = URLRequest(url: URL(string: "https://api.alerts.in.ua/v1/alerts/active.json")!)
-            req.timeoutInterval = 3.0
-            let start = Date()
-            let (_, res) = try await URLSession.shared.data(for: req)
-            let ms = Int(Date().timeIntervalSince(start) * 1000)
-            if let http = res as? HTTPURLResponse {
-                if http.statusCode == 200 {
-                    alertsInUaStatus = "ONLINE (\(ms) ms)"
-                } else if http.statusCode == 401 || http.statusCode == 403 {
-                    alertsInUaStatus = "ОЧІКУЄ ТОКЕН (\(ms) ms)"
-                } else if http.statusCode == 429 {
-                    alertsInUaStatus = "ЛІМІТ ЗАПИТІВ"
+        async let pingUBilling: Void = {
+            do {
+                var req = URLRequest(url: URL(string: "https://ubilling.net.ua/aerialalerts/")!)
+                req.timeoutInterval = 2.5
+                let start = Date()
+                let (_, res) = try await URLSession.shared.data(for: req)
+                let ms = Int(Date().timeIntervalSince(start) * 1000)
+                if let http = res as? HTTPURLResponse, http.statusCode == 200 {
+                    self.ubillingStatus = "ONLINE (\(ms) ms)"
+                    self.alertsStatus = self.ubillingStatus
                 } else {
-                    alertsInUaStatus = "HTTP \(http.statusCode)"
+                    self.ubillingStatus = "ERROR"
+                    self.alertsStatus = "ERROR"
                 }
-            } else {
-                alertsInUaStatus = "ERROR"
+            } catch { 
+                self.ubillingStatus = "OFFLINE"
+                self.alertsStatus = "OFFLINE"
             }
-        } catch { alertsInUaStatus = "OFFLINE" }
+        }()
         
-        // 4. Analytics threat server backend ping
-        guard let threatsUrl = URL(string: "\(serverURL)/api/threats") else { return }
-        do {
-            let req = makeAdminRequest(url: threatsUrl)
-            let (_, res) = try await URLSession.shared.data(for: req)
-            let latency = Int(Date().timeIntervalSince(startTime) * 1000)
-            if let http = res as? HTTPURLResponse {
-                if http.statusCode == 200 {
-                    threatsStatus = "ONLINE (\(latency) ms)"
-                    serverLatencyMs = latency
+        async let pingAlertsInUa: Void = {
+            do {
+                var req = URLRequest(url: URL(string: "https://api.alerts.in.ua/v1/alerts/active.json")!)
+                req.timeoutInterval = 2.5
+                let start = Date()
+                let (_, res) = try await URLSession.shared.data(for: req)
+                let ms = Int(Date().timeIntervalSince(start) * 1000)
+                if let http = res as? HTTPURLResponse {
+                    if http.statusCode == 200 {
+                        self.alertsInUaStatus = "ONLINE (\(ms) ms)"
+                    } else if http.statusCode == 401 || http.statusCode == 403 {
+                        self.alertsInUaStatus = "ОЧІКУЄ ТОКЕН (\(ms) ms)"
+                    } else if http.statusCode == 429 {
+                        self.alertsInUaStatus = "ЛІМІТ ЗАПИТІВ"
+                    } else {
+                        self.alertsInUaStatus = "HTTP \(http.statusCode)"
+                    }
                 } else {
-                    threatsStatus = "ERROR (\(http.statusCode))"
+                    self.alertsInUaStatus = "ERROR"
                 }
-            } else {
-                threatsStatus = "ERROR"
-            }
-        } catch { 
-            threatsStatus = "OFFLINE"
-            serverLatencyMs = nil
-        }
+            } catch { self.alertsInUaStatus = "OFFLINE" }
+        }()
         
-        // 5. Gemini status ping
-        guard let geminiUrl = URL(string: "\(serverURL)/api/gemini/status") else { return }
-        do {
-            let (data, _) = try await fetchAdminData(from: geminiUrl)
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let status = json["status"] as? String {
-                if status == "ok" {
-                    let keys = json["keys_count"] as? Int ?? 1
-                    geminiStatus = "АКТИВНИЙ (\(keys) key)"
-                } else if status == "mock" {
-                    geminiStatus = "MOCK РЕЖИМ"
+        async let pingThreats: Void = {
+            guard let threatsUrl = URL(string: "\(self.serverURL)/api/threats") else { return }
+            do {
+                let req = self.makeAdminRequest(url: threatsUrl)
+                let (_, res) = try await URLSession.shared.data(for: req)
+                let latency = Int(Date().timeIntervalSince(startTime) * 1000)
+                if let http = res as? HTTPURLResponse {
+                    if http.statusCode == 200 {
+                        self.threatsStatus = "ONLINE (\(latency) ms)"
+                        self.serverLatencyMs = latency
+                    } else {
+                        self.threatsStatus = "ERROR (\(http.statusCode))"
+                    }
                 } else {
-                    geminiStatus = status.uppercased()
+                    self.threatsStatus = "ERROR"
                 }
-            } else {
-                geminiStatus = "НЕВІДОМО"
+            } catch { 
+                self.threatsStatus = "OFFLINE"
+                self.serverLatencyMs = nil
             }
-        } catch { geminiStatus = "OFFLINE" }
+        }()
+        
+        async let pingGemini: Void = {
+            guard let geminiUrl = URL(string: "\(self.serverURL)/api/gemini/status") else { return }
+            do {
+                let (data, _) = try await self.fetchAdminData(from: geminiUrl)
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let status = json["status"] as? String {
+                    if status == "ok" {
+                        let keys = json["keys_count"] as? Int ?? 1
+                        self.geminiStatus = "АКТИВНИЙ (\(keys) key)"
+                    } else if status == "mock" {
+                        self.geminiStatus = "MOCK РЕЖИМ"
+                    } else {
+                        self.geminiStatus = status.uppercased()
+                    }
+                } else {
+                    self.geminiStatus = "НЕВІДОМО"
+                }
+            } catch { self.geminiStatus = "OFFLINE" }
+        }()
+        
+        _ = await (pingUkraineAlarm, pingUBilling, pingAlertsInUa, pingThreats, pingGemini)
     }
 
     func injectCustomThreat() async {

@@ -37,7 +37,7 @@ struct AdminDashboardView: View {
                                 .foregroundColor(.white)
                             Spacer()
                             Button("Повторити") {
-                                Task { await viewModel.refreshAllData() }
+                                Task { await viewModel.refreshAllData(selectedTab: selectedTab) }
                             }
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.cyan)
@@ -91,7 +91,7 @@ struct AdminDashboardView: View {
             .preferredColorScheme(.dark)
             .task {
                 await viewModel.loadRegions()
-                await viewModel.refreshAllData()
+                await viewModel.refreshAllData(selectedTab: selectedTab)
             }
             .onReceive(refreshTimer) { _ in
                 Task {
