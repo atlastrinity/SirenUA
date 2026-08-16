@@ -5,12 +5,13 @@ import Foundation
 import UIKit
 #endif
 
+@MainActor
 extension AdminViewModel {
     func performDiagnostics() async {
         let startTime = Date()
+        let sUrl = self.serverURL
         
-        // Run all 5 diagnostic pings concurrently in parallel
-        async let pingUkraineAlarm: Void = {
+        async let pingUA: String = {
             do {
                 var req = URLRequest(url: URL(string: "https://api.ukrainealarm.com/api/v3/alerts")!)
                 req.timeoutInterval = 2.5
@@ -20,19 +21,18 @@ extension AdminViewModel {
                 let ms = Int(Date().timeIntervalSince(start) * 1000)
                 if let http = res as? HTTPURLResponse {
                     if http.statusCode == 200 {
-                        self.ukraineAlarmStatus = "ONLINE (\(ms) ms)"
+                        return "ONLINE (\(ms) ms)"
                     } else if http.statusCode == 401 || http.statusCode == 403 {
-                        self.ukraineAlarmStatus = "ОЧІКУЄ КЛЮЧ (\(ms) ms)"
+                        return "ОЧІКУЄ КЛЮЧ (\(ms) ms)"
                     } else {
-                        self.ukraineAlarmStatus = "HTTP \(http.statusCode)"
+                        return "HTTP \(http.statusCode)"
                     }
-                } else {
-                    self.ukraineAlarmStatus = "ERROR"
                 }
-            } catch { self.ukraineAlarmStatus = "OFFLINE" }
+                return "ERROR"
+            } catch { return "OFFLINE" }
         }()
         
-        async let pingUBilling: Void = {
+        async let pingUB: String = {
             do {
                 var req = URLRequest(url: URL(string: "https://ubilling.net.ua/aerialalerts/")!)
                 req.timeoutInterval = 2.5
@@ -40,19 +40,13 @@ extension AdminViewModel {
                 let (_, res) = try await URLSession.shared.data(for: req)
                 let ms = Int(Date().timeIntervalSince(start) * 1000)
                 if let http = res as? HTTPURLResponse, http.statusCode == 200 {
-                    self.ubillingStatus = "ONLINE (\(ms) ms)"
-                    self.alertsStatus = self.ubillingStatus
-                } else {
-                    self.ubillingStatus = "ERROR"
-                    self.alertsStatus = "ERROR"
+                    return "ONLINE (\(ms) ms)"
                 }
-            } catch { 
-                self.ubillingStatus = "OFFLINE"
-                self.alertsStatus = "OFFLINE"
-            }
+                return "ERROR"
+            } catch { return "OFFLINE" }
         }()
         
-        async let pingAlertsInUa: Void = {
+        async let pingAlerts: String = {
             do {
                 var req = URLRequest(url: URL(string: "https://api.alerts.in.ua/v1/alerts/active.json")!)
                 req.timeoutInterval = 2.5
@@ -61,63 +55,68 @@ extension AdminViewModel {
                 let ms = Int(Date().timeIntervalSince(start) * 1000)
                 if let http = res as? HTTPURLResponse {
                     if http.statusCode == 200 {
-                        self.alertsInUaStatus = "ONLINE (\(ms) ms)"
+                        return "ONLINE (\(ms) ms)"
                     } else if http.statusCode == 401 || http.statusCode == 403 {
-                        self.alertsInUaStatus = "ОЧІКУЄ ТОКЕН (\(ms) ms)"
+                        return "ОЧІКУЄ ТОКЕН (\(ms) ms)"
                     } else if http.statusCode == 429 {
-                        self.alertsInUaStatus = "ЛІМІТ ЗАПИТІВ"
+                        return "ЛІМІТ ЗАПИТІВ"
                     } else {
-                        self.alertsInUaStatus = "HTTP \(http.statusCode)"
+                        return "HTTP \(http.statusCode)"
                     }
-                } else {
-                    self.alertsInUaStatus = "ERROR"
                 }
-            } catch { self.alertsInUaStatus = "OFFLINE" }
+                return "ERROR"
+            } catch { return "OFFLINE" }
         }()
         
-        async let pingThreats: Void = {
-            guard let threatsUrl = URL(string: "\(self.serverURL)/api/threats") else { return }
+        async let pingThr: (String, Int?) = {
+            guard let threatsUrl = URL(string: "\(sUrl)/api/threats") else { return ("OFFLINE", nil) }
             do {
-                let req = self.makeAdminRequest(url: threatsUrl)
+                var req = URLRequest(url: threatsUrl)
+                req.timeoutInterval = 5.0
+                req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
                 let (_, res) = try await URLSession.shared.data(for: req)
                 let latency = Int(Date().timeIntervalSince(startTime) * 1000)
                 if let http = res as? HTTPURLResponse {
                     if http.statusCode == 200 {
-                        self.threatsStatus = "ONLINE (\(latency) ms)"
-                        self.serverLatencyMs = latency
+                        return ("ONLINE (\(latency) ms)", latency)
                     } else {
-                        self.threatsStatus = "ERROR (\(http.statusCode))"
+                        return ("ERROR (\(http.statusCode))", nil)
                     }
-                } else {
-                    self.threatsStatus = "ERROR"
                 }
-            } catch { 
-                self.threatsStatus = "OFFLINE"
-                self.serverLatencyMs = nil
-            }
+                return ("ERROR", nil)
+            } catch { return ("OFFLINE", nil) }
         }()
         
-        async let pingGemini: Void = {
-            guard let geminiUrl = URL(string: "\(self.serverURL)/api/gemini/status") else { return }
+        async let pingGem: String = {
+            guard let geminiUrl = URL(string: "\(sUrl)/api/gemini/status") else { return "OFFLINE" }
             do {
-                let (data, _) = try await self.fetchAdminData(from: geminiUrl)
+                var req = URLRequest(url: geminiUrl)
+                req.timeoutInterval = 5.0
+                req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
+                let (data, _) = try await URLSession.shared.data(for: req)
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let status = json["status"] as? String {
                     if status == "ok" {
                         let keys = json["keys_count"] as? Int ?? 1
-                        self.geminiStatus = "АКТИВНИЙ (\(keys) key)"
+                        return "АКТИВНИЙ (\(keys) key)"
                     } else if status == "mock" {
-                        self.geminiStatus = "MOCK РЕЖИМ"
+                        return "MOCK РЕЖИМ"
                     } else {
-                        self.geminiStatus = status.uppercased()
+                        return status.uppercased()
                     }
-                } else {
-                    self.geminiStatus = "НЕВІДОМО"
                 }
-            } catch { self.geminiStatus = "OFFLINE" }
+                return "НЕВІДОМО"
+            } catch { return "OFFLINE" }
         }()
         
-        _ = await (pingUkraineAlarm, pingUBilling, pingAlertsInUa, pingThreats, pingGemini)
+        let (ua, ub, al, (thr, lat), gem) = await (pingUA, pingUB, pingAlerts, pingThr, pingGem)
+        self.ukraineAlarmStatus = ua
+        self.ubillingStatus = ub
+        self.alertsStatus = ub
+        self.alertsInUaStatus = al
+        self.threatsStatus = thr
+        self.serverLatencyMs = lat
+        self.geminiStatus = gem
     }
 
     func injectCustomThreat() async {
