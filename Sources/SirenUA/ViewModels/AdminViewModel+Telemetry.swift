@@ -79,6 +79,8 @@ extension AdminViewModel {
                 var req = URLRequest(url: threatsUrl)
                 req.timeoutInterval = 5.0
                 req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
+                req.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+                req.setValue("application/json", forHTTPHeaderField: "Accept")
                 let (_, res) = try await URLSession.shared.data(for: req)
                 let latency = Int(Date().timeIntervalSince(startTime) * 1000)
                 if let http = res as? HTTPURLResponse {
@@ -98,6 +100,8 @@ extension AdminViewModel {
                 var req = URLRequest(url: geminiUrl)
                 req.timeoutInterval = 5.0
                 req.setValue("SirenUA-Admin/1.0", forHTTPHeaderField: "User-Agent")
+                req.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+                req.setValue("application/json", forHTTPHeaderField: "Accept")
                 let (data, _) = try await URLSession.shared.data(for: req)
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                     let status = json["status"] as? String

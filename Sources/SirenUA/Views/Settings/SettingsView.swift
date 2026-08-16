@@ -77,6 +77,9 @@ struct SettingsView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 5.0
+        request.setValue("SirenUA/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         do {
             let start = Date()
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -109,6 +112,8 @@ struct SettingsView: View {
         request.httpMethod = method
         request.timeoutInterval = 4.0
         request.setValue("SirenUA/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         do {
             let start = Date()
             let (_, response) = try await URLSession.shared.data(for: request)
