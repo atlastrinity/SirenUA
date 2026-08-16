@@ -71,6 +71,52 @@ struct ShelterDetailView: View {
             }
             .padding(.horizontal, 24)
 
+            // Status & Feature Badges (Category, Night 24/7 Access, Vehicle Parking)
+            let rawType: String? = nil
+            let shelterType = ShelterType.matching(from: rawType, name: shelter.name)
+            HStack(spacing: 8) {
+                // Category Badge
+                HStack(spacing: 4) {
+                    Image(systemName: shelterType.category == .primary ? "shield.fill" : (shelterType.isVehicleAccessible ? "car.fill" : "building.2.fill"))
+                        .font(.system(size: 11, weight: .bold))
+                    Text(shelterType.badgeText)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(shelterType.category == .primary ? .cyan : (shelterType.isVehicleAccessible ? Color(red: 0.3, green: 0.9, blue: 0.7) : .orange))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    (shelterType.category == .primary ? Color.cyan : (shelterType.isVehicleAccessible ? Color.green : Color.orange)).opacity(0.18)
+                )
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(
+                        (shelterType.category == .primary ? Color.cyan : (shelterType.isVehicleAccessible ? Color.green : Color.orange)).opacity(0.40),
+                        lineWidth: 0.8
+                    )
+                )
+
+                // Night 24/7 Access Badge
+                HStack(spacing: 4) {
+                    Image(systemName: shelterType.isNightAccessible ? "moon.stars.fill" : "sun.max.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(shelterType.isNightAccessible ? "Цілодобово 24/7" : "Денний доступ")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(shelterType.isNightAccessible ? Color(red: 0.4, green: 0.95, blue: 0.6) : Color.yellow)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background((shelterType.isNightAccessible ? Color.green : Color.yellow).opacity(0.15))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke((shelterType.isNightAccessible ? Color.green : Color.yellow).opacity(0.35), lineWidth: 0.8)
+                )
+
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 14)
+
             // Route info / error
             if let dist = distanceText, let time = timeText {
                 HStack(spacing: 14) {
@@ -79,7 +125,7 @@ struct ShelterDetailView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 16)
+                .padding(.top, 14)
             } else if let error = routeErrorMessage {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")

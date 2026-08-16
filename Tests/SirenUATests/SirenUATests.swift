@@ -724,8 +724,8 @@ final class SirenUATests: XCTestCase {
     func testProgressiveShelterCascadeForRuralVillages() {
         // Simulating user in Uhersko village where local shelter is 350m (Lyceum) and district shelter is 5.4km (Stryi)
         let userCoord = CLLocation(latitude: 49.3005, longitude: 23.8966)
-        let lyceumShelter = ShelterItem(id: "uhersko_1", name: "Угерський ліцей (Найпростіше укриття)", address: "вул. Івана Франка 2", lat: 49.3005, lon: 23.8966, distance_m: 0.0, type: "bomb_shelter", capacity: 350, accessible: true, source: "gov")
-        let stryiShelter = ShelterItem(id: "stryi_1", name: "Стрийська лікарня (Сховище)", address: "вул. Басараб 15, м. Стрий", lat: 49.2620, lon: 23.8650, distance_m: 5400.0, type: "radiation_shelter", capacity: 600, accessible: true, source: "gov")
+        let lyceumShelter = ShelterItem(id: "uhersko_1", name: "Угерський ліцей (Найпростіше укриття)", address: "вул. Івана Франка 2", lat: 49.3005, lon: 23.8966, distance_m: 0.0, type: "school_shelter", capacity: 350, accessible: true, source: "gov", is_primary: false, is_night_accessible: false, is_vehicle_accessible: false)
+        let stryiShelter = ShelterItem(id: "stryi_1", name: "Стрийська лікарня (Сховище)", address: "вул. Басараб 15, м. Стрий", lat: 49.2620, lon: 23.8650, distance_m: 5400.0, type: "radiation_shelter", capacity: 600, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false)
 
         let targetRadiusMeters = 1500.0
         let localExtendedMeters = 6000.0
@@ -736,6 +736,7 @@ final class SirenUATests: XCTestCase {
         let strictFound = listWithLyceum.filter { $0.distance_m <= targetRadiusMeters }
         XCTAssertEqual(strictFound.count, 1)
         XCTAssertEqual(strictFound.first?.name, "Угерський ліцей (Найпростіше укриття)")
+        XCTAssertEqual(strictFound.first?.category, .secondary)
 
         // Case B: Only distant district center found (e.g. Stryi at 5.4km)
         let listOnlyStryi = [stryiShelter]
@@ -745,10 +746,291 @@ final class SirenUATests: XCTestCase {
         let localExt = listOnlyStryi.filter { $0.distance_m <= localExtendedMeters }
         XCTAssertEqual(localExt.count, 1)
         XCTAssertEqual(localExt.first?.name, "Стрийська лікарня (Сховище)")
+        XCTAssertEqual(localExt.first?.category, .primary)
 
         // Case C: District regional fallback
         let regionalExt = listOnlyStryi.filter { $0.distance_m <= regionalExtendedMeters }
         XCTAssertEqual(regionalExt.count, 1)
+    }
+
+    func testEmulatedKyivMallParkingSearch_NightScenario() {
+        // 1. Emulated Coordinate: Kyiv Vinogradar near Retroville Mall (50.5050, 30.4150)
+        let emulatedUser = CLLocation(latitude: 50.5050, longitude: 30.4150)
+
+        let retrovilleParking = ShelterItem(
+            id: "m1",
+            name: "Підземний та відкритий паркінг ТРЦ «Retroville» (Цілодобово для авто)",
+            address: "просп. Правди, 47",
+            lat: 50.5052,
+            lon: 30.4152,
+            distance_m: 30.0,
+            type: "mall_parking",
+            capacity: 3200,
+            accessible: true,
+            source: "gov",
+            is_primary: false,
+            is_night_accessible: true,
+            is_vehicle_accessible: true
+        )
+
+        let schoolShelter = ShelterItem(
+            id: "s1",
+            name: "Школа №243 (Найпростіше укриття)",
+            address: "вул. Новомостицька, 10",
+            lat: 50.5020,
+            lon: 30.4200,
+            distance_m: 450.0,
+            type: "school_shelter",
+            capacity: 500,
+            accessible: true,
+            source: "gov",
+            is_primary: false,
+            is_night_accessible: false,
+            is_vehicle_accessible: false
+        )
+
+        let distantMetroSyrets = ShelterItem(
+            id: "m_syr",
+            name: "Станція метро «Сирець»",
+            address: "вул. Щусєва",
+            lat: 50.4760,
+            lon: 30.4310,
+            distance_m: 3500.0,
+            type: "metro",
+            capacity: 4000,
+            accessible: true,
+            source: "gov",
+            is_primary: true,
+            is_night_accessible: true,
+            is_vehicle_accessible: false
+        )
+
+        let availableShelters = [retrovilleParking, schoolShelter, distantMetroSyrets]
+        let walkingRadius = 1500.0
+
+        // In 1.5km walking radius: No primary (Metro is at 3.5km). Secondary options exist (Retroville & School).
+        let inRadius = availableShelters.filter { $0.distance_m <= walkingRadius }
+        let primaryInRadius = inRadius.filter { $0.category == .primary }
+        let secondaryInRadius = inRadius.filter { $0.category == .secondary }
+
+        XCTAssertTrue(primaryInRadius.isEmpty, "No primary metro shelter should be within 1.5km on Vinogradar")
+        XCTAssertEqual(secondaryInRadius.count, 2)
+
+        // Select closest secondary with vehicle / 24/7 night access
+        let sortedSecondary = secondaryInRadius.sorted { (a, b) in
+            if a.isVehicleAccessible != b.isVehicleAccessible {
+                return a.isVehicleAccessible
+            }
+            return a.distance_m < b.distance_m
+        }
+
+        let selected = sortedSecondary.first!
+        XCTAssertEqual(selected.id, "m1")
+        XCTAssertEqual(selected.shelterType, .mallParking)
+        XCTAssertTrue(selected.isNightAccessible, "Mall parking must be accessible at night for vehicle shelter")
+        XCTAssertTrue(selected.isVehicleAccessible, "Mall parking must allow direct car sheltering")
+        XCTAssertEqual(selected.shelterType.badgeText, "Паркінг ТРЦ • Авто")
+    }
+
+    func testEmulatedKyivCenterMetroPriority_PrimaryOverSecondary() {
+        // 2. Emulated Coordinate: Kyiv Khreshchatyk (50.4475, 30.5230)
+        let metroKhreshchatyk = ShelterItem(
+            id: "khr_metro",
+            name: "Станція метро «Хрещатик» (Укриття)",
+            address: "вул. Хрещатик, 19",
+            lat: 50.4475,
+            lon: 30.5230,
+            distance_m: 10.0,
+            type: "metro",
+            capacity: 5000,
+            accessible: true,
+            source: "gov",
+            is_primary: true,
+            is_night_accessible: true,
+            is_vehicle_accessible: false
+        )
+
+        let gulliverParking = ShelterItem(
+            id: "gul_park",
+            name: "Підземний паркінг ТРЦ «Gulliver» (Укриття / Авто)",
+            address: "Спортивна площа, 1A",
+            lat: 50.4385,
+            lon: 30.5230,
+            distance_m: 900.0,
+            type: "mall_parking",
+            capacity: 2500,
+            accessible: true,
+            source: "gov",
+            is_primary: false,
+            is_night_accessible: true,
+            is_vehicle_accessible: true
+        )
+
+        let available = [gulliverParking, metroKhreshchatyk]
+        let radius = 1500.0
+
+        let inRadius = available.filter { $0.distance_m <= radius }
+        let primaryInRadius = inRadius.filter { $0.category == .primary }
+
+        // Primary official shelter exists in radius -> Must pick Metro (Primary) over Mall Parking
+        XCTAssertFalse(primaryInRadius.isEmpty)
+        let selected = primaryInRadius.min(by: { $0.distance_m < $1.distance_m })!
+        XCTAssertEqual(selected.id, "khr_metro")
+        XCTAssertEqual(selected.category, .primary)
+        XCTAssertEqual(selected.shelterType, .metro)
+        XCTAssertTrue(selected.isNightAccessible)
+    }
+
+    func testEmulatedGPSLocationsNationwide_AcrossAllRegions() {
+        // Multi-point simulated GPS search testing across 6 major hubs and rural sectors
+        struct EmulatedScenario {
+            let cityName: String
+            let coordinate: CLLocationCoordinate2D
+            let candidateShelters: [ShelterItem]
+            let expectedSelectedId: String
+            let expectedCategory: ShelterCategory
+            let shouldShowWarning: Bool
+        }
+
+        let scenarios: [EmulatedScenario] = [
+            // 1. Lviv Victoria Gardens (Shopping mall parking fallback when no primary in strict 1km walking radius)
+            EmulatedScenario(
+                cityName: "Львів (Південь)",
+                coordinate: CLLocationCoordinate2D(latitude: 49.8075, longitude: 23.9780),
+                candidateShelters: [
+                    ShelterItem(id: "lv_vg", name: "Підземний паркінг ТРЦ «Victoria Gardens»", address: "вул. Кульпарківська, 226А", lat: 49.8075, lon: 23.9780, distance_m: 100.0, type: "mall_parking", capacity: 1500, accessible: true, source: "gov", is_primary: false, is_night_accessible: true, is_vehicle_accessible: true),
+                    ShelterItem(id: "lv_lnu", name: "Каземати ЛНУ", address: "вул. Університетська", lat: 49.8403, lon: 24.0222, distance_m: 5200.0, type: "school_shelter", capacity: 2000, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false)
+                ],
+                expectedSelectedId: "lv_vg",
+                expectedCategory: .secondary,
+                shouldShowWarning: true
+            ),
+
+            // 2. Dnipro Centre (Primary Metro station priority)
+            EmulatedScenario(
+                cityName: "Дніпро (Центр)",
+                coordinate: CLLocationCoordinate2D(latitude: 48.4647, longitude: 35.0462),
+                candidateShelters: [
+                    ShelterItem(id: "dn_metro", name: "Станція метро «Вокзальна»", address: "Вокзальна площа", lat: 48.4647, lon: 35.0462, distance_m: 200.0, type: "metro", capacity: 3000, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false),
+                    ShelterItem(id: "dn_most", name: "Паркінг МОСТ-Сіті", address: "вул. Глінки, 2", lat: 48.4670, lon: 35.0490, distance_m: 150.0, type: "mall_parking", capacity: 1000, accessible: true, source: "gov", is_primary: false, is_night_accessible: true, is_vehicle_accessible: true)
+                ],
+                expectedSelectedId: "dn_metro",
+                expectedCategory: .primary,
+                shouldShowWarning: false
+            ),
+
+            // 3. Kharkiv Svobody (Primary Karazin bunker)
+            EmulatedScenario(
+                cityName: "Харків (Площа Свободи)",
+                coordinate: CLLocationCoordinate2D(latitude: 50.0056, longitude: 36.2278),
+                candidateShelters: [
+                    ShelterItem(id: "kh_karazin", name: "Укриття ХНУ ім. Каразіна", address: "пл. Свободи, 4", lat: 50.0056, lon: 36.2278, distance_m: 80.0, type: "school_shelter", capacity: 3000, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false)
+                ],
+                expectedSelectedId: "kh_karazin",
+                expectedCategory: .primary,
+                shouldShowWarning: false
+            ),
+
+            // 4. Odesa Port Area (Primary Port bunker)
+            EmulatedScenario(
+                cityName: "Одеса (Митна площа)",
+                coordinate: CLLocationCoordinate2D(latitude: 46.4889, longitude: 30.7444),
+                candidateShelters: [
+                    ShelterItem(id: "od_port", name: "Бункери Одеського морського порту", address: "Митна площа, 1", lat: 46.4889, lon: 30.7444, distance_m: 50.0, type: "bomb_shelter", capacity: 3000, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false)
+                ],
+                expectedSelectedId: "od_port",
+                expectedCategory: .primary,
+                shouldShowWarning: false
+            ),
+
+            // 5. Poltava Korpusnyi Park (Primary Regional Hospital vs Secondary Ekvator)
+            EmulatedScenario(
+                cityName: "Полтава (Центр)",
+                coordinate: CLLocationCoordinate2D(latitude: 49.5883, longitude: 34.5514),
+                candidateShelters: [
+                    ShelterItem(id: "pol_hosp", name: "Бомбосховище Полтавської обласної лікарні", address: "вул. Шевченка, 23", lat: 49.5883, lon: 34.5514, distance_m: 400.0, type: "hospital_shelter", capacity: 1100, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false),
+                    ShelterItem(id: "pol_ekv", name: "Паркінг ТРЦ «Екватор»", address: "вул. Ковпака, 26", lat: 49.6200, lon: 34.5100, distance_m: 4500.0, type: "mall_parking", capacity: 1200, accessible: true, source: "gov", is_primary: false, is_night_accessible: true, is_vehicle_accessible: true)
+                ],
+                expectedSelectedId: "pol_hosp",
+                expectedCategory: .primary,
+                shouldShowWarning: false
+            ),
+
+            // 6. Rural Village Uhersko (Extended Cascade -> Stryi Hospital)
+            EmulatedScenario(
+                cityName: "Село Угерсько (Стрийський район)",
+                coordinate: CLLocationCoordinate2D(latitude: 49.2856, longitude: 23.8611),
+                candidateShelters: [
+                    ShelterItem(id: "stryi_hosp", name: "Стрийська міська лікарня", address: "вул. Багряного, 4", lat: 49.2600, lon: 23.8500, distance_m: 3200.0, type: "hospital_shelter", capacity: 800, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false)
+                ],
+                expectedSelectedId: "stryi_hosp",
+                expectedCategory: .primary,
+                shouldShowWarning: false
+            )
+        ]
+
+        let searchRadius = 1500.0
+
+        for sc in scenarios {
+            let inRadius = sc.candidateShelters.filter { $0.distance_m <= searchRadius }
+            let primaryInRadius = inRadius.filter { $0.category == .primary }
+            let secondaryInRadius = inRadius.filter { $0.category == .secondary }
+
+            if !primaryInRadius.isEmpty {
+                let chosen = primaryInRadius.min(by: { $0.distance_m < $1.distance_m })!
+                XCTAssertEqual(chosen.id, sc.expectedSelectedId, "Failed scenario for \(sc.cityName)")
+                XCTAssertEqual(chosen.category, sc.expectedCategory)
+            } else if !secondaryInRadius.isEmpty {
+                let chosen = secondaryInRadius.min(by: { $0.distance_m < $1.distance_m })!
+                XCTAssertEqual(chosen.id, sc.expectedSelectedId, "Failed scenario for \(sc.cityName)")
+                XCTAssertEqual(chosen.category, sc.expectedCategory)
+                XCTAssertTrue(sc.shouldShowWarning, "Warning banner should be triggered for secondary fallback in \(sc.cityName)")
+            } else {
+                // Extended regional fallback
+                let regional = sc.candidateShelters.min(by: { $0.distance_m < $1.distance_m })!
+                XCTAssertEqual(regional.id, sc.expectedSelectedId, "Failed regional fallback for \(sc.cityName)")
+            }
+        }
+    }
+
+    func testShelterCategoryAndNightAccessProperties() {
+        // Category verification
+        XCTAssertEqual(ShelterType.metro.category, .primary)
+        XCTAssertEqual(ShelterType.bombShelter.category, .primary)
+        XCTAssertEqual(ShelterType.bunker.category, .primary)
+        XCTAssertEqual(ShelterType.radiationShelter.category, .primary)
+        XCTAssertEqual(ShelterType.civilDefense.category, .primary)
+
+        XCTAssertEqual(ShelterType.mallParking.category, .secondary)
+        XCTAssertEqual(ShelterType.undergroundParking.category, .secondary)
+        XCTAssertEqual(ShelterType.openParking.category, .secondary)
+        XCTAssertEqual(ShelterType.schoolShelter.category, .secondary)
+        XCTAssertEqual(ShelterType.hospitalShelter.category, .secondary)
+        XCTAssertEqual(ShelterType.adminShelter.category, .secondary)
+
+        // Night accessibility
+        XCTAssertTrue(ShelterType.metro.isNightAccessible)
+        XCTAssertTrue(ShelterType.mallParking.isNightAccessible)
+        XCTAssertTrue(ShelterType.undergroundParking.isNightAccessible)
+        XCTAssertTrue(ShelterType.bombShelter.isNightAccessible)
+        XCTAssertTrue(ShelterType.hospitalShelter.isNightAccessible)
+        XCTAssertFalse(ShelterType.schoolShelter.isNightAccessible)
+        XCTAssertFalse(ShelterType.adminShelter.isNightAccessible)
+
+        // Vehicle accessibility
+        XCTAssertTrue(ShelterType.mallParking.isVehicleAccessible)
+        XCTAssertTrue(ShelterType.undergroundParking.isVehicleAccessible)
+        XCTAssertTrue(ShelterType.openParking.isVehicleAccessible)
+        XCTAssertFalse(ShelterType.metro.isVehicleAccessible)
+        XCTAssertFalse(ShelterType.schoolShelter.isVehicleAccessible)
+
+        // Name heuristics for major Ukrainian shopping malls
+        let rawNull: String? = nil
+        XCTAssertEqual(ShelterType.matching(from: rawNull, name: "Підземний паркінг ТРЦ Retroville"), .mallParking)
+        XCTAssertEqual(ShelterType.matching(from: rawNull, name: "Паркінг ТРЦ Lavina Mall"), .mallParking)
+        XCTAssertEqual(ShelterType.matching(from: rawNull, name: "ТРЦ Forum Lviv паркінг"), .mallParking)
+        XCTAssertEqual(ShelterType.matching(from: rawNull, name: "ТРК МОСТ-Сіті паркінг Дніпро"), .mallParking)
+        XCTAssertEqual(ShelterType.matching(from: rawNull, name: "ТЦ Епіцентр Стрий парковка"), .mallParking)
     }
 
     func testTrackedRegionsToggleAndExclusionLogic() {

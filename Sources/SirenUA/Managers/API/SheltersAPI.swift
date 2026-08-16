@@ -23,7 +23,7 @@ extension NetworkManager {
 
         do {
             let decoded = try JSONDecoder().decode(ShelterResponse.self, from: data)
-            sheltersLogger.info("Found \(decoded.count) shelters within \(Int(radiusMeters))m (DB total: \(decoded.total_in_db))")
+            sheltersLogger.info("Found \(decoded.count) shelters within \(Int(radiusMeters))m (DB total: \(decoded.total_in_db ?? 0))")
             return decoded.shelters
         } catch {
             sheltersLogger.error("Shelter decoding failed: \(error.localizedDescription)")
