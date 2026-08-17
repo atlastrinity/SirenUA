@@ -536,20 +536,35 @@ public enum ThreatConstants {
         let det = detail?.lowercased() ?? ""
         let reg = region?.lowercased() ?? ""
         
-        // 1. Prioritize natural maritime & regional entrance corridors based on target region & flight vector
-        if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("чернів") ||
-           (reg.contains("херсон") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) ||
-           (reg.contains("вінниц") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) {
+        // 1. Check trajectory transit vector (де саме загроза зайшла в повітряний простір України за вектором руху)
+        if det.contains("з чорного моря") || det.contains("з моря") || det.contains("над чорним морем") || det.contains("з акваторії чорного") {
             return "Акваторія Чорного моря (Південний морський коридор)"
         }
-        
-        if (reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")) && 
-           (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід")) {
+        if det.contains("з азовського моря") || det.contains("з приазов") || det.contains("над азовським морем") ||
+           det.contains("з запорізької") || det.contains("з дніпропетровської") || det.contains("з донецької") {
             return "Акваторія Азовського моря (Приазовський морський коридор)"
+        }
+        if det.contains("з сумської") || det.contains("з чернігівської") || det.contains("з київської") || det.contains("з житомирської") || det.contains("з півночі") {
+            return "Курський прикордонний рубіж (Курська обл. РФ)"
+        }
+        if det.contains("з харківської") {
+            return "Бєлгородський прикордонний рубіж (Бєлгородська обл. РФ)"
+        }
+        if det.contains("з білорусі") || det.contains("з рб") || det.contains("з гомел") {
+            return "Білоруський північний коридор (Гомельська обл. РБ)"
+        }
+        if det.contains("з брест") {
+            return "Білоруський західний коридор (Брестська обл. РБ)"
+        }
+        if det.contains("з херсонщини") || det.contains("з лівобережжя") || det.contains("з криму") {
+            if reg.contains("одес") || reg.contains("миколаїв") || det.contains("мор") || det.contains("південь") {
+                return "Акваторія Чорного моря (Південний морський коридор)"
+            }
+            return "Кримський перешийок / ТОТ АР Крим (Південний коридор)"
         }
 
         // 2. Explicitly described entrance corridors in detail text
-        if det.contains("чорне море") || det.contains("чорного моря") || det.contains("з моря") {
+        if det.contains("чорне море") || det.contains("чорного моря") {
             return "Акваторія Чорного моря (Південний морський коридор)"
         }
         if det.contains("кінбурн") {
@@ -599,6 +614,18 @@ public enum ThreatConstants {
         }
         if det.contains("херсон") {
             return "Прифронтовий рубіж ТОТ Херсонщини (Лівобережжя / Дніпро)"
+        }
+
+        // 3. Prioritize natural entrance corridors for direct boundary entry without intermediate transit
+        if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("чернів") ||
+           (reg.contains("херсон") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) ||
+           (reg.contains("вінниц") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) {
+            return "Акваторія Чорного моря (Південний морський коридор)"
+        }
+        
+        if (reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")) && 
+           (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід")) {
+            return "Акваторія Азовського моря (Приазовський морський коридор)"
         }
 
         // 3. Fallbacks per threat type
