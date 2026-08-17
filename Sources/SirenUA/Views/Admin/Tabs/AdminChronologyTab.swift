@@ -6,168 +6,14 @@ struct AdminChronologyTab: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            // Filters Panel
-            VStack(spacing: 10) {
-                HStack {
-                    Text("Фільтрація хронології")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                    Spacer()
-                }
-                
-                HStack {
-                    Text("Період:")
-                        .font(.system(size: 12))
-                    Spacer()
-                    Picker("", selection: $viewModel.daysFilter) {
-                        Text("1 день").tag(1)
-                        Text("3 дні").tag(3)
-                        Text("7 днів").tag(7)
-                        Text("14 днів").tag(14)
-                        Text("30 днів").tag(30)
-                    }
-                    .pickerStyle(.menu)
-                }
-                
-                HStack(spacing: 8) {
-                    Picker("Регіон", selection: $viewModel.chrRegionFilter) {
-                        Text("Всі області").tag("")
-                        ForEach(viewModel.regionsList, id: \.self) { r in
-                            Text(r).tag(r)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.white)
-                    .background(Color.white.opacity(0.04))
-                    .cornerRadius(8)
-                    
-                    Picker("Загроза", selection: $viewModel.chrThreatTypeFilter) {
-                        Text("Всі типи").tag("")
-                        ForEach(ThreatConstants.all.filter { $0 != ThreatConstants.unknown }, id: \.self) { t in
-                            Text("\(ThreatConstants.emoji(for: t)) \(ThreatConstants.title(for: t))").tag(t)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.white)
-                    .background(Color.white.opacity(0.04))
-                    .cornerRadius(8)
-                }
-                
-                HStack {
-                    Picker("Результат", selection: $viewModel.chrMatchFilter) {
-                        Text("Всі результати").tag("")
-                        Text("✅ Співпадіння").tag("match")
-                        Text("🛡️ Збито/РЕБ").tag("mitigated")
-                        Text("❌ Неспівпадіння").tag("mismatch")
-                        Text("⏱️ Активні").tag("active")
-                        Text("🔄 Зняті").tag("cleared")
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.white)
-                    .background(Color.white.opacity(0.04))
-                    .cornerRadius(8)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        Task { await viewModel.fetchChronology() }
-                    }) {
-                        Text("Оновити фільтр")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.blue)
-                            .cornerRadius(8)
-                    }
-                }
-            }
-            .padding(12)
-            .background(ChartColorTheme.cardBg)
-            .cornerRadius(12)
+            filtersCard
             
-            VStack(spacing: 16) {
-                // Stats grid: Exact breakdown where Confirmed + Mitigated + Overestimated + Active + Cleared == Total
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    statBox(title: "Всього подій", value: "\(viewModel.chronologyData?.total ?? 0)", color: ChartColorTheme.accent)
-                    statBox(title: "✅ Співпадіння AI", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "confirmed" }).count ?? 0)", color: ChartColorTheme.confirmed)
-                    statBox(title: "🛡️ Збито/РЕБ", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "mitigated" }).count ?? 0)", color: ChartColorTheme.mitigated)
-                }
-                
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    statBox(title: "❌ Неспівпадіння", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "overestimated" }).count ?? 0)", color: ChartColorTheme.overestimated)
-                    statBox(title: "⏱️ Активні", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "active" }).count ?? 0)", color: ChartColorTheme.active)
-                    statBox(title: "🔄 Знято / Інші", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "cleared" }).count ?? 0)", color: ChartColorTheme.cleared)
-                }
-                    
-                    if let chrono = viewModel.chronologyData {
-                        /*
-                        let dailyStatsWithAccuracy: [SimpleStat] = chrono.daily_stats.compactMap { item -> SimpleStat? in
-                            guard let pct = item.accuracyPct else { return nil }
-                            let formatted = viewModel.formatShortDate(item.day)
-                            return SimpleStat(day: item.day, formattedDay: formatted, accuracy: pct)
-                        }
-                        */
-                        // Daily Chart for Total Alerts vs Cleared
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Загрози та відбої по днях")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white.opacity(0.5))
-                            
-                            Chart {
-                                ForEach(chrono.daily_stats) { item in
-                                    BarMark(
-                                        x: .value("Day", viewModel.formatShortDate(item.day)),
-                                        y: .value("Загрози", item.total_events)
-                                    )
-                                    .foregroundStyle(Color.red.opacity(0.8))
-                                    
-                                    BarMark(
-                                        x: .value("Day", viewModel.formatShortDate(item.day)),
-                                        y: .value("Зняття", item.cleared)
-                                    )
-                                    .foregroundStyle(Color.green.opacity(0.8))
-                                }
-                            }
-                            .frame(height: 140)
-                        }
-                        .padding(14)
-                        .background(ChartColorTheme.cardBg)
-                        .cornerRadius(12)
-                        
-                        // Grouped Timeline list
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Стрічка подій хронології")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            if viewModel.groupedChronologyEvents.isEmpty {
-                                Text("Немає подій за вибраними фільтрами.")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.gray)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.vertical, 30)
-                            } else {
-                                ForEach(viewModel.groupedChronologyEvents, id: \.0) { day, events in
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("📅 \(day) (\(events.count) подій)")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.white.opacity(0.6))
-                                            .padding(.top, 8)
-                                            .padding(.bottom, 2)
-                                        
-                                        ForEach(events) { ev in
-                                            ChronologyEventRow(ev: ev, viewModel: viewModel)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .padding(14)
-                        .background(ChartColorTheme.cardBg)
-                        .cornerRadius(12)
-                    }
-                }
+            statsGrid
+            
+            if let chrono = viewModel.chronologyData {
+                dailyChart(chrono: chrono)
+                eventsTimelineList(chrono: chrono)
+            }
         }
         .onChange(of: viewModel.daysFilter) { _, _ in
             Task { await viewModel.fetchChronology() }
@@ -181,6 +27,177 @@ struct AdminChronologyTab: View {
         .onChange(of: viewModel.chrMatchFilter) { _, _ in
             Task { await viewModel.fetchChronology() }
         }
+    }
+    
+    // MARK: - Filters Panel
+    
+    private var filtersCard: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Фільтрація хронології")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            
+            HStack {
+                Text("Період:")
+                    .font(.system(size: 12))
+                Spacer()
+                Picker("", selection: $viewModel.daysFilter) {
+                    Text("1 день").tag(1)
+                    Text("3 дні").tag(3)
+                    Text("7 днів").tag(7)
+                    Text("14 днів").tag(14)
+                    Text("30 днів").tag(30)
+                }
+                .pickerStyle(.menu)
+            }
+            
+            HStack(spacing: 8) {
+                Picker("Регіон", selection: $viewModel.chrRegionFilter) {
+                    Text("Всі області").tag("")
+                    ForEach(viewModel.regionsList, id: \.self) { r in
+                        Text(r).tag(r)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(.white)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(8)
+                
+                Picker("Загроза", selection: $viewModel.chrThreatTypeFilter) {
+                    Text("Всі типи").tag("")
+                    ForEach(ThreatConstants.all.filter { $0 != ThreatConstants.unknown }, id: \.self) { t in
+                        Text(threatPickerTitle(for: t)).tag(t)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(.white)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(8)
+            }
+            
+            HStack {
+                Picker("Результат", selection: $viewModel.chrMatchFilter) {
+                    Text("Всі результати").tag("")
+                    Text("✅ Співпадіння").tag("match")
+                    Text("🛡️ Збито/РЕБ").tag("mitigated")
+                    Text("❌ Неспівпадіння").tag("mismatch")
+                    Text("⏱️ Активні").tag("active")
+                    Text("🔄 Зняті").tag("cleared")
+                }
+                .pickerStyle(.menu)
+                .tint(.white)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(8)
+                
+                Spacer()
+                
+                Button(action: {
+                    Task { await viewModel.fetchChronology() }
+                }) {
+                    Text("Оновити фільтр")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding(12)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Stats Grid
+    
+    private var statsGrid: some View {
+        VStack(spacing: 8) {
+            let total = viewModel.chronologyData?.total ?? 0
+            let events = viewModel.chronologyData?.events ?? []
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                statBox(title: "Всього подій", value: "\(total)", color: ChartColorTheme.accent)
+                statBox(title: "✅ Співпадіння AI", value: "\(events.filter({ $0.match_type == "confirmed" }).count)", color: ChartColorTheme.confirmed)
+                statBox(title: "🛡️ Збито/РЕБ", value: "\(events.filter({ $0.match_type == "mitigated" }).count)", color: ChartColorTheme.mitigated)
+            }
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                statBox(title: "❌ Неспівпадіння", value: "\(events.filter({ $0.match_type == "overestimated" }).count)", color: ChartColorTheme.overestimated)
+                statBox(title: "⏱️ Активні", value: "\(events.filter({ $0.match_type == "active" }).count)", color: ChartColorTheme.active)
+                statBox(title: "🔄 Знято / Інші", value: "\(events.filter({ $0.match_type == "cleared" }).count)", color: ChartColorTheme.cleared)
+            }
+        }
+    }
+    
+    // MARK: - Daily Chart
+    
+    @ViewBuilder
+    private func dailyChart(chrono: AdminChronologyResponse) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Загрози та відбої по днях")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white.opacity(0.5))
+            
+            Chart {
+                ForEach(chrono.daily_stats) { item in
+                    BarMark(
+                        x: .value("Day", viewModel.formatShortDate(item.day)),
+                        y: .value("Загрози", item.total_events)
+                    )
+                    .foregroundStyle(Color.red.opacity(0.8))
+                    
+                    BarMark(
+                        x: .value("Day", viewModel.formatShortDate(item.day)),
+                        y: .value("Зняття", item.cleared)
+                    )
+                    .foregroundStyle(Color.green.opacity(0.8))
+                }
+            }
+            .frame(height: 140)
+        }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Events Timeline List
+    
+    @ViewBuilder
+    private func eventsTimelineList(chrono: AdminChronologyResponse) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Стрічка подій хронології")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.white)
+            
+            if viewModel.groupedChronologyEvents.isEmpty {
+                Text("Немає подій за вибраними фільтрами.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 30)
+            } else {
+                ForEach(viewModel.groupedChronologyEvents, id: \.0) { day, events in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("📅 \(day) (\(events.count) подій)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding(.top, 8)
+                            .padding(.bottom, 2)
+                        
+                        ForEach(events) { ev in
+                            ChronologyEventRow(ev: ev, viewModel: viewModel)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(ChartColorTheme.cardBg)
+        .cornerRadius(12)
     }
     
     private func statBox(title: String, value: String, color: Color) -> some View {
@@ -197,6 +214,12 @@ struct AdminChronologyTab: View {
         .background(Color.white.opacity(0.03))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
+    }
+    
+    private func threatPickerTitle(for threatType: String) -> String {
+        let emoji = ThreatConstants.emoji(for: threatType)
+        let title = ThreatConstants.title(for: threatType)
+        return "\(emoji) \(title)"
     }
 }
 
@@ -262,3 +285,4 @@ struct ChronologyEventRow: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(ev.match_type == "official" ? Color.red.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1))
     }
 }
+
