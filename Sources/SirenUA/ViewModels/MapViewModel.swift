@@ -67,21 +67,33 @@ final class MapViewModel: ObservableObject {
     // Dynamic Camera Scale & Distance Tracking for iPhone Map Responsiveness
     @Published var cameraDistance: Double = 600_000.0
 
-    /// Sub-linear scale factor for UI elements (badges, chevrons, icons).
-    /// Scales up gracefully when zoomed in, shrinks slightly when zoomed out to prevent map clutter.
+    /// Sub-linear scale factor for UI elements (badges, tablets, chevrons, icons).
+    /// Scales up gracefully by +30% when zooming in from standard overview baseline (1.00 -> 1.30)
+    /// to make region names, threat types, and confidence percentages easily readable.
     var elementZoomScale: CGFloat {
-        let minDist = 3_000.0     // ~3km (zoomed in to city)
-        let maxDist = 1_800_000.0 // ~1800km (zoomed out overview)
-        let clamped = max(minDist, min(maxDist, cameraDistance))
+        let overviewDist = 1_000_000.0 // ~1000km (standard full Ukraine overview baseline = 1.00)
+        let closeDist = 30_000.0       // ~30km (zoomed in to oblast/city = 1.30, i.e. +30%)
+        let maxOverviewDist = 2_500_000.0 // ~2500km (extreme zoomed out overview)
         
-        let minLog = log10(minDist)
-        let maxLog = log10(maxDist)
-        let curLog = log10(clamped)
+        let clampedDist = max(closeDist, min(maxOverviewDist, cameraDistance))
         
-        let t = (curLog - minLog) / (maxLog - minLog) // 0.0 (zoomed in) ... 1.0 (zoomed out)
-        
-        // Sub-linear scale curve: 1.30x zoomed in -> 0.82x zoomed out
-        return CGFloat(1.30 - (t * 0.48))
+        if clampedDist <= overviewDist {
+            // Zooming in from overview (1000km) to city level (30km):
+            // Smoothly increase scale from 1.00 up to 1.30 (+30% magnification)
+            let minLog = log10(closeDist)
+            let maxLog = log10(overviewDist)
+            let curLog = log10(clampedDist)
+            let t = (maxLog - curLog) / (maxLog - minLog) // 0.0 (overview) -> 1.0 (zoomed in)
+            return CGFloat(1.00 + (t * 0.30))
+        } else {
+            // Zooming out further than standard overview (1000km -> 2500km):
+            // Gentle sub-linear compacting (1.00 -> 0.92) to keep 25 regions clean
+            let minLog = log10(overviewDist)
+            let maxLog = log10(maxOverviewDist)
+            let curLog = log10(clampedDist)
+            let outT = (curLog - minLog) / (maxLog - minLog) // 0.0 (overview) -> 1.0 (extreme zoom out)
+            return CGFloat(1.00 - (outT * 0.08))
+        }
     }
 
     func updateCameraDistance(_ distance: Double) {
