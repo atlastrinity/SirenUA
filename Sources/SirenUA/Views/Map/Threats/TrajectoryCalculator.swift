@@ -217,7 +217,13 @@ public func calculateTrajectory(
             }
         } else {
             // Real external launch site (e.g. Shaykovka, Mozdok, Primorsko-Akhtarsk)
-            startCoord = origin
+            if (threatType == "shahed" || threatType == "cruise_missile") && target.latitude < 48.0 && target.longitude < 33.5 {
+                // Natural corridor for Black Sea approach (Odesa / Mykolaiv / coastal Kherson / Vinnytsia)
+                startCoord = CLLocationCoordinate2D(latitude: 44.50, longitude: 32.00)
+                transitWaypoint = nil
+            } else {
+                startCoord = origin
+            }
         }
     }
     // 3. PRIORITY 3: Strategic weapon default launch sectors based on threat type and target

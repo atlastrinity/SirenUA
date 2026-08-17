@@ -534,35 +534,100 @@ public enum ThreatConstants {
     // 11. База прикордонних рубежів пуску та коридорів входження в повітряний простір України (Рубіж / Коридор)
     public static func launchSector(for threatType: String?, detail: String? = nil, region: String? = nil) -> String? {
         let det = detail?.lowercased() ?? ""
-        if det.contains("курськ") { return "Курський прикордонний рубіж (Курська обл. РФ)" }
-        if det.contains("бєлгород") || det.contains("белгород") { return "Бєлгородський прикордонний рубіж (Бєлгородська обл. РФ)" }
-        if det.contains("брянськ") || det.contains("брянск") { return "Брянський прикордонний рубіж (Брянська обл. РФ)" }
-        if det.contains("білорусь") || det.contains("гомель") || det.contains("мозир") || det.contains("зябровк") { return "Білоруський північний коридор (Гомельська обл. РБ)" }
-        if det.contains("брест") || det.contains("мачулищ") { return "Білоруський західний коридор (Брестська обл. РБ)" }
-        if det.contains("кінбурн") { return "Приморський рубіж Кінбурнська коса (Дніпро-Бузький лиман)" }
-        if det.contains("чорн") || det.contains("мор") { return "Акваторія Чорного моря (Південний морський коридор)" }
-        if det.contains("азов") || det.contains("приморсько") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("ейск") { return "Акваторія Азовського моря (Приазовський морський коридор)" }
-        if det.contains("каспій") { return "Східний повітряний коридор (пусковий рубіж Каспій / Волгодонськ)" }
-        if det.contains("саратов") || det.contains("енгельс") { return "Північно-східний повітряний коридор (пусковий рубіж Саратов / Енгельс)" }
-        if det.contains("чауд") || det.contains("тарханкут") || det.contains("севастопол") { return "Акваторія Чорного моря (Південний морський коридор)" }
-        if det.contains("джанкой") || det.contains("перешийок") || det.contains("чонгар") || det.contains("армянськ") { return "Кримський перешийок / ТОТ АР Крим (Південний коридор)" }
-        if det.contains("воронеж") { return "Воронезький прикордонний рубіж (Воронезька обл. РФ)" }
-        if det.contains("ростов") || det.contains("таганрог") || det.contains("міллерово") { return "Ростовський прикордонний рубіж / Азовське море (РФ)" }
-        if det.contains("донбас") || det.contains("донецьк") { return "Прифронтовий рубіж ТОТ Донецької обл. (ЛБЗ)" }
-        if det.contains("запоріж") { return "Прифронтовий рубіж ТОТ Запорізької обл. (ЛБЗ) / Азовське море" }
-        if det.contains("херсон") { return "Прифронтовий рубіж ТОТ Херсонщини (Лівобережжя / Дніпро)" }
+        let reg = region?.lowercased() ?? ""
+        
+        // 1. Prioritize natural maritime & regional entrance corridors based on target region & flight vector
+        if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("чернів") ||
+           (reg.contains("херсон") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) ||
+           (reg.contains("вінниц") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) {
+            return "Акваторія Чорного моря (Південний морський коридор)"
+        }
+        
+        if (reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")) && 
+           (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід")) {
+            return "Акваторія Азовського моря (Приазовський морський коридор)"
+        }
 
+        // 2. Explicitly described entrance corridors in detail text
+        if det.contains("чорне море") || det.contains("чорного моря") || det.contains("з моря") {
+            return "Акваторія Чорного моря (Південний морський коридор)"
+        }
+        if det.contains("кінбурн") {
+            return "Приморський рубіж Кінбурнська коса (Дніпро-Бузький лиман)"
+        }
+        if det.contains("азовське море") || det.contains("азовського моря") {
+            return "Акваторія Азовського моря (Приазовський морський коридор)"
+        }
+        if det.contains("білорусь") || det.contains("гомель") || det.contains("мозир") || det.contains("зябровк") {
+            return "Білоруський північний коридор (Гомельська обл. РБ)"
+        }
+        if det.contains("брест") || det.contains("мачулищ") {
+            return "Білоруський західний коридор (Брестська обл. РБ)"
+        }
+        if det.contains("курськ") || det.contains("курск") || det.contains("орел") || det.contains("орлов") {
+            return "Курський прикордонний рубіж (Курська обл. РФ)"
+        }
+        if det.contains("бєлгород") || det.contains("белгород") || det.contains("шебекіно") {
+            return "Бєлгородський прикордонний рубіж (Бєлгородська обл. РФ)"
+        }
+        if det.contains("брянськ") || det.contains("брянск") || det.contains("клинці") {
+            return "Брянський прикордонний рубіж (Брянська обл. РФ)"
+        }
+        if det.contains("каспій") {
+            return "Східний повітряний коридор (пусковий рубіж Каспій / Волгодонськ)"
+        }
+        if det.contains("саратов") || det.contains("енгельс") {
+            return "Північно-східний повітряний коридор (пусковий рубіж Саратов / Енгельс)"
+        }
+        if det.contains("тарханкут") || det.contains("севастопол") {
+            return "Західно-Кримський морський рубіж (мис Тарханкут / Севастополь)"
+        }
+        if det.contains("джанкой") || det.contains("перешийок") || det.contains("чонгар") || det.contains("армянськ") {
+            return "Кримський перешийок / ТОТ АР Крим (Південний коридор)"
+        }
+        if det.contains("воронеж") {
+            return "Воронезький прикордонний рубіж (Воронезька обл. РФ)"
+        }
+        if det.contains("ростов") || det.contains("таганрог") {
+            return "Ростовський прикордонний рубіж / Азовське море (РФ)"
+        }
+        if det.contains("донбас") || det.contains("донецьк") {
+            return "Прифронтовий рубіж ТОТ Донецької обл. (ЛБЗ)"
+        }
+        if det.contains("запоріж") {
+            return "Прифронтовий рубіж ТОТ Запорізької обл. (ЛБЗ) / Азовське море"
+        }
+        if det.contains("херсон") {
+            return "Прифронтовий рубіж ТОТ Херсонщини (Лівобережжя / Дніпро)"
+        }
+
+        // 3. Fallbacks per threat type
         guard let type = threatType?.lowercased() else { return nil }
         switch type {
         case kab, "uab", "fab", "umpb", "odab", "rbk":
+            if reg.contains("харків") || reg.contains("сум") {
+                return "Бєлгородський / Курський прикордонний рубіж"
+            }
+            if reg.contains("запоріж") || reg.contains("херсон") || reg.contains("донец") {
+                return "Прифронтові рубежі пусків КАБ (ЛБЗ)"
+            }
             return "Прикордонні та прифронтові рубежі пусків КАБ"
         case mig31k, "kinzhal":
             return "Північний коридор пуску Кинджалів (Рязань / Тула / Липецьк)"
         case tu95, "tu95ms", "tu160":
             return "Східний повітряний коридор (пусковий рубіж Каспій / Волгодонськ)"
         case tu22m3:
-            return "Акваторія Чорного моря / Курський рубіж пуску Х-22/32"
+            if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("херсон") {
+                return "Акваторія Чорного моря (пусковий рубіж Х-22/32)"
+            }
+            return "Курський прикордонний рубіж пуску Х-22/32"
         case ballistic, "iskander", "iskander_m":
+            if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("херсон") {
+                return "Акваторія Чорного моря / Тарханкут (АР Крим)"
+            }
+            if reg.contains("харків") || reg.contains("сум") || reg.contains("полтав") {
+                return "Бєлгородський прикордонний рубіж (Бєлгородська обл. РФ)"
+            }
             return "Прикордонні позиційні райони (Бєлгородщина / Чорне море / Курськ)"
         case zircon:
             return "Акваторія Чорного моря (Західно-Кримський морський коридор)"
@@ -575,11 +640,14 @@ public enum ThreatConstants {
         case nuclear, chemical:
             return "Зона підвищеного техногенного / радіаційного ризику"
         case shahed, "shahed_136":
-            if det.contains("одес") || det.contains("миколаїв") || det.contains("херсон") {
+            if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("херсон") || reg.contains("вінниц") || reg.contains("чернів") {
                 return "Акваторія Чорного моря (Південний морський коридор)"
             }
-            if det.contains("запоріж") || det.contains("дніпро") || det.contains("донец") {
+            if reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец") || reg.contains("харків") || reg.contains("полтав") {
                 return "Акваторія Азовського моря (Приазовський морський коридор)"
+            }
+            if reg.contains("сум") || reg.contains("чернігів") || reg.contains("київ") || reg.contains("житомир") {
+                return "Курський / Брянський прикордонний рубіж (вхід з РФ)"
             }
             return "Прикордонні та морські коридори (Азовське / Чорне море / Курськ / Бєлгород)"
         default:

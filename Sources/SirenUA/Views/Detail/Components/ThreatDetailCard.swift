@@ -45,10 +45,10 @@ struct ThreatDetailCard: View {
             }
             
             if let threat = threat {
-                let originInfo = ThreatConstants.originLabel(for: threat.type, detail: threat.detail)
+                let originInfo = ThreatConstants.originLabel(for: threat.type, detail: threat.detail ?? detail)
                 let carrierName: String? = {
                     if let n = threat.carrier_origin_name, !n.isEmpty { return n }
-                    return ThreatConstants.carrierOrigin(for: threat.type, detail: threat.detail)
+                    return ThreatConstants.carrierOrigin(for: threat.type, detail: threat.detail ?? detail)
                 }()
 
                 if let carrierName = carrierName, !carrierName.isEmpty {
@@ -71,7 +71,7 @@ struct ThreatDetailCard: View {
 
                 let sectorName: String? = {
                     if let s = threat.launch_sector_name, !s.isEmpty { return s }
-                    return ThreatConstants.launchSector(for: threat.type, detail: threat.detail)
+                    return ThreatConstants.launchSector(for: threat.type, detail: threat.detail ?? detail)
                 }()
 
                 if let sector = sectorName, !sector.isEmpty {
