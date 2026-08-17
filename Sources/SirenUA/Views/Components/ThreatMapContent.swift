@@ -16,6 +16,8 @@ struct ThreatMapContent: MapContent {
     let currentUserCoordinate: CLLocationCoordinate2D
     var cameraDistance: Double = 600_000.0
     var zoomScale: CGFloat = 1.0
+    var allUkraineTrajectories: Bool = false
+    var isTrackedRegion: ((String) -> Bool)? = nil
     let onRegionSelected: (AlertRegion) -> Void
 
     var flyingThreatAlerts: [AlertRegion] {
@@ -59,10 +61,13 @@ struct ThreatMapContent: MapContent {
         
         // Regional threat level, status badges, and flying threat overlays
         ForEach(alerts) { alert in
+            let isTracked = isTrackedRegion?(alert.name) ?? NotificationSettings.shared.isTracked(alert.name)
+            let showTrajectory = isPremium && (allUkraineTrajectories || isTracked)
             if shouldShowFlyingThreat(for: alert) {
                 FlyingThreatMapOverlay(
                     alert: alert,
                     isPremium: isPremium,
+                    showTrajectory: showTrajectory,
                     cameraDistance: cameraDistance,
                     zoomScale: zoomScale,
                     onRegionSelected: onRegionSelected
@@ -100,6 +105,7 @@ struct ThreatMapContent: MapContent {
 struct FlyingThreatMapOverlay: MapContent {
     let alert: AlertRegion
     let isPremium: Bool
+    var showTrajectory: Bool = true
     var cameraDistance: Double = 600_000.0
     var zoomScale: CGFloat = 1.0
     let onRegionSelected: (AlertRegion) -> Void
@@ -113,40 +119,42 @@ struct FlyingThreatMapOverlay: MapContent {
             let color = alert.color
             let customOrigin = alert.currentThreat?.originCoordinate
 
-            // MARK: - Trajectory flight vector overlay for ALL active threats (gated by Premium)
-            if !alert.activeThreats.isEmpty {
-                ForEach(alert.activeThreats) { threatItem in
-                    let itemType = threatItem.type ?? alert.threatType
-                    let itemOrigin = threatItem.originCoordinate
-                    let itemColor = threatItem.threatColor
+            // MARK: - Trajectory flight vector overlay (gated by Premium & Region Scope)
+            if showTrajectory {
+                if !alert.activeThreats.isEmpty {
+                    ForEach(alert.activeThreats) { threatItem in
+                        let itemType = threatItem.type ?? alert.threatType
+                        let itemOrigin = threatItem.originCoordinate
+                        let itemColor = threatItem.threatColor
+                        PremiumTrajectoryOverlay(
+                            targetCoordinate: alert.coordinate,
+                            threatType: itemType,
+                            customOrigin: itemOrigin,
+                            carrierOrigin: threatItem.carrierOriginCoordinate,
+                            launchSector: threatItem.launchSectorCoordinate,
+                            carrierOriginName: threatItem.carrier_origin_name,
+                            launchSectorName: threatItem.launch_sector_name,
+                            color: itemColor,
+                            cameraDistance: cameraDistance,
+                            zoomScale: zoomScale,
+                            isPremium: isPremium
+                        )
+                    }
+                } else {
                     PremiumTrajectoryOverlay(
                         targetCoordinate: alert.coordinate,
-                        threatType: itemType,
-                        customOrigin: itemOrigin,
-                        carrierOrigin: threatItem.carrierOriginCoordinate,
-                        launchSector: threatItem.launchSectorCoordinate,
-                        carrierOriginName: threatItem.carrier_origin_name,
-                        launchSectorName: threatItem.launch_sector_name,
-                        color: itemColor,
+                        threatType: threatType,
+                        customOrigin: customOrigin,
+                        carrierOrigin: alert.currentThreat?.carrierOriginCoordinate,
+                        launchSector: alert.currentThreat?.launchSectorCoordinate,
+                        carrierOriginName: alert.currentThreat?.carrier_origin_name,
+                        launchSectorName: alert.currentThreat?.launch_sector_name,
+                        color: color,
                         cameraDistance: cameraDistance,
                         zoomScale: zoomScale,
                         isPremium: isPremium
                     )
                 }
-            } else {
-                PremiumTrajectoryOverlay(
-                    targetCoordinate: alert.coordinate,
-                    threatType: threatType,
-                    customOrigin: customOrigin,
-                    carrierOrigin: alert.currentThreat?.carrierOriginCoordinate,
-                    launchSector: alert.currentThreat?.launchSectorCoordinate,
-                    carrierOriginName: alert.currentThreat?.carrier_origin_name,
-                    launchSectorName: alert.currentThreat?.launch_sector_name,
-                    color: color,
-                    cameraDistance: cameraDistance,
-                    zoomScale: zoomScale,
-                    isPremium: isPremium
-                )
             }
 
             // Target Region Destination Flying Threat Badge

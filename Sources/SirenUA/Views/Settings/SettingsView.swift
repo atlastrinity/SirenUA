@@ -267,9 +267,11 @@ struct SettingsView: View {
 
     private var mapCard: some View {
         MapSettingsCard(
+            settings: settings,
             mapType: $mapType,
             walkingSearchRadius: $walkingSearchRadius,
-            drivingSearchRadius: $drivingSearchRadius
+            drivingSearchRadius: $drivingSearchRadius,
+            onHaptic: { style in haptic(style) }
         )
     }
 

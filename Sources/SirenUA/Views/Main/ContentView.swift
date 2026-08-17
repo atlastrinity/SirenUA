@@ -64,6 +64,7 @@ struct ContentView: View {
     
     @AppStorage("allRegionsTracked", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var allRegionsTracked = true
     @AppStorage("trackedRegionsString", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var trackedRegionsString = ""
+    @AppStorage("allUkraineTrajectoriesEnabled", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var allUkraineTrajectoriesEnabled = false
     @State var showRegionPickerSheet = false
     @State private var showBottomOperationalToast = false
     @State var showLocationPermissionAlert = false
@@ -209,6 +210,8 @@ struct ContentView: View {
                     currentUserCoordinate: currentUserCoordinate,
                     cameraDistance: mapViewModel.cameraDistance,
                     zoomScale: mapViewModel.elementZoomScale,
+                    allUkraineTrajectories: allUkraineTrajectoriesEnabled,
+                    isTrackedRegion: isRegionTracked,
                     onRegionSelected: handleRegionSelection
                 )
             }

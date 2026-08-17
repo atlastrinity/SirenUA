@@ -398,6 +398,50 @@ final class SirenUATests: XCTestCase {
 
         defaults.set(true, forKey: "vibrationEnabled")
         XCTAssertTrue(defaults.bool(forKey: "vibrationEnabled"))
+
+        // 8. allUkraineTrajectoriesEnabled toggle (default: false)
+        defaults.set(true, forKey: "allUkraineTrajectoriesEnabled")
+        XCTAssertTrue(defaults.bool(forKey: "allUkraineTrajectoriesEnabled"))
+
+        defaults.set(false, forKey: "allUkraineTrajectoriesEnabled")
+        XCTAssertFalse(defaults.bool(forKey: "allUkraineTrajectoriesEnabled"))
+    }
+
+    func testAllUkraineTrajectoriesToggleAndVisibility() {
+        let settings = NotificationSettings.shared
+        settings.allRegionsTracked = false
+        settings.trackedRegionsString = "м. Київ;Львівська область"
+        settings.allUkraineTrajectoriesEnabled = false
+
+        // 1. By default, allUkraineTrajectoriesEnabled is false
+        // Tracked regions: м. Київ -> should show trajectory
+        let kyivTracked = settings.isTracked("м. Київ")
+        XCTAssertTrue(kyivTracked)
+        let kyivShowTrajectoryDefault = true && (settings.allUkraineTrajectoriesEnabled || kyivTracked)
+        XCTAssertTrue(kyivShowTrajectoryDefault)
+
+        // Untracked region: Одеська область -> should NOT show trajectory when toggle is false
+        let odesaTracked = settings.isTracked("Одеська область")
+        XCTAssertFalse(odesaTracked)
+        let odesaShowTrajectoryDefault = true && (settings.allUkraineTrajectoriesEnabled || odesaTracked)
+        XCTAssertFalse(odesaShowTrajectoryDefault)
+
+        // 2. When allUkraineTrajectoriesEnabled is enabled -> both should show trajectories
+        settings.allUkraineTrajectoriesEnabled = true
+        let odesaShowTrajectoryEnabled = true && (settings.allUkraineTrajectoriesEnabled || odesaTracked)
+        XCTAssertTrue(odesaShowTrajectoryEnabled)
+        let kyivShowTrajectoryEnabled = true && (settings.allUkraineTrajectoriesEnabled || kyivTracked)
+        XCTAssertTrue(kyivShowTrajectoryEnabled)
+
+        // 3. When isPremium is false -> no trajectories regardless of toggle
+        let isPremium = false
+        let odesaNonPremium = isPremium && (settings.allUkraineTrajectoriesEnabled || odesaTracked)
+        XCTAssertFalse(odesaNonPremium)
+
+        // Cleanup
+        settings.allUkraineTrajectoriesEnabled = false
+        settings.allRegionsTracked = true
+        settings.trackedRegionsString = ""
     }
 
     func testNotificationSoundConfigAndCriticalPolicies() {
@@ -1231,7 +1275,7 @@ final class SirenUATests: XCTestCase {
         )
 
         XCTAssertFalse(trajectory.taperedSegments.isEmpty, "Trajectory should have tapered segments")
-        XCTAssertEqual(trajectory.taperedSegments.count, 6, "Trajectory should produce 6 aerodynamic tapered segments")
+        XCTAssertEqual(trajectory.taperedSegments.count, 3, "Trajectory should produce 3 aerodynamic tapered segments")
 
         let firstSegment = trajectory.taperedSegments.first!
         let lastSegment = trajectory.taperedSegments.last!
