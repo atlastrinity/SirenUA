@@ -111,38 +111,33 @@ class AdminViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Computeds
+    private static let utcDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
+    }()
+
+    private static let kyivDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "Europe/Kiev") ?? TimeZone.current
+        return formatter
+    }()
+    
+    // MARK: - Computeds & Helpers
     
     func localDateString(from utcTimestamp: String?) -> String {
         guard let ts = utcTimestamp, ts.count >= 10 else { return "Невідома дата" }
         let cleanTs = ts.replacingOccurrences(of: "T", with: " ")
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        if let date = formatter.date(from: String(cleanTs.prefix(19))) {
-            let localFormatter = DateFormatter()
-            localFormatter.dateFormat = "yyyy-MM-dd"
-            localFormatter.timeZone = TimeZone(identifier: "Europe/Kiev") ?? TimeZone.current
-            return localFormatter.string(from: date)
+        if let date = Self.utcDateFormatter.date(from: String(cleanTs.prefix(19))) {
+            return Self.kyivDateFormatter.string(from: date)
         }
         return String(ts.prefix(10))
     }
 
-    var groupedCorrelationEvents: [(String, [AdminChronologyV2Entry])] {
-        guard let events = correlationV2Data?.events else { return [] }
-        let grouped = Dictionary(grouping: events) { ev in
-            localDateString(from: ev.ai_timestamp)
-        }
-        return grouped.sorted { $0.key > $1.key }
-    }
-
-    var groupedChronologyEvents: [(String, [AdminChronologyEntry])] {
-        guard let events = chronologyData?.events else { return [] }
-        let grouped = Dictionary(grouping: events) { ev in
-            localDateString(from: ev.threat_timestamp)
-        }
-        return grouped.sorted { $0.key > $1.key }
-    }
+    @Published var groupedCorrelationEvents: [(String, [AdminChronologyV2Entry])] = []
+    @Published var groupedChronologyEvents: [(String, [AdminChronologyEntry])] = []
     
     var rulesGroupedByRegion: [(String, [GeminiRule])] {
         let grouped = Dictionary(grouping: activeRules) { rule in
@@ -167,7 +162,7 @@ class AdminViewModel: ObservableObject {
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("ios-sirenua-admin/4.2", forHTTPHeaderField: "User-Agent")
         req.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
-        req.timeoutInterval = 10.0
+        req.timeoutInterval = 8.0
         return req
     }
     
@@ -175,8 +170,20 @@ class AdminViewModel: ObservableObject {
         let req = makeAdminRequest(url: url)
         return try await URLSession.shared.data(for: req)
     }
+
+    private func decodeInBackground<T: Decodable>(_ type: T.Type, from data: Data) async throws -> T {
+        try await Task.detached(priority: .userInitiated) {
+            try JSONDecoder().decode(T.self, from: data)
+        }.value
+    }
     
+    private var activeFetchTabs = Set<Int>()
+
     func refreshCurrentTab(selectedTab: Int) async {
+        guard !activeFetchTabs.contains(selectedTab) else { return }
+        activeFetchTabs.insert(selectedTab)
+        defer { activeFetchTabs.remove(selectedTab) }
+
         switch selectedTab {
         case 0:
             await fetchDashboardStats()
@@ -201,18 +208,9 @@ class AdminViewModel: ObservableObject {
         }
         lastFetchError = nil
         
-        // 1. Load active tab immediately so UI renders in <250ms
+        // Fast path: load only current active tab for instantaneous presentation
         await refreshCurrentTab(selectedTab: selectedTab)
         isLoading = false
-        
-        // 2. Progressively fetch other tabs in background without blocking the UI
-        await fetchDashboardStats()
-        await fetchPalantirOverview()
-        await fetchCorrelationV2()
-        await fetchChronology()
-        await fetchRules()
-        await fetchErrors()
-        await performDiagnostics()
     }
     
     func fetchDashboardStats() async {
@@ -225,7 +223,7 @@ class AdminViewModel: ObservableObject {
                 return
             }
             do {
-                let decoded = try JSONDecoder().decode(AdminDashboardStatsResponse.self, from: data)
+                let decoded = try await decodeInBackground(AdminDashboardStatsResponse.self, from: data)
                 self.dashboardStats = decoded
             } catch {
                 adminLogger.error("Failed to decode AdminDashboardStatsResponse: \(error)")
@@ -266,8 +264,23 @@ class AdminViewModel: ObservableObject {
         do {
             let (data, _) = try await fetchAdminData(from: url)
             do {
-                let decoded = try JSONDecoder().decode(AdminChronologyV2Response.self, from: data)
+                let decoded = try await decodeInBackground(AdminChronologyV2Response.self, from: data)
                 self.correlationV2Data = decoded
+                
+                // Precompute grouped events off main thread
+                let events = decoded.events ?? []
+                let grouped = await Task.detached(priority: .userInitiated) { () -> [(String, [AdminChronologyV2Entry])] in
+                    let dict = Dictionary(grouping: events) { ev in
+                        guard let ts = ev.ai_timestamp, ts.count >= 10 else { return "Невідома дата" }
+                        let cleanTs = ts.replacingOccurrences(of: "T", with: " ")
+                        if let date = Self.utcDateFormatter.date(from: String(cleanTs.prefix(19))) {
+                            return Self.kyivDateFormatter.string(from: date)
+                        }
+                        return String(ts.prefix(10))
+                    }
+                    return dict.sorted { $0.key > $1.key }
+                }.value
+                self.groupedCorrelationEvents = grouped
             } catch {
                 adminLogger.error("Failed to decode AdminChronologyV2Response: \(error)")
             }
@@ -294,8 +307,23 @@ class AdminViewModel: ObservableObject {
         do {
             let (data, _) = try await fetchAdminData(from: url)
             do {
-                let decoded = try JSONDecoder().decode(AdminChronologyResponse.self, from: data)
+                let decoded = try await decodeInBackground(AdminChronologyResponse.self, from: data)
                 self.chronologyData = decoded
+                
+                // Precompute grouped chronology off main thread
+                let events = decoded.events
+                let grouped = await Task.detached(priority: .userInitiated) { () -> [(String, [AdminChronologyEntry])] in
+                    let dict = Dictionary(grouping: events) { ev in
+                        guard let ts = ev.threat_timestamp, ts.count >= 10 else { return "Невідома дата" }
+                        let cleanTs = ts.replacingOccurrences(of: "T", with: " ")
+                        if let date = Self.utcDateFormatter.date(from: String(cleanTs.prefix(19))) {
+                            return Self.kyivDateFormatter.string(from: date)
+                        }
+                        return String(ts.prefix(10))
+                    }
+                    return dict.sorted { $0.key > $1.key }
+                }.value
+                self.groupedChronologyEvents = grouped
             } catch {
                 adminLogger.error("Failed to decode AdminChronologyResponse: \(error)")
             }
@@ -329,29 +357,24 @@ class AdminViewModel: ObservableObject {
                   let historyUrl = URL(string: "\(serverURL)/api/admin/rules/history?\(auditParams)"),
                   let metricsUrl = URL(string: "\(serverURL)/api/admin/rules/metrics_by_region") else { return }
             
-            let (rulesData, _) = try await fetchAdminData(from: rulesUrl)
-            let (historyData, _) = try await fetchAdminData(from: historyUrl)
+            async let rulesFetch = fetchAdminData(from: rulesUrl)
+            async let historyFetch = fetchAdminData(from: historyUrl)
+            async let metricsFetch = fetchAdminData(from: metricsUrl)
             
-            do {
-                let decoded = try JSONDecoder().decode(GeminiRulesResponse.self, from: rulesData)
+            let (rulesData, _) = try await rulesFetch
+            let (historyData, _) = try await historyFetch
+            let (metricsData, _) = try await metricsFetch
+            
+            if let decoded = try? await decodeInBackground(GeminiRulesResponse.self, from: rulesData) {
                 self.activeRules = decoded.rules
-            } catch {
-                adminLogger.error("❌ rulesData decode error: \(error)")
             }
             
-            do {
-                let decoded = try JSONDecoder().decode(GeminiRulesHistoryResponse.self, from: historyData)
+            if let decoded = try? await decodeInBackground(GeminiRulesHistoryResponse.self, from: historyData) {
                 self.ruleAuditHistory = decoded.entries
-            } catch {
-                adminLogger.error("❌ historyData decode error: \(error)")
             }
 
-            do {
-                let (metricsData, _) = try await fetchAdminData(from: metricsUrl)
-                let decoded = try JSONDecoder().decode(AdminRulesMetricsResponse.self, from: metricsData)
+            if let decoded = try? await decodeInBackground(AdminRulesMetricsResponse.self, from: metricsData) {
                 self.regionalRuleMetrics = decoded.region_metrics
-            } catch {
-                adminLogger.error("❌ metricsData decode error: \(error)")
             }
         } catch {
             adminLogger.error("❌ fetchRules network/request error: \(error)")
@@ -365,14 +388,17 @@ class AdminViewModel: ObservableObject {
             guard let statsUrl = URL(string: "\(serverURL)/api/admin/errors/stats?days=\(errDaysFilter)"),
                   let errorsUrl = URL(string: "\(serverURL)/api/admin/errors?\(params)") else { return }
             
-            let (statsData, _) = try await fetchAdminData(from: statsUrl)
-            let (errorsData, _) = try await fetchAdminData(from: errorsUrl)
+            async let statsFetch = fetchAdminData(from: statsUrl)
+            async let errorsFetch = fetchAdminData(from: errorsUrl)
             
-            if let decodedStats = try? JSONDecoder().decode(AdminErrorStatsResponse.self, from: statsData) {
+            let (statsData, _) = try await statsFetch
+            let (errorsData, _) = try await errorsFetch
+            
+            if let decodedStats = try? await decodeInBackground(AdminErrorStatsResponse.self, from: statsData) {
                 self.errorStats = decodedStats
             }
             
-            if let decodedErrors = try? JSONDecoder().decode(AdminErrorsResponse.self, from: errorsData) {
+            if let decodedErrors = try? await decodeInBackground(AdminErrorsResponse.self, from: errorsData) {
                 self.errorsList = decodedErrors.errors
             }
         } catch {}
@@ -396,22 +422,23 @@ class AdminViewModel: ObservableObject {
     }
     
     func fetchPalantirOverview() async {
-        guard let url = URL(string: "\(serverURL)/api/admin/palantir/overview?days=\(palantirDaysFilter)") else { return }
+        guard let url = URL(string: "\(serverURL)/api/admin/palantir/overview?days=\(palantirDaysFilter)"),
+              let reportsUrl = URL(string: "\(serverURL)/api/admin/palantir/reports?limit=20") else { return }
         do {
-            let (data, _) = try await fetchAdminData(from: url)
-            let decoded = try JSONDecoder().decode(PalantirOverviewResponse.self, from: data)
-            self.palantirOverview = decoded
+            async let overviewFetch = fetchAdminData(from: url)
+            async let reportsFetch = fetchAdminData(from: reportsUrl)
+            
+            let (overviewData, _) = try await overviewFetch
+            let (reportsData, _) = try await reportsFetch
+            
+            if let decoded = try? await decodeInBackground(PalantirOverviewResponse.self, from: overviewData) {
+                self.palantirOverview = decoded
+            }
+            if let decoded = try? await decodeInBackground(PalantirReportsResponse.self, from: reportsData) {
+                self.palantirReportsList = decoded.reports
+            }
         } catch {
-            adminLogger.error("Failed to decode PalantirOverviewResponse: \(error)")
-        }
-        
-        guard let reportsUrl = URL(string: "\(serverURL)/api/admin/palantir/reports?limit=20") else { return }
-        do {
-            let (data, _) = try await fetchAdminData(from: reportsUrl)
-            let decoded = try JSONDecoder().decode(PalantirReportsResponse.self, from: data)
-            self.palantirReportsList = decoded.reports
-        } catch {
-            adminLogger.error("Failed to decode PalantirReportsResponse: \(error)")
+            adminLogger.error("Failed in fetchPalantirOverview: \(error)")
         }
     }
     

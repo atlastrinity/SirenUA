@@ -19,7 +19,7 @@ struct AdminDashboardView: View {
     private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 ChartColorTheme.bg.ignoresSafeArea()
                 
@@ -37,7 +37,7 @@ struct AdminDashboardView: View {
                                 .foregroundColor(.white)
                             Spacer()
                             Button("Повторити") {
-                                Task { await viewModel.refreshAllData(selectedTab: selectedTab) }
+                                Task { await viewModel.refreshCurrentTab(selectedTab: selectedTab) }
                             }
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.cyan)
@@ -47,7 +47,7 @@ struct AdminDashboardView: View {
                         .background(Color.red.opacity(0.25))
                     }
                     
-                    if viewModel.isLoading {
+                    if viewModel.isLoading && viewModel.dashboardStats == nil && viewModel.correlationV2Data == nil && viewModel.palantirOverview == nil {
                         Spacer()
                         ProgressView("Завантаження даних...")
                             .tint(.white)
@@ -55,7 +55,7 @@ struct AdminDashboardView: View {
                         Spacer()
                     } else {
                         ScrollView {
-                            VStack(spacing: 16) {
+                            LazyVStack(spacing: 16) {
                                 switch selectedTab {
                                 case 0:
                                     AdminDashboardTab(viewModel: viewModel)
@@ -83,15 +83,11 @@ struct AdminDashboardView: View {
                     }
                 }
             }
-            #if os(iOS)
-            .navigationBarHidden(true)
-            #else
-            .navigationTitle("")
-            #endif
+            .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
             .task {
-                await viewModel.loadRegions()
-                await viewModel.refreshAllData(selectedTab: selectedTab)
+                async let _ = viewModel.loadRegions()
+                await viewModel.refreshCurrentTab(selectedTab: selectedTab)
             }
             .onReceive(refreshTimer) { _ in
                 Task {
@@ -170,7 +166,6 @@ struct AdminDashboardView: View {
                     Button(action: {
                         viewModel.triggerHaptic("light")
                         selectedTab = idx
-                        Task { await viewModel.refreshCurrentTab(selectedTab: idx) }
                     }) {
                         Text(tabs[idx])
                             .font(.system(size: 12, weight: .semibold))
