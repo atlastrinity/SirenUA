@@ -67,8 +67,40 @@ struct PremiumTrajectoryOverlay: MapContent {
                     .mapOverlayLevel(level: .aboveLabels)
             }
 
-            if !trajectory.taperedSegments.isEmpty {
-                // Динамічне аеродинамічне звуження: широкий початок на рубежі запуску -> плавне звуження до області
+            // 1. РІВЕНЬ ДЕТАЛІЗАЦІЇ (LOD Level of Detail):
+            // На оглядовому плані всієї України (> 450 км) малюємо 2 оптимізовані суцільні лінії (Glow + Core)
+            // замість циклу багатьох сегментів, що зменшує GPU draw calls на 80%.
+            if cameraDistance > 450_000.0 || trajectory.taperedSegments.isEmpty {
+                if n >= 2 {
+                    // Шар 1: Насичене основне тіло тактичного вектору (Kinetic Tactical Beam)
+                    MapPolyline(coordinates: trajectory.fullPoints)
+                        .stroke(
+                            color.opacity(0.88),
+                            style: StrokeStyle(lineWidth: 3.2, lineCap: .round, lineJoin: .round)
+                        )
+                        .mapOverlayLevel(level: .aboveLabels)
+
+                    // Шар 2: Висококонтрастне центральне ядро (Razor Luminous Core)
+                    MapPolyline(coordinates: trajectory.fullPoints)
+                        .stroke(
+                            Color(red: 1.0, green: 0.98, blue: 0.90).opacity(0.95),
+                            style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round)
+                        )
+                        .mapOverlayLevel(level: .aboveLabels)
+
+                    // Шар 3: Акуратна тактична стрілочка на вістрі
+                    Annotation(coordinate: trajectory.tipCoordinate) {
+                        TrajectoryArrowheadView(
+                            color: color,
+                            angle: trajectory.tipAngle,
+                            zoomScale: zoomScale
+                        )
+                    } label: {
+                        EmptyView()
+                    }
+                }
+            } else {
+                // На наближеному плані (<= 450 км): Аеродинамічне звуження через конічні сегменти
                 ForEach(trajectory.taperedSegments) { segment in
                     // Шар 1: М'який радарний ореол розмиття (Atmospheric Aura Glow)
                     MapPolyline(coordinates: segment.coordinates)
@@ -95,39 +127,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                         .mapOverlayLevel(level: .aboveLabels)
                 }
 
-                // Шар 4: Акуратна тактична стрілочка на вістрі траєкторії (безшовно сполучена з лінією на відстані від кружечка області)
-                Annotation(coordinate: trajectory.tipCoordinate) {
-                    TrajectoryArrowheadView(
-                        color: color,
-                        angle: trajectory.tipAngle,
-                        zoomScale: zoomScale
-                    )
-                } label: {
-                    EmptyView()
-                }
-            } else if n >= 2 {
-                // Резервне відображення цільної лінії (Fallback)
-                MapPolyline(coordinates: trajectory.fullPoints)
-                    .stroke(
-                        color.opacity(0.24),
-                        style: StrokeStyle(lineWidth: 6.0, lineCap: .round, lineJoin: .round)
-                    )
-                    .mapOverlayLevel(level: .aboveLabels)
-
-                MapPolyline(coordinates: trajectory.fullPoints)
-                    .stroke(
-                        color.opacity(0.90),
-                        style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
-                    )
-                    .mapOverlayLevel(level: .aboveLabels)
-
-                MapPolyline(coordinates: trajectory.fullPoints)
-                    .stroke(
-                        Color(red: 1.0, green: 0.98, blue: 0.90).opacity(0.96),
-                        style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round)
-                    )
-                    .mapOverlayLevel(level: .aboveLabels)
-
+                // Шар 4: Тактична стрілочка на вістрі траєкторії
                 Annotation(coordinate: trajectory.tipCoordinate) {
                     TrajectoryArrowheadView(
                         color: color,

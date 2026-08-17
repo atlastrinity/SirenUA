@@ -87,6 +87,37 @@ public struct TrajectoryPath {
     }
 }
 
+// MARK: - Thread-Safe Trajectory Memory Cache
+
+public final class TrajectoryCache: @unchecked Sendable {
+    public static let shared = TrajectoryCache()
+    private var cache: [String: TrajectoryPath] = [:]
+    private let lock = NSLock()
+    
+    private init() {}
+    
+    public func get(key: String) -> TrajectoryPath? {
+        lock.lock()
+        defer { lock.unlock() }
+        return cache[key]
+    }
+    
+    public func set(key: String, path: TrajectoryPath) {
+        lock.lock()
+        defer { lock.unlock() }
+        if cache.count > 200 {
+            cache.removeAll(keepingCapacity: true)
+        }
+        cache[key] = path
+    }
+    
+    public func invalidate() {
+        lock.lock()
+        defer { lock.unlock() }
+        cache.removeAll(keepingCapacity: true)
+    }
+}
+
 // MARK: - Trajectory Calculator
 
 public func calculateTrajectory(
@@ -100,6 +131,23 @@ public func calculateTrajectory(
     cameraDistance: Double = 600_000.0,
     zoomScale: CGFloat = 1.0
 ) -> TrajectoryPath {
+    let targetLat = Int(round(target.latitude * 1000))
+    let targetLon = Int(round(target.longitude * 1000))
+    let tType = threatType ?? ""
+    let originStr = customOrigin.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
+    let carrierStr = carrierOrigin.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
+    let sectorStr = launchSector.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
+    let cName = carrierOriginName ?? ""
+    let sName = launchSectorName ?? ""
+    let distBucket = Int(round(cameraDistance / 50_000.0))
+    let zoomBucket = Int(round(zoomScale * 20.0))
+
+    let cacheKey = "\(targetLat)_\(targetLon)|\(tType)|\(originStr)|\(carrierStr)|\(sectorStr)|\(cName)|\(sName)|\(distBucket)|\(zoomBucket)"
+    
+    if let cached = TrajectoryCache.shared.get(key: cacheKey) {
+        return cached
+    }
+
     let curvature: Double
     let cycles: Double
     let waveAmplitude: Double
@@ -376,9 +424,9 @@ public func calculateTrajectory(
         }
         carrierApproachPoints = smoothPointsChaikin(points: approach, iterations: 1)
     }
-    // Progressive Tapering: Generate 6 continuous segments that gracefully narrow from launch origin to target tip
+    // Progressive Tapering: Generate 3 continuous segments that gracefully narrow from launch origin to target tip
     var taperedSegments: [TrajectoryTaperedSegment] = []
-    let segmentCount = 6
+    let segmentCount = 3
     if fullPoints.count >= 2 {
         let totalPoints = fullPoints.count
         for i in 0..<segmentCount {
@@ -389,12 +437,12 @@ public func calculateTrajectory(
                 if segPoints.count >= 2 {
                     let progress = Double(i) / Double(max(1, segmentCount - 1))
                     // Tapering parameters: Wide and luminous at launch -> Narrow and razor-sharp at target region
-                    let glowW = CGFloat(8.0 - (progress * 4.6))    // 8.0pt -> 3.4pt
-                    let beamW = CGFloat(4.4 - (progress * 2.5))    // 4.4pt -> 1.9pt
-                    let coreW = CGFloat(1.8 - (progress * 0.9))    // 1.8pt -> 0.9pt
-                    let glowO = 0.32 - (progress * 0.12)           // 0.32 -> 0.20
-                    let beamO = 0.95 - (progress * 0.10)           // 0.95 -> 0.85
-                    let coreO = 0.98 - (progress * 0.08)           // 0.98 -> 0.90
+                    let glowW = CGFloat(7.5 - (progress * 4.0))    // 7.5pt -> 3.5pt
+                    let beamW = CGFloat(4.2 - (progress * 2.2))    // 4.2pt -> 2.0pt
+                    let coreW = CGFloat(1.8 - (progress * 0.8))    // 1.8pt -> 1.0pt
+                    let glowO = 0.32 - (progress * 0.10)           // 0.32 -> 0.22
+                    let beamO = 0.95 - (progress * 0.08)           // 0.95 -> 0.87
+                    let coreO = 0.98 - (progress * 0.06)           // 0.98 -> 0.92
                     
                     taperedSegments.append(
                         TrajectoryTaperedSegment(
@@ -413,7 +461,7 @@ public func calculateTrajectory(
         }
     }
 
-    return TrajectoryPath(
+    let trajectoryResult = TrajectoryPath(
         fullPoints: fullPoints,
         taperedSegments: taperedSegments,
         flowArrows: flowArrows,
@@ -425,6 +473,8 @@ public func calculateTrajectory(
         carrierOriginName: carrierOriginName,
         launchSectorName: launchSectorName
     )
+    TrajectoryCache.shared.set(key: cacheKey, path: trajectoryResult)
+    return trajectoryResult
 }
 
 // MARK: - Multi-Waypoint Aerodynamic Turn Arc Generator

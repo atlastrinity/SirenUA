@@ -99,7 +99,7 @@ final class MapViewModel: ObservableObject {
     func updateCameraDistance(_ distance: Double) {
         guard distance > 0 else { return }
         let ratio = abs(cameraDistance - distance) / cameraDistance
-        guard ratio > 0.03 else { return }
+        guard ratio > 0.08 else { return }
         cameraDistance = distance
     }
 
