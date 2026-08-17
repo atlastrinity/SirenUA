@@ -305,11 +305,11 @@ public func calculateTrajectory(
     // Apply Chaikin corner smoothing to ensure 100% C1/C2 smooth curvature without sharp angles
     let smoothedPoints = smoothPointsChaikin(points: rawPoints, iterations: 2)
 
-    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~18 km gap)
+    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~22 km gap)
     let (fullPoints, tipCoord, tipAngle) = trimTrajectoryForStandoff(
         points: smoothedPoints,
         target: target,
-        desiredStandoffKm: 18.0
+        desiredStandoffKm: 22.0
     )
 
     let steps = fullPoints.count - 1
@@ -587,7 +587,7 @@ private func smoothPointsChaikin(points: [CLLocationCoordinate2D], iterations: I
 private func trimTrajectoryForStandoff(
     points: [CLLocationCoordinate2D],
     target: CLLocationCoordinate2D,
-    desiredStandoffKm: Double = 18.0
+    desiredStandoffKm: Double = 22.0
 ) -> (trimmedPoints: [CLLocationCoordinate2D], tipCoordinate: CLLocationCoordinate2D, tipAngle: Double) {
     guard points.count >= 2 else {
         let coord = points.first ?? target
@@ -601,7 +601,7 @@ private func trimTrajectoryForStandoff(
     }
 
     let totalDist = distKm(points.first!, target)
-    let effectiveStandoff = min(desiredStandoffKm, max(4.0, totalDist * 0.22))
+    let effectiveStandoff = min(desiredStandoffKm, max(12.0, totalDist * 0.20))
 
     var tipCoord = points.last!
     var tipAngle = 0.0

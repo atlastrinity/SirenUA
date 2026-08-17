@@ -176,8 +176,8 @@ struct FlyingThreatMapOverlay: MapContent {
 /// Якщо в області немає тривоги (жовта область) — значок БПЛА всередині області НЕ показується!
 func shouldShowFlyingThreat(for alert: AlertRegion) -> Bool {
     let isPredictive = alert.isThreatPredictive || (alert.currentThreat?.is_predictive ?? false)
-    let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty) || isPredictive
-    return (alert.isActive || isPredictive) && hasThreatData
+    let hasThreatData = alert.threatType != nil || !alert.activeThreats.isEmpty || (alert.threatDetail != nil && !alert.threatDetail!.isEmpty) || isPredictive || (alert.threatLevel != nil && alert.threatLevel != .none)
+    return (alert.isActive || isPredictive || (alert.threatLevel != nil && alert.threatLevel != .none)) && hasThreatData
 }
 
 

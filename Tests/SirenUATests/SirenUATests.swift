@@ -1215,7 +1215,7 @@ final class SirenUATests: XCTestCase {
         let dLon = (tip.longitude - kyivTarget.longitude) * 111.0 * cos(kyivTarget.latitude * .pi / 180.0)
         let dist = sqrt(dLat * dLat + dLon * dLon)
 
-        XCTAssertTrue(dist >= 12.0 && dist <= 22.0, "Standoff distance should be around 18 km, got \(dist) km")
+        XCTAssertTrue(dist >= 12.0 && dist <= 26.0, "Standoff distance should be around 22 km, got \(dist) km")
         // Direction from Kursk to Kyiv is West-Southwest (~240°-270°)
         XCTAssertTrue(trajectory.tipAngle > 180.0 && trajectory.tipAngle < 300.0, "Tip angle should point towards Kyiv, got \(trajectory.tipAngle)")
     }

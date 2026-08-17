@@ -90,12 +90,11 @@ struct PremiumTrajectoryOverlay: MapContent {
                         .mapOverlayLevel(level: .aboveLabels)
                 }
 
-                // Шар 4: Акуратна тактична стрілочка на вістрі траєкторії, статично зафіксована строго в центр кружечка області
-                Annotation(coordinate: targetCoordinate) {
+                // Шар 4: Акуратна тактична стрілочка на вістрі траєкторії (безшовно сполучена з лінією на відстані від кружечка області)
+                Annotation(coordinate: trajectory.tipCoordinate) {
                     TrajectoryArrowheadView(
                         color: color,
                         angle: trajectory.tipAngle,
-                        standoffDistance: 34.0,
                         zoomScale: zoomScale
                     )
                 } label: {
@@ -124,11 +123,10 @@ struct PremiumTrajectoryOverlay: MapContent {
                     )
                     .mapOverlayLevel(level: .aboveLabels)
 
-                Annotation(coordinate: targetCoordinate) {
+                Annotation(coordinate: trajectory.tipCoordinate) {
                     TrajectoryArrowheadView(
                         color: color,
                         angle: trajectory.tipAngle,
-                        standoffDistance: 34.0,
                         zoomScale: zoomScale
                     )
                 } label: {
