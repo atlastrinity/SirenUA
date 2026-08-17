@@ -179,19 +179,48 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         ThreatConstants.color(for: type)
     }
 
+    // MARK: - Optimized Static Formatters & Regex Pool
+
+    private enum DateCache {
+        static let isoWithFraction: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return f
+        }()
+
+        static let isoStandard: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime]
+            return f
+        }()
+
+        static let customUTC: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            f.timeZone = TimeZone(secondsFromGMT: 0)
+            return f
+        }()
+
+        static let kyivTime: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm"
+            f.timeZone = TimeZone(identifier: "Europe/Kyiv") ?? TimeZone.current
+            return f
+        }()
+
+        static let distanceRegex: NSRegularExpression? = {
+            let pattern = "(Відстань\\s+(до\\s+целі:|до\\s+цілі:)?\\s*~?\\d+\\s*км|Відстань:\\s*~?\\d+\\s*км)"
+            return try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        }()
+    }
+
     // MARK: Time helpers
 
     var sinceDate: Date? {
         guard let since = since else { return nil }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: since) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        if let date = formatter.date(from: since) { return date }
-        let customFormatter = DateFormatter()
-        customFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        customFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-        return customFormatter.date(from: since)
+        if let date = DateCache.isoWithFraction.date(from: since) { return date }
+        if let date = DateCache.isoStandard.date(from: since) { return date }
+        return DateCache.customUTC.date(from: since)
     }
 
     var elapsedMinutes: Int {
@@ -201,10 +230,7 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
 
     var detectionTimeString: String {
         guard let date = sinceDate else { return "" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.timeZone = TimeZone(identifier: "Europe/Kyiv")
-        return formatter.string(from: date)
+        return DateCache.kyivTime.string(from: date)
     }
 
     var formattedSince: String {
@@ -334,8 +360,7 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         }
 
         if remainingDistance <= 0 {
-            let pattern = "(Відстань\\s+(до\\s+целі:|до\\s+цілі:)?\\s*~?\\d+\\s*км|Відстань:\\s*~?\\d+\\s*км)"
-            if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
+            if let regex = DateCache.distanceRegex {
                 let nsString = originalLine as NSString
                 let replacement = (is_predictive == true) ? "На межі області (очікується офіційна тривога)" : "Ціль в області"
                 let updated = regex.stringByReplacingMatches(in: originalLine, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: replacement)

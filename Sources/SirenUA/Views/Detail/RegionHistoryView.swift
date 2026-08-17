@@ -26,19 +26,19 @@ struct RegionHistoryView: View {
         PremiumGatekeeper.shared.canAccess(.chronology)
     }
     
-    private var dateFormatter: DateFormatter {
+    private static let historyDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        f.timeZone = TimeZone(identifier: "Europe/Kiev")
+        f.timeZone = TimeZone(identifier: "Europe/Kyiv") ?? TimeZone.current
         return f
-    }
+    }()
     
-    private var displayDateFormatter: DateFormatter {
+    private static let displayDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "uk_UA")
         f.dateFormat = "d MMMM yyyy"
         return f
-    }
+    }()
     
     var body: some View {
         ZStack {
@@ -142,7 +142,7 @@ struct RegionHistoryView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(themeColor)
                         
-                        Text(isToday(selectedDate) ? "Сьогодні" : displayDateFormatter.string(from: selectedDate))
+                        Text(isToday(selectedDate) ? "Сьогодні" : Self.displayDateFormatter.string(from: selectedDate))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.white)
                         
@@ -275,8 +275,7 @@ struct RegionHistoryView: View {
     
     private var timelineContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<events.count, id: \.self) { index in
-                let event = events[index]
+            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
                 let nextLevel = index < events.count - 1 ? events[index + 1].threat_level : nil
                 RegionHistoryRowView(
                     event: event,
@@ -339,7 +338,7 @@ struct RegionHistoryView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
             
-            Text("За \(isToday(selectedDate) ? "сьогодні" : displayDateFormatter.string(from: selectedDate))\nподій для цієї області не було")
+            Text("За \(isToday(selectedDate) ? "сьогодні" : Self.displayDateFormatter.string(from: selectedDate))\nподій для цієї області не було")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.3))
                 .multilineTextAlignment(.center)
@@ -390,7 +389,7 @@ struct RegionHistoryView: View {
         isLoading = true
         errorMessage = nil
         
-        let dateString = dateFormatter.string(from: selectedDate)
+        let dateString = Self.historyDateFormatter.string(from: selectedDate)
         
         do {
             let fetched = try await networkManager.fetchRegionHistory(

@@ -121,7 +121,15 @@ class AdminViewModel: ObservableObject {
     private static let kyivDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "Europe/Kiev") ?? TimeZone.current
+        formatter.timeZone = TimeZone(identifier: "Europe/Kyiv") ?? TimeZone.current
+        return formatter
+    }()
+
+    private static let shortTimeLocalFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .short
+        formatter.timeZone = TimeZone.current
         return formatter
     }()
     
@@ -239,10 +247,8 @@ class AdminViewModel: ObservableObject {
         var params = ""
         
         if corUseDateRange {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            let fromStr = formatter.string(from: corDateFrom)
-            let toStr = formatter.string(from: corDateTo)
+            let fromStr = Self.kyivDateFormatter.string(from: corDateFrom)
+            let toStr = Self.kyivDateFormatter.string(from: corDateTo)
             params = "date_from=\(fromStr)&date_to=\(toStr)"
         } else {
             params = "days=\(corDaysFilter)"
@@ -555,15 +561,8 @@ class AdminViewModel: ObservableObject {
     func formatShortTime(_ ts: String) -> String {
         guard ts.count >= 19 else { return ts }
         let cleanTs = ts.replacingOccurrences(of: "T", with: " ")
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        formatter.timeZone = TimeZone(abbreviation: "UTC")
-        if let date = formatter.date(from: String(cleanTs.prefix(19))) {
-            let localFormatter = DateFormatter()
-            localFormatter.timeStyle = .short
-            localFormatter.dateStyle = .short
-            localFormatter.timeZone = TimeZone.current
-            return localFormatter.string(from: date)
+        if let date = Self.utcDateFormatter.date(from: String(cleanTs.prefix(19))) {
+            return Self.shortTimeLocalFormatter.string(from: date)
         }
         return String(ts.suffix(8))
     }

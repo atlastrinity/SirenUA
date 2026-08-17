@@ -14,7 +14,8 @@ struct AlertRegionDetailView: View {
     private let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
     private var liveRegion: AlertRegion {
-        viewModel.alerts.first(where: { $0.name == region.name || $0.id == region.id }) ?? region
+        if let direct = viewModel.alertsDict[region.name] { return direct }
+        return viewModel.alerts.first(where: { $0.id == region.id }) ?? region
     }
     
     private var isPremium: Bool {

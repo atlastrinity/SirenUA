@@ -44,48 +44,59 @@ struct RegionHistoryEvent: Identifiable, Codable {
         self.confidence = try? container.decodeIfPresent(Int.self, forKey: .confidence)
     }
     
+    // MARK: - Static Date Formatter Cache Pool
+
+    private enum DateCache {
+        static let isoFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            f.timeZone = TimeZone(secondsFromGMT: 0)
+            f.locale = Locale(identifier: "uk_UA")
+            return f
+        }()
+
+        static let displayFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "uk_UA")
+            f.timeZone = TimeZone.current
+            f.dateFormat = "d MMM, HH:mm"
+            return f
+        }()
+
+        static let timeFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.timeZone = TimeZone.current
+            f.dateFormat = "HH:mm"
+            return f
+        }()
+
+        static let dayFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "uk_UA")
+            f.timeZone = TimeZone.current
+            f.dateFormat = "d MMMM yyyy"
+            return f
+        }()
+    }
+
     /// Formatted date for display
     var displayDate: String {
-        // Server sends ISO format like "2026-07-07 14:23:00" in UTC
-        let isoFormatter = DateFormatter()
-        isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-        isoFormatter.locale = Locale(identifier: "uk_UA")
-        
-        if let date = isoFormatter.date(from: timestamp) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.locale = Locale(identifier: "uk_UA")
-            displayFormatter.timeZone = TimeZone.current
-            displayFormatter.dateFormat = "d MMM, HH:mm"
-            return displayFormatter.string(from: date)
+        if let date = DateCache.isoFormatter.date(from: timestamp) {
+            return DateCache.displayFormatter.string(from: date)
         }
         return timestamp
     }
     
     var displayTime: String {
-        let isoFormatter = DateFormatter()
-        isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-        if let date = isoFormatter.date(from: timestamp) {
-            let timeFormatter = DateFormatter()
-            timeFormatter.timeZone = TimeZone.current
-            timeFormatter.dateFormat = "HH:mm"
-            return timeFormatter.string(from: date)
+        if let date = DateCache.isoFormatter.date(from: timestamp) {
+            return DateCache.timeFormatter.string(from: date)
         }
         return ""
     }
     
     var displayDay: String {
-        let isoFormatter = DateFormatter()
-        isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-        isoFormatter.locale = Locale(identifier: "uk_UA")
-        if let date = isoFormatter.date(from: timestamp) {
-            let dayFormatter = DateFormatter()
-            dayFormatter.locale = Locale(identifier: "uk_UA")
-            dayFormatter.timeZone = TimeZone.current
-            dayFormatter.dateFormat = "d MMMM yyyy"
-            return dayFormatter.string(from: date)
+        if let date = DateCache.isoFormatter.date(from: timestamp) {
+            return DateCache.dayFormatter.string(from: date)
         }
         return ""
     }

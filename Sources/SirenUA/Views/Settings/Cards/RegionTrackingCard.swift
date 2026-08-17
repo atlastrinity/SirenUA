@@ -33,7 +33,11 @@ struct RegionTrackingCard: View {
     }
 
     private var regionsPickerSection: some View {
-        VStack(spacing: 0) {
+        let trackedList = settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        let trackedSet = Set(trackedList)
+        let count = trackedList.count
+
+        return VStack(spacing: 0) {
             Button(action: {
                 withAnimation(.spring(response: 0.3)) {
                     isRegionsExpanded.toggle()
@@ -47,7 +51,6 @@ struct RegionTrackingCard: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.75))
                     Spacer()
-                    let count = settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }.count
                     if count > 0 {
                         Text("\(count)")
                             .font(.system(size: 11, weight: .bold))
@@ -71,7 +74,7 @@ struct RegionTrackingCard: View {
                                 .foregroundColor(.white)
                             Spacer()
                             Toggle("", isOn: Binding(
-                                get: { settings.isTracked(region) },
+                                get: { trackedSet.contains(region) },
                                 set: { isOn in
                                     onHaptic(.light)
                                     settings.setTracked(region, isOn: isOn)

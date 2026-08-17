@@ -134,19 +134,20 @@ struct ThreatDetailCard: View {
         )
     }
 
+    private static let telemetryPrefixes: [String] = [
+        "Відстань до цілі:",
+        "Кількість цілей:",
+        "Напрямок запуску:",
+        "Тип:",
+        "Швидкість руху:",
+        "Висота польоту:",
+        "Очікуваний час:",
+        "Відстань:",
+        "Історичний маршрут підтверджено",
+        "Патерн підтверджений аналітикою"
+    ]
+
     private func isTelemetryLine(_ line: String) -> Bool {
-        let prefixes = [
-            "Відстань до цілі:",
-            "Кількість цілей:",
-            "Напрямок запуску:",
-            "Тип:",
-            "Швидкість руху:",
-            "Висота польоту:",
-            "Очікуваний час:",
-            "Відстань:",
-            "Історичний маршрут підтверджено",
-            "Патерн підтверджений аналітикою"
-        ]
-        return prefixes.contains(where: { line.hasPrefix($0) })
+        Self.telemetryPrefixes.contains(where: { line.hasPrefix($0) })
     }
 }

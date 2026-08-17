@@ -71,9 +71,7 @@ struct ContentView: View {
 
     private func isRegionTracked(_ name: String) -> Bool {
         if allRegionsTracked { return true }
-        let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-        if list.isEmpty { return false }
-        return list.contains(name)
+        return trackedRegionsSet.contains(name)
     }
 
     private var trackedAlerts: [AlertRegion] {
