@@ -285,6 +285,7 @@ struct DeltaDistributionBucket: Identifiable {
 
 struct AdminChronologyV2Response: Codable {
     let total: Int?
+    let period_total: Int?
     let stats: [String: Int]?
     let events: [AdminChronologyV2Entry]?
     let daily_stats: [DailyStatEntryV2]?

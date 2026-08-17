@@ -8,23 +8,22 @@ struct AdminDashboardTab: View {
         VStack(spacing: 14) {
             if let d = viewModel.dashboardStats {
                 VStack(spacing: 14) {
-                    // Stat grid
+                    // Stat grid: Primary KPIs
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        statBox(title: "📈 Подій (7д)", value: "\(d.total_events_7d ?? 0)", color: ChartColorTheme.accent)
+                        statBox(title: "📈 Всього подій (7д)", value: "\(d.total_events_7d ?? 0)", color: ChartColorTheme.accent)
                         statBox(title: "🎯 Точність AI", value: "\(Int(d.accuracy_pct ?? 0.0))%", color: ChartColorTheme.confirmed)
-                        statBox(title: "⚡ Активних зараз", value: "\(d.active_now ?? 0)", color: ChartColorTheme.active)
+                        statBox(title: "⚡ Активних загроз зараз", value: "\(d.active_now ?? 0)", color: ChartColorTheme.active)
                         statBox(title: "⏱️ Випередження AI", value: d.avg_early_seconds != nil ? viewModel.formatDuration(d.avg_early_seconds!) : "—", color: ChartColorTheme.cyan)
                     }
                     
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    // Stat grid: Exact breakdown of 7d events (Confirmed + Mitigated + Overestimated + Active + Cleared == Total)
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                         statBox(title: "✅ Підтверджено", value: "\(d.accuracy?.confirmed ?? 0)", color: ChartColorTheme.confirmed)
                         statBox(title: "🛡️ Збито/РЕБ", value: "\(d.accuracy?.mitigated ?? 0)", color: ChartColorTheme.mitigated)
                         statBox(title: "❌ Помилкові", value: "\(d.accuracy?.overestimated ?? 0)", color: ChartColorTheme.overestimated)
-                        if let cleared = d.accuracy?.cleared, cleared > 0 {
-                            statBox(title: "🔄 Інші / Знято", value: "\(cleared)", color: ChartColorTheme.cleared)
-                        } else {
-                            statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h ?? 0)", color: ChartColorTheme.orange)
-                        }
+                        statBox(title: "⏱️ В процесі (7д)", value: "\(d.accuracy?.active ?? 0)", color: ChartColorTheme.active)
+                        statBox(title: "🔄 Знято / Інші", value: "\(d.accuracy?.cleared ?? 0)", color: ChartColorTheme.cleared)
+                        statBox(title: "🔴 Помилки (24г)", value: "\(d.errors_24h ?? 0)", color: ChartColorTheme.orange)
                     }
                     
                     // Accuracy sector map

@@ -76,9 +76,12 @@ struct AdminCorrelationTab: View {
     @ViewBuilder
     private func correlationContent(corr: AdminChronologyV2Response) -> some View {
         VStack(spacing: 14) {
-            // Dynamic stats counters
+            // Dynamic stats counters: Exact breakdown (Confirmed + Mitigated + Overestimated + Active + Cleared == Period Total)
+            let periodTotal = corr.period_total ?? corr.total ?? 0
+            let isFiltered = (corr.total ?? 0) != periodTotal
+            
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                statBox(title: "Всього", value: "\(corr.total ?? 0)", color: .white)
+                statBox(title: isFiltered ? "Фільтр / Всього" : "Всього за період", value: isFiltered ? "\(corr.total ?? 0) / \(periodTotal)" : "\(periodTotal)", color: .white)
                 statBox(title: "✅ Підтверджено", value: "\(corr.stats?["confirmed"] ?? 0)", color: ChartColorTheme.confirmed)
                 statBox(title: "🛡️ Збито", value: "\(corr.stats?["mitigated"] ?? 0)", color: ChartColorTheme.mitigated)
             }
@@ -86,9 +89,7 @@ struct AdminCorrelationTab: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 statBox(title: "❌ Помилкові", value: "\(corr.stats?["overestimated"] ?? 0)", color: ChartColorTheme.overestimated)
                 statBox(title: "⏱️ Активні", value: "\(corr.stats?["active"] ?? 0)", color: ChartColorTheme.active)
-                if (corr.stats?["cleared"] ?? 0) > 0 {
-                    statBox(title: "🔄 Інші / Знято", value: "\(corr.stats?["cleared"] ?? 0)", color: ChartColorTheme.cleared)
-                }
+                statBox(title: "🔄 Інші / Знято", value: "\(corr.stats?["cleared"] ?? 0)", color: ChartColorTheme.cleared)
             }
             
             dailyAccuracyChart(corr: corr)

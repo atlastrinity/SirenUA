@@ -87,16 +87,17 @@ struct AdminChronologyTab: View {
             .cornerRadius(12)
             
             VStack(spacing: 16) {
-                // Stats grid
+                // Stats grid: Exact breakdown where Confirmed + Mitigated + Overestimated + Active + Cleared == Total
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     statBox(title: "Всього подій", value: "\(viewModel.chronologyData?.total ?? 0)", color: ChartColorTheme.accent)
                     statBox(title: "✅ Співпадіння AI", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "confirmed" }).count ?? 0)", color: ChartColorTheme.confirmed)
                     statBox(title: "🛡️ Збито/РЕБ", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "mitigated" }).count ?? 0)", color: ChartColorTheme.mitigated)
                 }
                 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     statBox(title: "❌ Неспівпадіння", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "overestimated" }).count ?? 0)", color: ChartColorTheme.overestimated)
                     statBox(title: "⏱️ Активні", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "active" }).count ?? 0)", color: ChartColorTheme.active)
+                    statBox(title: "🔄 Знято / Інші", value: "\(viewModel.chronologyData?.events.filter({ $0.match_type == "cleared" }).count ?? 0)", color: ChartColorTheme.cleared)
                 }
                     
                     if let chrono = viewModel.chronologyData {
