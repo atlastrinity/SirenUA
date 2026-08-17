@@ -89,7 +89,7 @@ struct AdminDashboardTab: View {
                             ForEach(d.by_type ?? []) { item in
                                 BarMark(
                                     x: .value("Кількість", item.count),
-                                    y: .value("Тип", item.threat_type)
+                                    y: .value("Тип", ThreatConstants.title(for: item.threat_type))
                                 )
                                 .foregroundStyle(ChartColorTheme.accent)
                                 .cornerRadius(4)
