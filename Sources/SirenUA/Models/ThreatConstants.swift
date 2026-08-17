@@ -47,7 +47,7 @@ public enum ThreatConstants {
         recon,
         reconUav,
         officialAlarm,
-        unknown
+        unknown,
     ]
 
     // 2. Назви українською для активних загроз (Display Titles)
@@ -58,7 +58,8 @@ public enum ThreatConstants {
             return "БПЛА Shahed-136"
         case "reactive_uav", "jet_shahed", "jet_drone":
             return "Реактивний ударний БпЛА"
-        case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69", "kh_69":
+        case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69",
+            "kh_69":
             return "Крилаті ракети"
         case ballistic, "iskander_m", "kn23", "s300", "s400", "ballistic_missile":
             return "Балістична ракета"
@@ -105,7 +106,8 @@ public enum ThreatConstants {
             return "БпЛА"
         case "reactive_uav", "jet_shahed", "jet_drone":
             return "реактивний БпЛА"
-        case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69", "kh_69":
+        case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69",
+            "kh_69":
             return "крилата ракета"
         case ballistic, "iskander_m", "kn23", "s300", "s400", "ballistic_missile":
             return "балістика"
@@ -148,7 +150,7 @@ public enum ThreatConstants {
     public static func clearTitle(for threatType: String?, detail: String? = nil) -> String {
         let detailLower = detail?.lowercased() ?? ""
         let type = threatType?.lowercased()
-        
+
         switch type {
         case shahed:
             return "Відбій загрози: БпЛА «Шахед»"
@@ -188,7 +190,9 @@ public enum ThreatConstants {
             if !detailLower.isEmpty {
                 if detailLower.contains("балістик") {
                     return "Відбій загрози: Балістика"
-                } else if detailLower.contains("шахед") || detailLower.contains("бпла") || detailLower.contains("дрон") {
+                } else if detailLower.contains("шахед") || detailLower.contains("бпла")
+                    || detailLower.contains("дрон")
+                {
                     return "Відбій загрози: БпЛА «Шахед»"
                 } else if detailLower.contains("ракет") || detailLower.contains("крилат") {
                     return "Відбій загрози: Крилаті ракети"
@@ -205,7 +209,9 @@ public enum ThreatConstants {
             if !detailLower.isEmpty {
                 if detailLower.contains("балістик") {
                     return "Відбій загрози: Балістика"
-                } else if detailLower.contains("шахед") || detailLower.contains("бпла") || detailLower.contains("дрон") {
+                } else if detailLower.contains("шахед") || detailLower.contains("бпла")
+                    || detailLower.contains("дрон")
+                {
                     return "Відбій загрози: БпЛА «Шахед»"
                 } else if detailLower.contains("ракет") {
                     return "Відбій загрози: Крилаті ракети"
@@ -243,7 +249,9 @@ public enum ThreatConstants {
 
     // 4. SF Symbol іконки (SFSymbol Constants)
     public static func sfSymbol(for threatType: String?) -> String {
-        guard let threatType = threatType?.lowercased() else { return "exclamationmark.triangle.fill" }
+        guard let threatType = threatType?.lowercased() else {
+            return "exclamationmark.triangle.fill"
+        }
         switch threatType {
         case shahed: return "airplane.circle.fill"
         case cruiseMissile: return "paperplane.fill"
@@ -369,51 +377,53 @@ public enum ThreatConstants {
     public static func genitiveDescription(for threatType: String?) -> String {
         guard let threatType = threatType?.lowercased() else { return "повітряної атаки" }
         switch threatType {
-        case mig31k:         return "атаки аеробалістичними ракетами Кинджал"
-        case shahed:         return "ударних безпілотників Шахед"
+        case mig31k: return "атаки аеробалістичними ракетами Кинджал"
+        case shahed: return "ударних безпілотників Шахед"
         case cruiseMissile: return "крилатих ракет"
-        case kab:            return "ударів керованими авіабомбами (КАБ)"
-        case ballistic:      return "балістичних ракет"
-        case tu95:           return "ракетного удару стратегічної авіації (Ту-95МС)"
-        case tu22m3:         return "ударів надзвуковими ракетами (Ту-22М3)"
-        case su35, su35Alt:  return "активності тактичної авіації (Су-34/35)"
-        case iskander:       return "ударів балістичними ракетами Іскандер-М"
-        case zircon:         return "гіперзвукових ракет Циркон"
-        case artillery:      return "артилерійського обстрілу"
-        case urbanFights:   return "вуличних боїв"
-        case chemical:       return "хімічної загрози"
-        case nuclear:        return "радіаційної небезпеки"
-        case mlrs:           return "обстрілу з реактивних систем залпового вогню (РСЗВ)"
-        case fpv:            return "атаки FPV-дронів"
+        case kab: return "ударів керованими авіабомбами (КАБ)"
+        case ballistic: return "балістичних ракет"
+        case tu95: return "ракетного удару стратегічної авіації (Ту-95МС)"
+        case tu22m3: return "ударів надзвуковими ракетами (Ту-22М3)"
+        case su35, su35Alt: return "активності тактичної авіації (Су-34/35)"
+        case iskander: return "ударів балістичними ракетами Іскандер-М"
+        case zircon: return "гіперзвукових ракет Циркон"
+        case artillery: return "артилерійського обстрілу"
+        case urbanFights: return "вуличних боїв"
+        case chemical: return "хімічної загрози"
+        case nuclear: return "радіаційної небезпеки"
+        case mlrs: return "обстрілу з реактивних систем залпового вогню (РСЗВ)"
+        case fpv: return "атаки FPV-дронів"
         case recon, reconUav: return "розвідувальних БпЛА"
-        case officialAlarm:  return "повітряної тривоги"
-        default:             return "повітряної атаки"
+        case officialAlarm: return "повітряної тривоги"
+        default: return "повітряної атаки"
         }
     }
 
     // 8. Формування заголовка сповіщення про загрозу
-    public static func notificationTitle(for threatType: String?, confidence: Int, region: String) -> String {
+    public static func notificationTitle(for threatType: String?, confidence: Int, region: String)
+        -> String
+    {
         let threatName: String
         switch threatType?.lowercased() {
-        case ballistic:      threatName = "Балістична загроза"
-        case shahed:         threatName = "Загроза БпЛА Shahed"
-        case cruiseMissile:  threatName = "Загроза крилатих ракет"
-        case kab:            threatName = "Загроза КАБ"
-        case mig31k:         threatName = "Зліт МіГ-31К (Кинджал)"
-        case tu95:           threatName = "Зліт Ту-95МС (крилаті ракети)"
-        case tu22m3:         threatName = "Зліт Ту-22М3 (ракети Х-22/Х-32)"
-        case su35, su35Alt:  threatName = "Активність Су-34/35 (КАБ/ракети)"
-        case iskander:       threatName = "Загроза Іскандер-М"
-        case artillery:      threatName = "Загроза артобстрілу"
-        case urbanFights:   threatName = "Загроза вуличних боїв"
-        case chemical:       threatName = "Хімічна небезпека"
-        case nuclear:        threatName = "Радіаційна небезпека"
-        case zircon:         threatName = "Загроза ракети Циркон"
-        case mlrs:           threatName = "Загроза обстрілу РСЗВ"
-        case fpv:            threatName = "Загроза FPV-дронів"
+        case ballistic: threatName = "Балістична загроза"
+        case shahed: threatName = "Загроза БпЛА Shahed"
+        case cruiseMissile: threatName = "Загроза крилатих ракет"
+        case kab: threatName = "Загроза КАБ"
+        case mig31k: threatName = "Зліт МіГ-31К (Кинджал)"
+        case tu95: threatName = "Зліт Ту-95МС (крилаті ракети)"
+        case tu22m3: threatName = "Зліт Ту-22М3 (ракети Х-22/Х-32)"
+        case su35, su35Alt: threatName = "Активність Су-34/35 (КАБ/ракети)"
+        case iskander: threatName = "Загроза Іскандер-М"
+        case artillery: threatName = "Загроза артобстрілу"
+        case urbanFights: threatName = "Загроза вуличних боїв"
+        case chemical: threatName = "Хімічна небезпека"
+        case nuclear: threatName = "Радіаційна небезпека"
+        case zircon: threatName = "Загроза ракети Циркон"
+        case mlrs: threatName = "Загроза обстрілу РСЗВ"
+        case fpv: threatName = "Загроза FPV-дронів"
         case recon, reconUav: threatName = "Виявлено розвідувальний БпЛА"
-        case officialAlarm:  threatName = "Офіційна повітряна тривога"
-        default:             threatName = "Повітряна загроза"
+        case officialAlarm: threatName = "Офіційна повітряна тривога"
+        default: threatName = "Повітряна загроза"
         }
         let indicator: String
         if confidence >= 85 {
@@ -427,29 +437,47 @@ public enum ThreatConstants {
     }
 
     // 9. Динамічний підпис джерела запуску залежно від типу зброї
-    public static func originLabel(for threatType: String?, detail: String? = nil) -> (title: String, icon: String) {
+    public static func originLabel(for threatType: String?, detail: String? = nil) -> (
+        title: String, icon: String
+    ) {
         let det = detail?.lowercased() ?? ""
         let type = threatType?.lowercased() ?? ""
 
-        if type == artillery || type == mlrs || det.contains("арт") || det.contains("рсзв") || det.contains("обстріл") || det.contains("град") || det.contains("ураган") || det.contains("смерч") {
+        if type == artillery || type == mlrs || det.contains("арт") || det.contains("рсзв")
+            || det.contains("обстріл") || det.contains("град") || det.contains("ураган")
+            || det.contains("смерч")
+        {
             return ("Вогнева позиція:", "flame.fill")
         }
-        if type == fpv || type == recon || type == reconUav || det.contains("фпв") || det.contains("fpv") || det.contains("ланцет") || det.contains("орлан") || det.contains("зала") || det.contains("суперкам") {
+        if type == fpv || type == recon || type == reconUav || det.contains("фпв")
+            || det.contains("fpv") || det.contains("ланцет") || det.contains("орлан")
+            || det.contains("зала") || det.contains("суперкам")
+        {
             return ("Позиція операторів:", "antenna.radiowaves.left.and.right")
         }
         if type == urbanFights || det.contains("вуличні бої") || det.contains("міські бої") {
             return ("Район бойових дій:", "shield.lefthalf.filled")
         }
-        if type == chemical || type == nuclear || det.contains("хім") || det.contains("радіац") || det.contains("заес") {
+        if type == chemical || type == nuclear || det.contains("хім") || det.contains("радіац")
+            || det.contains("заес")
+        {
             return ("Зона небезпеки:", "exclamationmark.triangle.fill")
         }
-        if type == ballistic || type == iskander || type == "iskander_m" || type == zircon || det.contains("балістик") || det.contains("іскандер") || det.contains("с-300") || det.contains("циркон") || det.contains("тарханкут") {
+        if type == ballistic || type == iskander || type == "iskander_m" || type == zircon
+            || det.contains("балістик") || det.contains("іскандер") || det.contains("с-300")
+            || det.contains("циркон") || det.contains("тарханкут")
+        {
             return ("Позиційний район:", "scope")
         }
-        if (type == cruiseMissile || det.contains("калібр")) && (det.contains("мор") || det.contains("фрегат") || det.contains("варшавянк") || det.contains("новоросійськ")) {
+        if (type == cruiseMissile || det.contains("калібр"))
+            && (det.contains("мор") || det.contains("фрегат") || det.contains("варшавянк")
+                || det.contains("новоросійськ"))
+        {
             return ("Базування флоту:", "ferry.fill")
         }
-        if type == shahed || type == "shahed_136" || type == "reactive_uav" || det.contains("бпла") || det.contains("дрон") || det.contains("шахед") || det.contains("гербер") {
+        if type == shahed || type == "shahed_136" || type == "reactive_uav" || det.contains("бпла")
+            || det.contains("дрон") || det.contains("шахед") || det.contains("гербер")
+        {
             return ("Майданчик пуску:", "location.north.circle.fill")
         }
         return ("Аеродром зльоту:", "airplane.departure")
@@ -466,7 +494,9 @@ public enum ThreatConstants {
         if det.contains("ахтубінськ") { return "Авіабаза Ахтубінськ (Астраханська обл. РФ)" }
         if det.contains("дягілєв") { return "Аеродром Дягілєво (Рязанська обл. РФ)" }
         if det.contains("сольці") { return "Аеродром Сольці (Новгородська обл. РФ)" }
-        if det.contains("балтимор") || det.contains("воронеж") { return "Аеродром Балтимор (Воронеж РФ)" }
+        if det.contains("балтимор") || det.contains("воронеж") {
+            return "Аеродром Балтимор (Воронеж РФ)"
+        }
         if det.contains("бутурлинівк") { return "Аеродром Бутурлинівка (Воронезька обл. РФ)" }
         if det.contains("морозовськ") { return "Аеродром Морозовськ (Ростовська обл. РФ)" }
         if det.contains("халіно") { return "Аеродром Халіно (Курськ РФ)" }
@@ -474,22 +504,40 @@ public enum ThreatConstants {
         if det.contains("липецьк") { return "Авіацентр Липецьк-2 (Липецька обл. РФ)" }
         if det.contains("кримськ") { return "Аеродром Кримськ (Краснодарський край РФ)" }
         if det.contains("таганрог") { return "Аеродром Таганрог-Центральний (Ростовська обл. РФ)" }
-        if det.contains("севастопол") || det.contains("бельбек") { return "Аеродром Бельбек (ТОТ Крим)" }
-        if det.contains("саки") || det.contains("новофедорівк") { return "Аеродром Саки / Новофедорівка (ТОТ Крим)" }
+        if det.contains("севастопол") || det.contains("бельбек") {
+            return "Аеродром Бельбек (ТОТ Крим)"
+        }
+        if det.contains("саки") || det.contains("новофедорівк") {
+            return "Аеродром Саки / Новофедорівка (ТОТ Крим)"
+        }
         if det.contains("капустін") { return "Полігон Капустін Яр (Астраханська обл. РФ)" }
         if det.contains("тарханкут") { return "Позиційний район мис Тарханкут (ТОТ Крим)" }
         if det.contains("джанкой") { return "Позиційний район Джанкой (ТОТ Крим)" }
-        if det.contains("приморсько") || det.contains("ахтарськ") { return "Приморсько-Ахтарськ (Краснодарський край РФ)" }
+        if det.contains("приморсько") || det.contains("ахтарськ") {
+            return "Приморсько-Ахтарськ (Краснодарський край РФ)"
+        }
         if det.contains("єйськ") || det.contains("ейск") { return "Єйськ (Краснодарський край РФ)" }
         if det.contains("міллерово") { return "Міллерово (Ростовська обл. РФ)" }
         if det.contains("орел") || det.contains("орьол") { return "Полігон Південний / Орел (РФ)" }
         if det.contains("чауд") { return "Мис Чауда (ТОТ Крим)" }
-        if det.contains("кінбурн") { return "Вогневі позиції Кінбурнська коса (ТОТ Херсон/Миколаїв)" }
-        if det.contains("енергодар") { return "Вогневі позиції ТОТ Запорізької обл. (Енергодар / Кам'янка)" }
-        if det.contains("олешки") || det.contains("каховк") { return "Вогневі позиції ТОТ Херсонської обл. (Олешки / Каховка)" }
-        if det.contains("горлівк") || det.contains("донецьк арт") { return "Вогневі позиції ТОТ Донецької обл." }
-        if det.contains("шебекіно") || det.contains("грайворон") { return "Вогневі позиції Бєлгородська обл. РФ" }
-        if det.contains("тьоткіно") || det.contains("глушково") { return "Вогневі позиції Курська обл. РФ" }
+        if det.contains("кінбурн") {
+            return "Вогневі позиції Кінбурнська коса (ТОТ Херсон/Миколаїв)"
+        }
+        if det.contains("енергодар") {
+            return "Вогневі позиції ТОТ Запорізької обл. (Енергодар / Кам'янка)"
+        }
+        if det.contains("олешки") || det.contains("каховк") {
+            return "Вогневі позиції ТОТ Херсонської обл. (Олешки / Каховка)"
+        }
+        if det.contains("горлівк") || det.contains("донецьк арт") {
+            return "Вогневі позиції ТОТ Донецької обл."
+        }
+        if det.contains("шебекіно") || det.contains("грайворон") {
+            return "Вогневі позиції Бєлгородська обл. РФ"
+        }
+        if det.contains("тьоткіно") || det.contains("глушково") {
+            return "Вогневі позиції Курська обл. РФ"
+        }
         if det.contains("заес") { return "Зона ризику ЗАЕС (м. Енергодар)" }
 
         guard let type = threatType?.lowercased() else { return nil }
@@ -505,7 +553,9 @@ public enum ThreatConstants {
         case kab, "uab", "fab", "umpb", "odab", "rbk":
             return "Су-34/Су-35 (Тактична авіація РФ)"
         case shahed, "shahed_136", "reactive_uav":
-            if det.contains("чорн") || det.contains("мор") || det.contains("одес") || det.contains("миколаїв") {
+            if det.contains("чорн") || det.contains("мор") || det.contains("одес")
+                || det.contains("миколаїв")
+            {
                 return "Мис Чауда (ТОТ Крим)"
             }
             return "Пускові майданчики БпЛА (Чауда / Приморсько-Ахтарськ / Курськ)"
@@ -532,30 +582,43 @@ public enum ThreatConstants {
     }
 
     // 11. База прикордонних рубежів пуску та коридорів входження в повітряний простір України (Рубіж / Коридор)
-    public static func launchSector(for threatType: String?, detail: String? = nil, region: String? = nil) -> String? {
+    public static func launchSector(
+        for threatType: String?, detail: String? = nil, region: String? = nil
+    ) -> String? {
         let det = detail?.lowercased() ?? ""
         let reg = region?.lowercased() ?? ""
-        
+
         // 1. Чорне море — фінальний морський рубіж заходу на суходол України
-        // (Навіть якщо дрон стартував з Приморсько-Ахтарська/Єйська, пройшов Азовське море і перетнув Крим, 
+        // (Навіть якщо дрон стартував з Приморсько-Ахтарська/Єйська, пройшов Азовське море і перетнув Крим,
         //  безпосередній рубіж заходу на узбережжя/суходол України — саме Чорне море)
-        if det.contains("з чорного моря") || det.contains("з моря") || det.contains("над чорним морем") || det.contains("з акваторії чорного") ||
-           reg.contains("одес") || reg.contains("миколаїв") || det.contains("одес") || det.contains("миколаїв") || 
-           det.contains("очаків") || det.contains("южне") || det.contains("дунай") || det.contains("ізмаїл") || det.contains("заток") ||
-           ((reg.contains("херсон") || reg.contains("вінниц") || reg.contains("чернів")) && (det.contains("мор") || det.contains("південь") || det.contains("чорн"))) {
+        if det.contains("з чорного моря") || det.contains("з моря")
+            || det.contains("над чорним морем") || det.contains("з акваторії чорного")
+            || reg.contains("одес") || reg.contains("миколаїв") || det.contains("одес")
+            || det.contains("миколаїв") || det.contains("очаків") || det.contains("южне")
+            || det.contains("дунай") || det.contains("ізмаїл") || det.contains("заток")
+            || ((reg.contains("херсон") || reg.contains("вінниц") || reg.contains("чернів"))
+                && (det.contains("мор") || det.contains("південь") || det.contains("чорн")))
+        {
             return "Акваторія Чорного моря (Південний морський коридор)"
         }
 
         // 2. Вхід на суходол з Азовського моря (Приазов'я: Запорізька, Дніпропетровська, Донецька обл.)
-        if det.contains("з азовського моря") || det.contains("з приазов") || det.contains("над азовським морем") ||
-           det.contains("з запорізької") || det.contains("з дніпропетровської") || det.contains("з донецької") ||
-           ((reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")) && 
-            (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід"))) {
+        if det.contains("з азовського моря") || det.contains("з приазов")
+            || det.contains("над азовським морем") || det.contains("з запорізької")
+            || det.contains("з дніпропетровської") || det.contains("з донецької")
+            || ((reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец"))
+                && (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ")
+                    || det.contains("єйськ") || det.contains("схід")
+                    || det.contains("південний схід")))
+        {
             return "Акваторія Азовського моря (Приазовський морський коридор)"
         }
 
         // 3. Інші прикордонні рубежі перетину держкордону
-        if det.contains("з сумської") || det.contains("з чернігівської") || det.contains("з київської") || det.contains("з житомирської") || det.contains("з півночі") {
+        if det.contains("з сумської") || det.contains("з чернігівської")
+            || det.contains("з київської") || det.contains("з житомирської")
+            || det.contains("з півночі")
+        {
             return "Курський прикордонний рубіж (Курська обл. РФ)"
         }
         if det.contains("з харківської") {
@@ -567,7 +630,8 @@ public enum ThreatConstants {
         if det.contains("з брест") {
             return "Білоруський західний коридор (Брестська обл. РБ)"
         }
-        if det.contains("з херсонщини") || det.contains("з лівобережжя") || det.contains("з криму") {
+        if det.contains("з херсонщини") || det.contains("з лівобережжя") || det.contains("з криму")
+        {
             return "Кримський перешийок / ТОТ АР Крим (Південний коридор)"
         }
 
@@ -581,13 +645,17 @@ public enum ThreatConstants {
         if det.contains("азовське море") || det.contains("азовського моря") {
             return "Акваторія Азовського моря (Приазовський морський коридор)"
         }
-        if det.contains("білорусь") || det.contains("гомель") || det.contains("мозир") || det.contains("зябровк") {
+        if det.contains("білорусь") || det.contains("гомель") || det.contains("мозир")
+            || det.contains("зябровк")
+        {
             return "Білоруський північний коридор (Гомельська обл. РБ)"
         }
         if det.contains("брест") || det.contains("мачулищ") {
             return "Білоруський західний коридор (Брестська обл. РБ)"
         }
-        if det.contains("курськ") || det.contains("курск") || det.contains("орел") || det.contains("орлов") {
+        if det.contains("курськ") || det.contains("курск") || det.contains("орел")
+            || det.contains("орлов")
+        {
             return "Курський прикордонний рубіж (Курська обл. РФ)"
         }
         if det.contains("бєлгород") || det.contains("белгород") || det.contains("шебекіно") {
@@ -605,7 +673,9 @@ public enum ThreatConstants {
         if det.contains("тарханкут") || det.contains("севастопол") {
             return "Західно-Кримський морський рубіж (мис Тарханкут / Севастополь)"
         }
-        if det.contains("джанкой") || det.contains("перешийок") || det.contains("чонгар") || det.contains("армянськ") {
+        if det.contains("джанкой") || det.contains("перешийок") || det.contains("чонгар")
+            || det.contains("армянськ")
+        {
             return "Кримський перешийок / ТОТ АР Крим (Південний коридор)"
         }
         if det.contains("воронеж") {
@@ -625,14 +695,19 @@ public enum ThreatConstants {
         }
 
         // 3. Prioritize natural entrance corridors for direct boundary entry without intermediate transit
-        if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("чернів") ||
-           (reg.contains("херсон") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) ||
-           (reg.contains("вінниц") && (det.contains("мор") || det.contains("чорн") || det.contains("південь"))) {
+        if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("чернів")
+            || (reg.contains("херсон")
+                && (det.contains("мор") || det.contains("чорн") || det.contains("південь")))
+            || (reg.contains("вінниц")
+                && (det.contains("мор") || det.contains("чорн") || det.contains("південь")))
+        {
             return "Акваторія Чорного моря (Південний морський коридор)"
         }
-        
-        if (reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")) && 
-           (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід")) {
+
+        if (reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец"))
+            && (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ")
+                || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід"))
+        {
             return "Акваторія Азовського моря (Приазовський морський коридор)"
         }
 
@@ -675,13 +750,19 @@ public enum ThreatConstants {
         case nuclear, chemical:
             return "Зона підвищеного техногенного / радіаційного ризику"
         case shahed, "shahed_136":
-            if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("херсон") || reg.contains("вінниц") || reg.contains("чернів") {
+            if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("херсон")
+                || reg.contains("вінниц") || reg.contains("чернів")
+            {
                 return "Акваторія Чорного моря (Південний морський коридор)"
             }
-            if reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец") || reg.contains("харків") || reg.contains("полтав") {
+            if reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")
+                || reg.contains("харків") || reg.contains("полтав")
+            {
                 return "Акваторія Азовського моря (Приазовський морський коридор)"
             }
-            if reg.contains("сум") || reg.contains("чернігів") || reg.contains("київ") || reg.contains("житомир") {
+            if reg.contains("сум") || reg.contains("чернігів") || reg.contains("київ")
+                || reg.contains("житомир")
+            {
                 return "Курський / Брянський прикордонний рубіж (вхід з РФ)"
             }
             return "Прикордонні та морські коридори (Азовське / Чорне море / Курськ / Бєлгород)"
