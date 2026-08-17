@@ -16,11 +16,15 @@ struct AdminDashboardTab: View {
                         statBox(title: "⏱️ Випередження AI", value: d.avg_early_seconds != nil ? viewModel.formatDuration(d.avg_early_seconds!) : "—", color: ChartColorTheme.cyan)
                     }
                     
-                    // Stat grid: Exact breakdown of 7d evaluated events (Confirmed, Mitigated, Overestimated, Cleared)
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    // Stat grid: Exact breakdown of 7d evaluated events (Confirmed, Mitigated, Overestimated, Active, Cleared)
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                         statBox(title: "✅ Підтверджено", value: "\(d.accuracy?.confirmed ?? 0)", color: ChartColorTheme.confirmed)
                         statBox(title: "🛡️ Збито/РЕБ", value: "\(d.accuracy?.mitigated ?? 0)", color: ChartColorTheme.mitigated)
                         statBox(title: "❌ Помилкові", value: "\(d.accuracy?.overestimated ?? 0)", color: ChartColorTheme.overestimated)
+                    }
+                    
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        statBox(title: "⏱️ Активні (7д)", value: "\(d.accuracy?.active ?? 0)", color: ChartColorTheme.active)
                         statBox(title: "🔄 Знято / Інші", value: "\(d.accuracy?.cleared ?? 0)", color: ChartColorTheme.cleared)
                     }
                     
@@ -52,6 +56,13 @@ struct AdminDashboardTab: View {
                                         Text("\(d.accuracy?.overestimated ?? 0)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
                                     }
                                 }
+                            if let active = d.accuracy?.active, active > 0 {
+                                SectorMark(angle: .value("Count", active), innerRadius: .ratio(0.6), angularInset: 1.5)
+                                    .foregroundStyle(ChartColorTheme.active)
+                                    .annotation(position: .overlay) {
+                                        Text("\(active)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                    }
+                            }
                             if let cleared = d.accuracy?.cleared, cleared > 0 {
                                 SectorMark(angle: .value("Count", cleared), innerRadius: .ratio(0.6), angularInset: 1.5)
                                     .foregroundStyle(ChartColorTheme.cleared)
@@ -66,6 +77,9 @@ struct AdminDashboardTab: View {
                             legendItem(title: "Підтв.", color: ChartColorTheme.confirmed)
                             legendItem(title: "Збито", color: ChartColorTheme.mitigated)
                             legendItem(title: "Помилк.", color: ChartColorTheme.overestimated)
+                            if (d.accuracy?.active ?? 0) > 0 {
+                                legendItem(title: "Активні", color: ChartColorTheme.active)
+                            }
                             if (d.accuracy?.cleared ?? 0) > 0 {
                                 legendItem(title: "Знято", color: ChartColorTheme.cleared)
                             }

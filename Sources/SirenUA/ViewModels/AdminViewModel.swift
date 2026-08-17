@@ -206,8 +206,10 @@ class AdminViewModel: ObservableObject {
         isLoading = false
         
         // 2. Progressively fetch other tabs in background without blocking the UI
+        await fetchDashboardStats()
         await fetchPalantirOverview()
         await fetchCorrelationV2()
+        await fetchChronology()
         await fetchRules()
         await fetchErrors()
         await performDiagnostics()

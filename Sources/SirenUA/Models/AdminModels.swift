@@ -98,7 +98,9 @@ struct DailyStatEntry: Codable, Identifiable {
 }
 
 struct AdminChronologyResponse: Codable {
-    let total: Int
+    let total: Int?
+    let period_total: Int?
+    let stats: [String: Int]?
     let events: [AdminChronologyEntry]
     let daily_stats: [DailyStatEntry]
 }

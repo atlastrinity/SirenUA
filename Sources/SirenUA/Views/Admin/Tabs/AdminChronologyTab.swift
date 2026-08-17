@@ -115,19 +115,21 @@ struct AdminChronologyTab: View {
     
     private var statsGrid: some View {
         VStack(spacing: 8) {
-            let total = viewModel.chronologyData?.total ?? 0
-            let events = viewModel.chronologyData?.events ?? []
+            let periodTotal = viewModel.chronologyData?.period_total ?? viewModel.chronologyData?.total ?? 0
+            let filteredTotal = viewModel.chronologyData?.total ?? periodTotal
+            let isFiltered = (!viewModel.chrMatchFilter.isEmpty || !viewModel.chrRegionFilter.isEmpty || !viewModel.chrThreatTypeFilter.isEmpty) && filteredTotal != periodTotal
+            let stats = viewModel.chronologyData?.stats ?? [:]
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                statBox(title: "Всього подій", value: "\(total)", color: ChartColorTheme.accent)
-                statBox(title: "✅ Співпадіння AI", value: "\(events.filter({ $0.match_type == "confirmed" }).count)", color: ChartColorTheme.confirmed)
-                statBox(title: "🛡️ Збито/РЕБ", value: "\(events.filter({ $0.match_type == "mitigated" }).count)", color: ChartColorTheme.mitigated)
+                statBox(title: isFiltered ? "Фільтр / Всього" : "Всього подій", value: isFiltered ? "\(filteredTotal) / \(periodTotal)" : "\(periodTotal)", color: ChartColorTheme.accent)
+                statBox(title: "✅ Співпадіння AI", value: "\(stats["confirmed"] ?? 0)", color: ChartColorTheme.confirmed)
+                statBox(title: "🛡️ Збито/РЕБ", value: "\(stats["mitigated"] ?? 0)", color: ChartColorTheme.mitigated)
             }
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                statBox(title: "❌ Неспівпадіння", value: "\(events.filter({ $0.match_type == "overestimated" }).count)", color: ChartColorTheme.overestimated)
-                statBox(title: "⏱️ Активні", value: "\(events.filter({ $0.match_type == "active" }).count)", color: ChartColorTheme.active)
-                statBox(title: "🔄 Знято / Інші", value: "\(events.filter({ $0.match_type == "cleared" }).count)", color: ChartColorTheme.cleared)
+                statBox(title: "❌ Неспівпадіння", value: "\(stats["overestimated"] ?? 0)", color: ChartColorTheme.overestimated)
+                statBox(title: "⏱️ Активні", value: "\(stats["active"] ?? 0)", color: ChartColorTheme.active)
+                statBox(title: "🔄 Знято / Інші", value: "\(stats["cleared"] ?? 0)", color: ChartColorTheme.cleared)
             }
         }
     }
