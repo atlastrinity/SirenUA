@@ -85,7 +85,6 @@ struct RegionStatusBadgeAnnotation: MapContent {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .scaleEffect(zoomScale)
-                .animation(.easeInOut(duration: 0.15), value: zoomScale)
                 .onTapGesture {
                     onRegionSelected(alert)
                 }

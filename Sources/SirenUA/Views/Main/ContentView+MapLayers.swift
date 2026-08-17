@@ -6,14 +6,17 @@ extension ContentView {
 
     var selectedMapStyle: MapStyle {
         switch mapType {
-        case 1:  return .imagery(elevation: .realistic)
-        case 2:  return .hybrid(elevation: .realistic)
-        default: return .standard(elevation: .realistic)
+        case 1:  return .imagery(elevation: .flat)
+        case 2:  return .hybrid(elevation: .flat)
+        default: return .standard(elevation: .flat)
         }
     }
 
     var alertsDict: [String: AlertRegion] {
-        Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
+        if !viewModel.alertsDict.isEmpty {
+            return viewModel.alertsDict
+        }
+        return Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
     }
 
     var activeAlertRegions: [RegionPolygon] {

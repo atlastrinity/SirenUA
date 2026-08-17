@@ -26,6 +26,7 @@ extension AlertViewModelV3 {
         let activeList = alerts.filter { $0.isActive && !RegionRegistry.isPermanentlyActive($0.name) }
         activeAlerts = activeList.count
         maxLevel = activeList.map { $0.level }.max() ?? 0
+        alertsDict = Dictionary(uniqueKeysWithValues: alerts.map { ($0.name, $0) })
     }
 
     func refreshAlerts() {

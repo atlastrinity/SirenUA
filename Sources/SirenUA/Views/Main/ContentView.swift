@@ -215,7 +215,7 @@ struct ContentView: View {
                     onRegionSelected: handleRegionSelection
                 )
             }
-            .onMapCameraChange(frequency: .continuous) { context in
+            .onMapCameraChange(frequency: .onEnd) { context in
                 mapViewModel.updateCameraDistance(context.camera.distance)
             }
             .mapStyle(selectedMapStyle)

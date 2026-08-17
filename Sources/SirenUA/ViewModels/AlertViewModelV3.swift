@@ -17,6 +17,7 @@ let vmLogger = Logger(subsystem: "com.sirenua", category: "AlertViewModel")
 @MainActor
 final class AlertViewModelV3: ObservableObject {
     @Published var alerts: [AlertRegion] = []
+    @Published var alertsDict: [String: AlertRegion] = [:]
     @Published var activeAlerts: Int = 0
     @Published var maxLevel: Int = 0
     @Published var showAllAlerts: Bool = true

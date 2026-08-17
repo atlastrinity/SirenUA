@@ -10,11 +10,6 @@ struct BorderPolyline: Identifiable {
 
 // MARK: - High-Performance Cached Border Lines Generator
 
-private struct SegmentCoordKey: Hashable {
-    let lat: Int32
-    let lon: Int32
-}
-
 @MainActor
 private final class BorderLinesCache {
     static let shared = BorderLinesCache()
@@ -66,48 +61,14 @@ private final class BorderLinesCache {
         alertsDict: [String: AlertRegion]
     ) -> [BorderPolyline] {
         var result: [BorderPolyline] = []
-        var seenSegments = Set<SegmentCoordKey>()
-        seenSegments.reserveCapacity(4096)
-        var lineCounter = 0
-
-        @inline(__always)
-        func makeKey(_ c1: CLLocationCoordinate2D, _ c2: CLLocationCoordinate2D) -> SegmentCoordKey {
-            let latSum = Int32(round((c1.latitude + c2.latitude) * 500))
-            let lonSum = Int32(round((c1.longitude + c2.longitude) * 500))
-            return SegmentCoordKey(lat: latSum, lon: lonSum)
-        }
+        result.reserveCapacity(48)
 
         // Priority 1: Active Alert Regions (Vivid Red)
         for (rIdx, region) in activeAlertRegions.enumerated() {
             let color = Color.red.opacity(0.95)
             for (pIdx, polyCoords) in region.polygons.enumerated() {
                 guard polyCoords.count >= 2 else { continue }
-                var currentChunk: [CLLocationCoordinate2D] = []
-
-                for i in 0..<(polyCoords.count - 1) {
-                    let c1 = polyCoords[i]
-                    let c2 = polyCoords[i + 1]
-                    let key = makeKey(c1, c2)
-
-                    if !seenSegments.contains(key) {
-                        seenSegments.insert(key)
-                        if currentChunk.isEmpty {
-                            currentChunk.append(c1)
-                        }
-                        currentChunk.append(c2)
-                    } else {
-                        if currentChunk.count >= 2 {
-                            lineCounter += 1
-                            result.append(BorderPolyline(id: "red_\(rIdx)_\(pIdx)_\(lineCounter)", coordinates: currentChunk, color: color))
-                            currentChunk = []
-                        }
-                    }
-                }
-
-                if currentChunk.count >= 2 {
-                    lineCounter += 1
-                    result.append(BorderPolyline(id: "red_\(rIdx)_\(pIdx)_\(lineCounter)", coordinates: currentChunk, color: color))
-                }
+                result.append(BorderPolyline(id: "red_\(rIdx)_\(pIdx)", coordinates: polyCoords, color: color))
             }
         }
 
@@ -115,35 +76,9 @@ private final class BorderLinesCache {
         for (rIdx, region) in activeThreatRegions.enumerated() {
             let threatColor = alertsDict[region.nameUK]?.color ?? .yellow
             let color = threatColor.opacity(0.95)
-
             for (pIdx, polyCoords) in region.polygons.enumerated() {
                 guard polyCoords.count >= 2 else { continue }
-                var currentChunk: [CLLocationCoordinate2D] = []
-
-                for i in 0..<(polyCoords.count - 1) {
-                    let c1 = polyCoords[i]
-                    let c2 = polyCoords[i + 1]
-                    let key = makeKey(c1, c2)
-
-                    if !seenSegments.contains(key) {
-                        seenSegments.insert(key)
-                        if currentChunk.isEmpty {
-                            currentChunk.append(c1)
-                        }
-                        currentChunk.append(c2)
-                    } else {
-                        if currentChunk.count >= 2 {
-                            lineCounter += 1
-                            result.append(BorderPolyline(id: "yellow_\(rIdx)_\(pIdx)_\(lineCounter)", coordinates: currentChunk, color: color))
-                            currentChunk = []
-                        }
-                    }
-                }
-
-                if currentChunk.count >= 2 {
-                    lineCounter += 1
-                    result.append(BorderPolyline(id: "yellow_\(rIdx)_\(pIdx)_\(lineCounter)", coordinates: currentChunk, color: color))
-                }
+                result.append(BorderPolyline(id: "yellow_\(rIdx)_\(pIdx)", coordinates: polyCoords, color: color))
             }
         }
 
@@ -152,32 +87,7 @@ private final class BorderLinesCache {
         for (rIdx, region) in safeRegions.enumerated() {
             for (pIdx, polyCoords) in region.polygons.enumerated() {
                 guard polyCoords.count >= 2 else { continue }
-                var currentChunk: [CLLocationCoordinate2D] = []
-
-                for i in 0..<(polyCoords.count - 1) {
-                    let c1 = polyCoords[i]
-                    let c2 = polyCoords[i + 1]
-                    let key = makeKey(c1, c2)
-
-                    if !seenSegments.contains(key) {
-                        seenSegments.insert(key)
-                        if currentChunk.isEmpty {
-                            currentChunk.append(c1)
-                        }
-                        currentChunk.append(c2)
-                    } else {
-                        if currentChunk.count >= 2 {
-                            lineCounter += 1
-                            result.append(BorderPolyline(id: "cyan_\(rIdx)_\(pIdx)_\(lineCounter)", coordinates: currentChunk, color: cyanColor))
-                            currentChunk = []
-                        }
-                    }
-                }
-
-                if currentChunk.count >= 2 {
-                    lineCounter += 1
-                    result.append(BorderPolyline(id: "cyan_\(rIdx)_\(pIdx)_\(lineCounter)", coordinates: currentChunk, color: cyanColor))
-                }
+                result.append(BorderPolyline(id: "cyan_\(rIdx)_\(pIdx)", coordinates: polyCoords, color: cyanColor))
             }
         }
 
