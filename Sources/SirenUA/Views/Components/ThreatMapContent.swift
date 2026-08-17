@@ -14,6 +14,7 @@ struct ThreatMapContent: MapContent {
     let route: MKRoute?
     let timeRefreshTrigger: Date
     let currentUserCoordinate: CLLocationCoordinate2D
+    var cameraDistance: Double = 600_000.0
     var zoomScale: CGFloat = 1.0
     let onRegionSelected: (AlertRegion) -> Void
 
@@ -49,8 +50,7 @@ struct ThreatMapContent: MapContent {
                 .font(.system(size: 14))
                 .foregroundColor(.white)
                 .padding(6)
-                .background(Color.green)
-                .clipShape(Circle())
+                .background(Circle().fill(Color.blue))
                 .overlay(Circle().stroke(Color.white, lineWidth: 2))
                 .shadow(radius: 5)
                 .scaleEffect(zoomScale)
@@ -63,6 +63,7 @@ struct ThreatMapContent: MapContent {
                 FlyingThreatMapOverlay(
                     alert: alert,
                     isPremium: isPremium,
+                    cameraDistance: cameraDistance,
                     zoomScale: zoomScale,
                     onRegionSelected: onRegionSelected
                 )
@@ -79,8 +80,7 @@ struct ThreatMapContent: MapContent {
 
         // Nearby shelters markers
         ForEach(allFoundShelters, id: \.self) { shelter in
-            let shelterIcon = ShelterType.iconName(for: shelter.name ?? "")
-            Marker(shelter.name ?? "Укриття", systemImage: shelterIcon, coordinate: shelter.placemark.coordinate)
+            Marker(shelter.name ?? "Укриття", systemImage: "shield.fill", coordinate: shelter.placemark.coordinate)
                 .tint(selectedShelter == shelter ? .green : .cyan)
                 .tag(shelter)
         }
@@ -100,6 +100,7 @@ struct ThreatMapContent: MapContent {
 struct FlyingThreatMapOverlay: MapContent {
     let alert: AlertRegion
     let isPremium: Bool
+    var cameraDistance: Double = 600_000.0
     var zoomScale: CGFloat = 1.0
     let onRegionSelected: (AlertRegion) -> Void
 
@@ -127,6 +128,7 @@ struct FlyingThreatMapOverlay: MapContent {
                         carrierOriginName: threatItem.carrier_origin_name,
                         launchSectorName: threatItem.launch_sector_name,
                         color: itemColor,
+                        cameraDistance: cameraDistance,
                         zoomScale: zoomScale,
                         isPremium: isPremium
                     )
@@ -141,6 +143,7 @@ struct FlyingThreatMapOverlay: MapContent {
                     carrierOriginName: alert.currentThreat?.carrier_origin_name,
                     launchSectorName: alert.currentThreat?.launch_sector_name,
                     color: color,
+                    cameraDistance: cameraDistance,
                     zoomScale: zoomScale,
                     isPremium: isPremium
                 )

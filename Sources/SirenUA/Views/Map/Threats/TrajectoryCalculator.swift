@@ -96,7 +96,9 @@ public func calculateTrajectory(
     carrierOrigin: CLLocationCoordinate2D? = nil,
     launchSector: CLLocationCoordinate2D? = nil,
     carrierOriginName: String? = nil,
-    launchSectorName: String? = nil
+    launchSectorName: String? = nil,
+    cameraDistance: Double = 600_000.0,
+    zoomScale: CGFloat = 1.0
 ) -> TrajectoryPath {
     let curvature: Double
     let cycles: Double
@@ -305,11 +307,12 @@ public func calculateTrajectory(
     // Apply Chaikin corner smoothing to ensure 100% C1/C2 smooth curvature without sharp angles
     let smoothedPoints = smoothPointsChaikin(points: rawPoints, iterations: 2)
 
-    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~22 km gap)
+    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~2-3 mm on screen)
     let (fullPoints, tipCoord, tipAngle) = trimTrajectoryForStandoff(
         points: smoothedPoints,
         target: target,
-        desiredStandoffKm: 22.0
+        cameraDistance: cameraDistance,
+        zoomScale: zoomScale
     )
 
     let steps = fullPoints.count - 1
@@ -583,11 +586,15 @@ private func smoothPointsChaikin(points: [CLLocationCoordinate2D], iterations: I
 
 // MARK: - Standoff Trimming Algorithm
 
-/// Trims the spline before the target coordinate by `desiredStandoffKm`, leaving a clean standoff gap for the arrowhead and target marker
+/// Trims the spline before the target coordinate, leaving a clean standoff gap for the arrowhead and target marker.
+/// The standoff distance is scaled dynamically with `cameraDistance` (in meters) to guarantee that the arrowhead
+/// remains statically at a fixed visual screen distance (~2-3 mm from the target circle marker) at ANY zoom level.
 private func trimTrajectoryForStandoff(
     points: [CLLocationCoordinate2D],
     target: CLLocationCoordinate2D,
-    desiredStandoffKm: Double = 22.0
+    cameraDistance: Double = 600_000.0,
+    zoomScale: CGFloat = 1.0,
+    desiredVisualOffsetPoints: Double = 32.0
 ) -> (trimmedPoints: [CLLocationCoordinate2D], tipCoordinate: CLLocationCoordinate2D, tipAngle: Double) {
     guard points.count >= 2 else {
         let coord = points.first ?? target
@@ -601,7 +608,18 @@ private func trimTrajectoryForStandoff(
     }
 
     let totalDist = distKm(points.first!, target)
-    let effectiveStandoff = min(desiredStandoffKm, max(12.0, totalDist * 0.20))
+
+    // Calculate exact ground kilometers per screen point based on map camera distance (meters)
+    // MapKit camera projection: meters per point ≈ cameraDistance / 1550.0
+    let clampedCamDist = max(10_000.0, min(15_000_000.0, cameraDistance))
+    let kmPerPoint = clampedCamDist / 1_550_000.0
+    
+    // Effective visual standoff in screen points (including zoom scaling)
+    let visualPoints = desiredVisualOffsetPoints * Double(zoomScale)
+    let calculatedStandoffKm = visualPoints * kmPerPoint
+
+    // Ensure standoff never exceeds 40% of the entire trajectory length (so short trajectories still draw nicely)
+    let effectiveStandoff = min(max(0.1, totalDist * 0.40), calculatedStandoffKm)
 
     var tipCoord = points.last!
     var tipAngle = 0.0
@@ -623,7 +641,7 @@ private func trimTrajectoryForStandoff(
         let dB = distKm(pB, target)
 
         let fraction: Double
-        if abs(dA - dB) > 0.0001 {
+        if abs(dA - dB) > 0.00001 {
             fraction = (dA - effectiveStandoff) / (dA - dB)
         } else {
             fraction = 0.5

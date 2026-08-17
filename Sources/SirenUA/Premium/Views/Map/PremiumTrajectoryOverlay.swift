@@ -11,6 +11,7 @@ struct PremiumTrajectoryOverlay: MapContent {
     let carrierOriginName: String?
     let launchSectorName: String?
     let color: Color
+    var cameraDistance: Double = 600_000.0
     var zoomScale: CGFloat = 1.0
     let isPremium: Bool
 
@@ -23,6 +24,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         carrierOriginName: String? = nil,
         launchSectorName: String? = nil,
         color: Color = .yellow,
+        cameraDistance: Double = 600_000.0,
         zoomScale: CGFloat = 1.0,
         isPremium: Bool
     ) {
@@ -34,6 +36,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         self.carrierOriginName = carrierOriginName
         self.launchSectorName = launchSectorName
         self.color = color
+        self.cameraDistance = cameraDistance
         self.zoomScale = zoomScale
         self.isPremium = isPremium
     }
@@ -48,7 +51,9 @@ struct PremiumTrajectoryOverlay: MapContent {
                 carrierOrigin: carrierOrigin,
                 launchSector: launchSector,
                 carrierOriginName: carrierOriginName,
-                launchSectorName: launchSectorName
+                launchSectorName: launchSectorName,
+                cameraDistance: cameraDistance,
+                zoomScale: zoomScale
             )
             let n = trajectory.fullPoints.count
 

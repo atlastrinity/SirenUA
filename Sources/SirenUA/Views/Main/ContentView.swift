@@ -207,11 +207,12 @@ struct ContentView: View {
                     route: mapViewModel.route,
                     timeRefreshTrigger: timeRefreshTrigger,
                     currentUserCoordinate: currentUserCoordinate,
+                    cameraDistance: mapViewModel.cameraDistance,
                     zoomScale: mapViewModel.elementZoomScale,
                     onRegionSelected: handleRegionSelection
                 )
             }
-            .onMapCameraChange(frequency: .onEnd) { context in
+            .onMapCameraChange(frequency: .continuous) { context in
                 mapViewModel.updateCameraDistance(context.camera.distance)
             }
             .mapStyle(selectedMapStyle)
