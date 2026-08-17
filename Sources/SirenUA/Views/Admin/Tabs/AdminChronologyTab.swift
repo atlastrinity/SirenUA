@@ -44,12 +44,11 @@ struct AdminChronologyTab: View {
                 Text("Період:")
                     .font(.system(size: 12))
                 Spacer()
-                Picker("", selection: $viewModel.daysFilter) {
-                    Text("1 день").tag(1)
-                    Text("3 дні").tag(3)
-                    Text("7 днів").tag(7)
-                    Text("14 днів").tag(14)
-                    Text("30 днів").tag(30)
+                Picker("Період", selection: $viewModel.daysFilter) {
+                    ForEach([1, 3, 7, 14, 30], id: \.self) { (days: Int) in
+                        Text(days == 1 ? "1 день" : (days < 5 ? "\(days) дні" : "\(days) днів"))
+                            .tag(days)
+                    }
                 }
                 .pickerStyle(.menu)
             }
