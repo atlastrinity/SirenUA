@@ -536,14 +536,25 @@ public enum ThreatConstants {
         let det = detail?.lowercased() ?? ""
         let reg = region?.lowercased() ?? ""
         
-        // 1. Check trajectory transit vector (де саме загроза зайшла в повітряний простір України за вектором руху)
-        if det.contains("з чорного моря") || det.contains("з моря") || det.contains("над чорним морем") || det.contains("з акваторії чорного") {
+        // 1. Чорне море — фінальний морський рубіж заходу на суходол України
+        // (Навіть якщо дрон стартував з Приморсько-Ахтарська/Єйська, пройшов Азовське море і перетнув Крим, 
+        //  безпосередній рубіж заходу на узбережжя/суходол України — саме Чорне море)
+        if det.contains("з чорного моря") || det.contains("з моря") || det.contains("над чорним морем") || det.contains("з акваторії чорного") ||
+           reg.contains("одес") || reg.contains("миколаїв") || det.contains("одес") || det.contains("миколаїв") || 
+           det.contains("очаків") || det.contains("южне") || det.contains("дунай") || det.contains("ізмаїл") || det.contains("заток") ||
+           ((reg.contains("херсон") || reg.contains("вінниц") || reg.contains("чернів")) && (det.contains("мор") || det.contains("південь") || det.contains("чорн"))) {
             return "Акваторія Чорного моря (Південний морський коридор)"
         }
+
+        // 2. Вхід на суходол з Азовського моря (Приазов'я: Запорізька, Дніпропетровська, Донецька обл.)
         if det.contains("з азовського моря") || det.contains("з приазов") || det.contains("над азовським морем") ||
-           det.contains("з запорізької") || det.contains("з дніпропетровської") || det.contains("з донецької") {
+           det.contains("з запорізької") || det.contains("з дніпропетровської") || det.contains("з донецької") ||
+           ((reg.contains("запоріж") || reg.contains("дніпро") || reg.contains("донец")) && 
+            (det.contains("азов") || det.contains("приморськ") || det.contains("ахтарськ") || det.contains("єйськ") || det.contains("схід") || det.contains("південний схід"))) {
             return "Акваторія Азовського моря (Приазовський морський коридор)"
         }
+
+        // 3. Інші прикордонні рубежі перетину держкордону
         if det.contains("з сумської") || det.contains("з чернігівської") || det.contains("з київської") || det.contains("з житомирської") || det.contains("з півночі") {
             return "Курський прикордонний рубіж (Курська обл. РФ)"
         }
@@ -557,9 +568,6 @@ public enum ThreatConstants {
             return "Білоруський західний коридор (Брестська обл. РБ)"
         }
         if det.contains("з херсонщини") || det.contains("з лівобережжя") || det.contains("з криму") {
-            if reg.contains("одес") || reg.contains("миколаїв") || det.contains("мор") || det.contains("південь") {
-                return "Акваторія Чорного моря (Південний морський коридор)"
-            }
             return "Кримський перешийок / ТОТ АР Крим (Південний коридор)"
         }
 
