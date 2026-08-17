@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum OverlayFilterMode {
     case activeOnly
@@ -25,18 +28,19 @@ struct AlertListOverlayView: View {
 
     private var sortedAlerts: [AlertRegion] {
         let baseAlerts = alerts.filter { !RegionRegistry.isPermanentlyActive($0.name) }
+        let effectivePremium = isPremium || PremiumGatekeeper.shared.canAccess(.chronology)
         let filtered: [AlertRegion]
         switch effectiveFilterMode {
         case .activeOnly:
-            filtered = baseAlerts.filter { $0.isActive || (isPremium && $0.threatLevel != nil) }
+            filtered = baseAlerts.filter { $0.isActive || (effectivePremium && $0.threatLevel != nil) }
         case .last24Hours:
             filtered = baseAlerts.filter { region in
                 // 1. Currently active alert or threat zone
-                if region.isActive || (isPremium && region.threatLevel != nil) {
+                if region.isActive || (effectivePremium && region.threatLevel != nil) {
                     return true
                 }
                 // 2. Has active threats registered
-                if !region.activeThreats.isEmpty {
+                if effectivePremium && !region.activeThreats.isEmpty {
                     return true
                 }
                 // 3. Changed within last 24 hours
@@ -111,7 +115,9 @@ struct AlertListOverlayView: View {
                 Spacer()
 
                 Button(action: {
+                    #if canImport(UIKit)
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    #endif
                     onClose()
                 }) {
                     Image(systemName: "xmark")
@@ -176,17 +182,20 @@ struct AlertListOverlayView: View {
     }
 
     private func alertRow(_ alert: AlertRegion) -> some View {
+        let effectivePremium = isPremium || PremiumGatekeeper.shared.canAccess(.chronology)
         let isThreat = !alert.isActive && alert.threatLevel != nil
-        let rowColor = alert.isActive ? color : (isThreat ? alert.color : Color.gray)
+        let rowColor = alert.isActive ? color : (effectivePremium && isThreat ? alert.color : Color.gray)
         
         return Button(action: {
+            #if canImport(UIKit)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            #endif
             onSelect?(alert)
         }) {
             HStack(alignment: .center, spacing: 14) {
                 // Status dot with optional glow
                 ZStack {
-                    if alert.isActive || isThreat {
+                    if alert.isActive || (effectivePremium && isThreat) {
                         Circle()
                             .fill(rowColor.opacity(0.3))
                             .frame(width: 18, height: 18)
@@ -194,7 +203,7 @@ struct AlertListOverlayView: View {
                     Circle()
                         .fill(rowColor)
                         .frame(width: 9, height: 9)
-                        .shadow(color: (alert.isActive || isThreat) ? rowColor.opacity(0.8) : .clear, radius: 4)
+                        .shadow(color: (alert.isActive || (effectivePremium && isThreat)) ? rowColor.opacity(0.8) : .clear, radius: 4)
                 }
                 .frame(width: 20)
 
@@ -204,7 +213,7 @@ struct AlertListOverlayView: View {
                         .foregroundColor(.white)
 
                     HStack(spacing: 6) {
-                        Text(alert.isActive ? "АКТИВНА" : (isThreat ? "ЗАГРОЗА" : "НЕАКТИВНА"))
+                        Text(alert.isActive ? "АКТИВНА" : (effectivePremium && isThreat ? "ЗАГРОЗА" : "НЕАКТИВНА"))
                             .font(.system(size: 9, weight: .black))
                             .tracking(0.8)
                             .foregroundColor(rowColor)
@@ -223,59 +232,73 @@ struct AlertListOverlayView: View {
                         }
                     }
                     
-                    // Display threat details
-                    if let type = alert.threatType, let detail = alert.threatDetail {
-                        Text("⚠️ \(type.uppercased()): \(detail)")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(rowColor.opacity(0.8))
-                            .multilineTextAlignment(.leading)
-                            .padding(.top, 2)
-                    }
-                    
-                    // AI confidence & ETA badge
-                    if isThreat || alert.isActive {
-                        HStack(spacing: 8) {
-                            if let conf = alert.threatConfidence {
-                                HStack(spacing: 3) {
-                                    Image(systemName: "cpu")
-                                        .font(.system(size: 8))
-                                    Text("\(conf)%")
-                                        .font(.system(size: 10, weight: .bold))
-                                }
-                                .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.1))
-                                .clipShape(Capsule())
-                            }
-                            if let eta = alert.displayETA, !eta.isEmpty {
-                                HStack(spacing: 3) {
-                                    Image(systemName: "clock")
-                                        .font(.system(size: 8))
-                                    Text(eta)
-                                        .font(.system(size: 10, weight: .medium))
-                                }
-                                .foregroundColor(.orange.opacity(0.8))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.orange.opacity(0.08))
-                                .clipShape(Capsule())
-                            }
-                            if alert.isThreatPredictive {
-                                HStack(spacing: 3) {
-                                    Image(systemName: "wand.and.stars")
-                                        .font(.system(size: 8))
-                                    Text("ШІ")
-                                        .font(.system(size: 9, weight: .bold))
-                                }
-                                .foregroundColor(.purple.opacity(0.8))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(Color.purple.opacity(0.08))
-                                .clipShape(Capsule())
-                            }
+                    if effectivePremium {
+                        // Display threat details (Premium only)
+                        if let type = alert.threatType, let detail = alert.threatDetail {
+                            Text("⚠️ \(type.uppercased()): \(detail)")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(rowColor.opacity(0.8))
+                                .multilineTextAlignment(.leading)
+                                .padding(.top, 2)
                         }
-                        .padding(.top, 2)
+                        
+                        // AI confidence & ETA badge
+                        if isThreat || alert.isActive {
+                            HStack(spacing: 8) {
+                                if let conf = alert.threatConfidence {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "cpu")
+                                            .font(.system(size: 8))
+                                        Text("\(conf)%")
+                                            .font(.system(size: 10, weight: .bold))
+                                    }
+                                    .foregroundColor(conf >= 85 ? .red : (conf >= 60 ? .orange : .yellow))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background((conf >= 85 ? Color.red : (conf >= 60 ? Color.orange : Color.yellow)).opacity(0.1))
+                                    .clipShape(Capsule())
+                                }
+                                if let eta = alert.displayETA, !eta.isEmpty {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "clock")
+                                            .font(.system(size: 8))
+                                        Text(eta)
+                                            .font(.system(size: 10, weight: .medium))
+                                    }
+                                    .foregroundColor(.orange.opacity(0.8))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange.opacity(0.08))
+                                    .clipShape(Capsule())
+                                }
+                                if alert.isThreatPredictive {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "wand.and.stars")
+                                            .font(.system(size: 8))
+                                        Text("ШІ")
+                                            .font(.system(size: 9, weight: .bold))
+                                    }
+                                    .foregroundColor(.purple.opacity(0.8))
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(Color.purple.opacity(0.08))
+                                    .clipShape(Capsule())
+                                }
+                            }
+                            .padding(.top, 2)
+                        }
+                    } else {
+                        // Non-premium: Lock last threat / event info
+                        if alert.threatType != nil || alert.threatDetail != nil || isThreat {
+                            HStack(spacing: 4) {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text("Дані загрози доступні у Premium")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(Color.siGold)
+                            .padding(.top, 2)
+                        }
                     }
                 }
 
