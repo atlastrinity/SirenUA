@@ -15,6 +15,9 @@ struct AdminChronologyTab: View {
                 eventsTimelineList(chrono: chrono)
             }
         }
+        .task {
+            await viewModel.fetchChronology()
+        }
         .onChange(of: viewModel.daysFilter) { _, _ in
             Task { await viewModel.fetchChronology() }
         }

@@ -12,6 +12,9 @@ struct AdminCorrelationTab: View {
                 correlationContent(corr: corr)
             }
         }
+        .task {
+            await viewModel.fetchCorrelationV2()
+        }
         .onChange(of: viewModel.corDaysFilter) { _, _ in
             Task { await viewModel.fetchCorrelationV2() }
         }
