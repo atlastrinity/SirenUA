@@ -68,23 +68,23 @@ final class MapViewModel: ObservableObject {
     @Published var cameraDistance: Double = 600_000.0
 
     /// Sub-linear scale factor for UI elements (badges, tablets, chevrons, icons).
-    /// Scales up gracefully by +50% when zooming in from standard overview baseline (1.00 -> 1.50)
+    /// Scales up gracefully by +70% when zooming in from standard overview baseline (1.00 -> 1.70)
     /// to make region names, threat types, and confidence percentages easily readable.
     var elementZoomScale: CGFloat {
         let overviewDist = 1_000_000.0 // ~1000km (standard full Ukraine overview baseline = 1.00)
-        let closeDist = 30_000.0       // ~30km (zoomed in to oblast/city = 1.50, i.e. +50%)
+        let closeDist = 30_000.0       // ~30km (zoomed in to oblast/city = 1.70, i.e. +70%)
         let maxOverviewDist = 2_500_000.0 // ~2500km (extreme zoomed out overview)
         
         let clampedDist = max(closeDist, min(maxOverviewDist, cameraDistance))
         
         if clampedDist <= overviewDist {
             // Zooming in from overview (1000km) to city level (30km):
-            // Smoothly increase scale from 1.00 up to 1.50 (+50% magnification)
+            // Smoothly increase scale from 1.00 up to 1.70 (+70% magnification)
             let minLog = log10(closeDist)
             let maxLog = log10(overviewDist)
             let curLog = log10(clampedDist)
             let t = (maxLog - curLog) / (maxLog - minLog) // 0.0 (overview) -> 1.0 (zoomed in)
-            return CGFloat(1.00 + (t * 0.50))
+            return CGFloat(1.00 + (t * 0.70))
         } else {
             // Zooming out further than standard overview (1000km -> 2500km):
             // Gentle sub-linear compacting (1.00 -> 0.92) to keep 25 regions clean
