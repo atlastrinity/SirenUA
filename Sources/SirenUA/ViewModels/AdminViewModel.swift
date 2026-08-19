@@ -111,14 +111,14 @@ class AdminViewModel: ObservableObject {
         }
     }
     
-    private static let utcDateFormatter: DateFormatter = {
+    private nonisolated static let utcDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter
     }()
 
-    private static let kyivDateFormatter: DateFormatter = {
+    private nonisolated static let kyivDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.timeZone = TimeZone(identifier: "Europe/Kyiv") ?? TimeZone.current
