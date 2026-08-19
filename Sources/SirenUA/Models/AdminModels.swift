@@ -298,7 +298,9 @@ struct AdminChronologyV2Response: Codable {
 // MARK: - Palantir Intelligence Decodables
 
 struct PalantirCorridor: Codable, Identifiable {
-    var id: String { "\(source ?? "")_\(target ?? "")_\(threat_type ?? "")_\(count ?? 0)" }
+    var id: String {
+        "\(data_source ?? "c")_\(source ?? "")_\(target ?? "")_\(threat_type ?? "")_\(count ?? 0)_\(avg_confidence ?? accuracy ?? 0)_\(route_description ?? "")"
+    }
     let source: String?
     let target: String?
     let source_lat: Double?
