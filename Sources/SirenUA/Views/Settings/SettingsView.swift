@@ -267,7 +267,6 @@ struct SettingsView: View {
 
     private var mapCard: some View {
         MapSettingsCard(
-            settings: settings,
             mapType: $mapType,
             walkingSearchRadius: $walkingSearchRadius,
             drivingSearchRadius: $drivingSearchRadius,

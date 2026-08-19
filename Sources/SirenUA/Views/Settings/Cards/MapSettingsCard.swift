@@ -4,7 +4,6 @@ import UIKit
 #endif
 
 struct MapSettingsCard: View {
-    @ObservedObject var settings: NotificationSettings
     @Binding var mapType: Int
     @Binding var walkingSearchRadius: Double
     @Binding var drivingSearchRadius: Double
