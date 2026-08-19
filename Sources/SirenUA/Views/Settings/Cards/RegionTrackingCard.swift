@@ -5,6 +5,8 @@ struct RegionTrackingCard: View {
     @Binding var isRegionsExpanded: Bool
     let onHaptic: (UIImpactFeedbackGenerator.FeedbackStyle) -> Void
 
+    @State private var showPaywallSheet: Bool = false
+
     /// Канонічний список регіонів з єдиного реєстру
     private var allRegionsList: [String] { RegionRegistry.allRegions }
 
@@ -25,10 +27,34 @@ struct RegionTrackingCard: View {
                 )
             )
 
+            StyledDivider()
+
+            // Траєкторії для всієї України (Premium)
+            PremiumThreatToggleRow(
+                title: "Траєкторії для всієї України",
+                subtitle: settings.allUkraineTrajectoriesEnabled
+                    ? "Відображаються для всіх областей України"
+                    : "Відображаються лише для обраних областей",
+                icon: "arrow.triangle.turn.up.right.diamond.fill",
+                iconColor: .siGold,
+                isOn: $settings.allUkraineTrajectoriesEnabled,
+                isPremium: PremiumGatekeeper.shared.canAccess(.trajectories),
+                onLockedTap: {
+                    onHaptic(.medium)
+                    showPaywallSheet = true
+                }
+            )
+            .onChange(of: settings.allUkraineTrajectoriesEnabled) { _, _ in onHaptic(.light) }
+
             if !settings.allRegionsTracked {
                 StyledDivider()
                 regionsPickerSection
             }
+        }
+        .sheet(isPresented: $showPaywallSheet) {
+            PremiumLockedView(feature: .trajectories)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
