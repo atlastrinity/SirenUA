@@ -166,6 +166,11 @@ public func calculateTrajectory(
         curvature = -0.15
         cycles = 1.0      // Supersonic — minor terminal correction only
         waveAmplitude = 0.012
+    case ThreatConstants.mig31k, "kinzhal", "kh47m2":
+        // МіГ-31К / Кинджал: гіперзвукова аеробалістична траєкторія Х-47М2 з мінімальним відхиленням
+        curvature = -0.10
+        cycles = 1.0      // Aeroballistic quasi-straight hypersonic ingress
+        waveAmplitude = 0.010
     case ThreatConstants.ballistic, ThreatConstants.iskander, ThreatConstants.zircon:
         curvature = -0.12
         cycles = 1.2      // Minor terminal trajectory wobble
@@ -310,6 +315,15 @@ public func calculateTrajectory(
             } else {
                 sLat = 43.78  // Mozdok
                 sLon = 44.60
+            }
+        case "mig31k", "kinzhal", "kh47m2":
+            // МіГ-31К (Кинджал): Північний коридор пуску (Рязань / Тула / Липецьк) або Моздок / Чорне море
+            if target.latitude < 47.5 {
+                sLat = 44.50 // Black Sea / Mozdok sector
+                sLon = 37.00
+            } else {
+                sLat = 53.50 // Northern Kinzhal Corridor (Ryazan/Tula/Lipetsk)
+                sLon = 40.50
             }
         case "ballistic", "iskander":
             // Ballistic: Belgorod / Kursk / Savasleyka / Crimea
