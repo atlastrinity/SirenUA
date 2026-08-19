@@ -46,6 +46,7 @@
 		4A3023A7F775C7067D2C327A /* PremiumFeatureRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFAEC45F53C7CB79B2729E9 /* PremiumFeatureRow.swift */; };
 		4F6BAAB301BB677DB5B1ABDA /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7320EDE140411A78D11980 /* NetworkManager.swift */; };
 		50A3848BFA19162993F9F4DD /* SettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7B09972E2AF61BEE6C45E7 /* SettingsCard.swift */; };
+		521AF68E02F3D1AEA1800AAA /* PremiumPaywallSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4197B2FAFC9C515F01027A1 /* PremiumPaywallSheet.swift */; };
 		52AAFCE4428FBA2166F00F30 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33387695CB0CE00D86B8F2 /* ShareSheet.swift */; };
 		5316B808E69D69E986C8EF98 /* SirenUATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5555D0ACDDF16CE8A2BB3331 /* SirenUATests.swift */; };
 		5404931494080E4FFF2BDB86 /* AdminCorrelationTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29135658BBC538B600A558 /* AdminCorrelationTab.swift */; };
@@ -223,6 +224,7 @@
 		AB44D26EDD0483C6031770D3 /* AdminControlTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminControlTab.swift; sourceTree = "<group>"; };
 		ACB2942349EA5F82FA78C53B /* SirenUA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SirenUA.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE46490D4EB26BA8DBE64BEC /* AdminPalantirTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPalantirTab.swift; sourceTree = "<group>"; };
+		B4197B2FAFC9C515F01027A1 /* PremiumPaywallSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumPaywallSheet.swift; sourceTree = "<group>"; };
 		B4BEC6E3AD19979050C66D29 /* HistoryAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryAPI.swift; sourceTree = "<group>"; };
 		B5E63B1BD30FD14135FBF7A5 /* OperationalMonitoringCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationalMonitoringCardView.swift; sourceTree = "<group>"; };
 		B67D7E51B19A85354D587BD2 /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
@@ -296,6 +298,14 @@
 				E518FB98E1D1C0239F058B20 /* AdminRulesTab.swift */,
 			);
 			path = Tabs;
+			sourceTree = "<group>";
+		};
+		0B49DC68E8AD7D75D0197F28 /* Sheets */ = {
+			isa = PBXGroup;
+			children = (
+				B4197B2FAFC9C515F01027A1 /* PremiumPaywallSheet.swift */,
+			);
+			path = Sheets;
 			sourceTree = "<group>";
 		};
 		162A2D9EFEE9C9C953942609 /* SirenUANotificationService */ = {
@@ -515,6 +525,7 @@
 				23083835D2320EBC8D2F434E /* Cards */,
 				44097554E87F419201D45237 /* Components */,
 				26FEE83DC1B98F19F5B1B7AA /* Map */,
+				0B49DC68E8AD7D75D0197F28 /* Sheets */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -861,6 +872,7 @@
 				10C78720D0DE78E9843CDA52 /* PremiumGatekeeper.swift in Sources */,
 				075E28B7E1499075E16C3B6E /* PremiumLockReason.swift in Sources */,
 				E4D33181232CF2CD9B377E1F /* PremiumLockedView.swift in Sources */,
+				521AF68E02F3D1AEA1800AAA /* PremiumPaywallSheet.swift in Sources */,
 				1A12A2EB1A0B92BCA1F056F7 /* PremiumPurchaseCTA.swift in Sources */,
 				A18385B4A8CEC1217D5D911E /* PremiumSettingsCard.swift in Sources */,
 				4558A3FD3CE2270D4C42CAD1 /* PremiumThreatToggleRow.swift in Sources */,

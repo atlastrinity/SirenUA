@@ -79,6 +79,19 @@ struct PremiumSettingsCard: View {
 
     private var premiumUpgradeView: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // 14-day trial badge
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 10, weight: .bold))
+                Text("14 ДНІВ БЕЗКОШТОВНО")
+                    .font(.system(size: 10, weight: .heavy))
+            }
+            .foregroundColor(.black)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.siGold)
+            .clipShape(Capsule())
+
             Text("Переваги Premium підписки:")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.white.opacity(0.6))
@@ -89,47 +102,65 @@ struct PremiumSettingsCard: View {
                 }
             }
 
-            if let product = storeManager.storeProducts.first(where: { $0.id == "com.sirenua.premium.monthly" }) {
-                Button(action: {
-                    onHaptic(.medium)
-                    isPurchasing = true
-                    Task {
-                        do { _ = try await PremiumGatekeeper.shared.startPurchase(using: storeManager) }
-                        catch { logger.error("Purchase failed: \(error.localizedDescription)") }
-                        isPurchasing = false
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        if isPurchasing {
-                            ProgressView().tint(.black)
-                        } else {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 13))
-                            Text("Оформити підписку — \(product.displayPrice)/міс")
-                                .font(.system(size: 14, weight: .bold))
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.siGold)
-                    .foregroundColor(.black)
-                    .cornerRadius(12)
-                    .shadow(color: Color.siGold.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .disabled(isPurchasing)
+            // Subscription Terms Box
+            VStack(alignment: .leading, spacing: 6) {
+                let priceText = storeManager.storeProducts.first(where: { $0.id == "com.sirenua.premium.monthly" })?.displayPrice ?? "49 ₴"
+                Text("14 днів безкоштовно, далі \(priceText)/місяць")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
 
-                Button("Відновити покупки") {
-                    onHaptic(.light)
-                    Task { await PremiumGatekeeper.shared.restorePurchases(using: storeManager) }
-                }
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(ChartColorTheme.accent)
-                .frame(maxWidth: .infinity)
-            } else {
-                ProgressView("Завантаження продуктів...")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.4))
+                Text("Скасування в будь-який момент у налаштуваннях Apple ID принаймні за 24 години до завершення тріалу — без жодних списань.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineSpacing(2)
             }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.siGold.opacity(0.08))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.siGold.opacity(0.2), lineWidth: 1)
+            )
+
+            Button(action: {
+                onHaptic(.medium)
+                isPurchasing = true
+                Task {
+                    do {
+                        _ = try await PremiumGatekeeper.shared.startPurchase(using: storeManager)
+                    } catch {
+                        logger.error("Purchase failed: \(error.localizedDescription)")
+                    }
+                    await MainActor.run { isPurchasing = false }
+                }
+            }) {
+                HStack(spacing: 8) {
+                    if isPurchasing {
+                        ProgressView().tint(.black)
+                    } else {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 13))
+                        Text("Спробувати 14 днів безкоштовно")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.siGold)
+                .foregroundColor(.black)
+                .cornerRadius(12)
+                .shadow(color: Color.siGold.opacity(0.3), radius: 8, x: 0, y: 4)
+            }
+            .disabled(isPurchasing)
+
+            Button("Відновити покупки") {
+                onHaptic(.light)
+                Task { await PremiumGatekeeper.shared.restorePurchases(using: storeManager) }
+            }
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(ChartColorTheme.accent)
+            .frame(maxWidth: .infinity)
 
             StyledDivider()
 

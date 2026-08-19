@@ -101,6 +101,13 @@ struct RegionHistoryView: View {
                 await loadHistory()
             }
         }
+        .onChange(of: isPremium) { _, newValue in
+            if newValue {
+                Task {
+                    await loadHistory()
+                }
+            }
+        }
     }
     
     // MARK: - Premium Locked View

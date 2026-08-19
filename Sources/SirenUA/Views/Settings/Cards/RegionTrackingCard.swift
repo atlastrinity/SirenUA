@@ -52,8 +52,8 @@ struct RegionTrackingCard: View {
             }
         }
         .sheet(isPresented: $showPaywallSheet) {
-            PremiumLockedView(feature: .trajectories)
-                .presentationDetents([.medium, .large])
+            PremiumPaywallSheet()
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
     }

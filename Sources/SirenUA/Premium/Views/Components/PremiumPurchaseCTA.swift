@@ -6,6 +6,8 @@ struct PremiumPurchaseCTA: View {
     var title: String
     var feature: PremiumFeature
 
+    @State private var showPaywallSheet = false
+
     init(
         storeManager: StoreKitManager,
         title: String = "Деталі загрози доступні\nлише з Premium підпискою",
@@ -17,9 +19,22 @@ struct PremiumPurchaseCTA: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
+            // 14-day trial badge
+            HStack(spacing: 4) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 9, weight: .bold))
+                Text("14 ДНІВ БЕЗКОШТОВНО")
+                    .font(.system(size: 9, weight: .heavy))
+            }
+            .foregroundColor(.black)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.siGold)
+            .clipShape(Capsule())
+
             Image(systemName: feature.iconName)
-                .font(.system(size: 28))
+                .font(.system(size: 26))
                 .foregroundColor(feature.accentColor)
 
             Text(title)
@@ -33,21 +48,26 @@ struct PremiumPurchaseCTA: View {
                 .multilineTextAlignment(.center)
 
             Button(action: {
-                Task {
-                    _ = try? await PremiumGatekeeper.shared.startPurchase(using: storeManager)
-                }
+                showPaywallSheet = true
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 13))
-                    Text("Підключити Premium")
+                    Text("Спробувати 14 днів безкоштовно")
                         .font(.system(size: 13, weight: .bold))
                 }
                 .foregroundColor(.black)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 10)
-                .background(feature.accentColor)
+                .background(
+                    LinearGradient(
+                        colors: [Color.siGold, Color.yellow],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .cornerRadius(12)
+                .shadow(color: Color.siGold.opacity(0.35), radius: 6, x: 0, y: 2)
             }
         }
         .padding(16)
@@ -58,5 +78,10 @@ struct PremiumPurchaseCTA: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(feature.accentColor.opacity(0.3), lineWidth: 1)
         )
+        .sheet(isPresented: $showPaywallSheet) {
+            PremiumPaywallSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 }

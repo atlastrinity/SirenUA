@@ -220,8 +220,8 @@ struct NotificationsSettingsCard: View {
             }
         }
         .sheet(isPresented: $showPaywallSheet) {
-            PremiumLockedView(feature: .threatToggles)
-                .presentationDetents([.medium, .large])
+            PremiumPaywallSheet()
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
     }
