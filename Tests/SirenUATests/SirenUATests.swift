@@ -294,6 +294,46 @@ final class SirenUATests: XCTestCase {
         
         XCTAssertEqual(threat.elapsedMinutes, 10)
         XCTAssertEqual(threat.dynamicETA, "до 15 хв")
+
+        // Test Red zone (high level) expired ETA -> "в області"
+        let thirtyMinAgoStr = formatter.string(from: Date().addingTimeInterval(-1805))
+        let redExpiredThreat = SingleThreatInfo(
+            threat_id: "test_red_exp",
+            level: "high",
+            type: "cruise_missile",
+            detail: "Test Red",
+            since: thirtyMinAgoStr,
+            confidence: 95,
+            eta: "~20 хв",
+            is_predictive: false
+        )
+        XCTAssertEqual(redExpiredThreat.dynamicETA, "в області")
+
+        // Test Yellow zone (medium / predictive) expired ETA -> "на підльоті"
+        let yellowExpiredThreat = SingleThreatInfo(
+            threat_id: "test_yellow_exp",
+            level: "medium",
+            type: "shahed",
+            detail: "Test Yellow",
+            since: thirtyMinAgoStr,
+            confidence: 80,
+            eta: "~20 хв",
+            is_predictive: true
+        )
+        XCTAssertEqual(yellowExpiredThreat.dynamicETA, "на підльоті")
+
+        // Test KAB in yellow zone (low level) expired ETA -> "на підльоті"
+        let kabYellowThreat = SingleThreatInfo(
+            threat_id: "test_kab_yellow",
+            level: "low",
+            type: "kab",
+            detail: "Test KAB",
+            since: thirtyMinAgoStr,
+            confidence: 75,
+            eta: "~5 хв",
+            is_predictive: true
+        )
+        XCTAssertEqual(kabYellowThreat.dynamicETA, "на підльоті")
     }
 
     func testDynamicDistanceCalculations() throws {

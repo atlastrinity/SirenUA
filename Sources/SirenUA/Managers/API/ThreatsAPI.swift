@@ -270,10 +270,11 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
                           .replacingOccurrences(of: "до", with: "")
                           .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Допоміжна функція для уніфікованого форматування залишку часу ("до X хв", "до X год Y хв", "в області")
+        // Допоміжна функція для уніфікованого форматування залишку часу ("до X хв", "до X год Y хв", "в області" / "на підльоті")
         func formatRemaining(minutes: Int) -> String {
             if minutes <= 0 {
-                return "в області"
+                let isYellow = (is_predictive == true) || (level.lowercased() != "high")
+                return isYellow ? "на підльоті" : "в області"
             } else if minutes < 60 {
                 return "до \(minutes) хв"
             } else {
@@ -281,6 +282,11 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
                 let mn = minutes % 60
                 return mn == 0 ? "до \(hr) год" : "до \(hr) год \(mn) хв"
             }
+        }
+
+        if cleanEta == "в області" || cleanEta == "на підльоті" {
+            let isYellow = (is_predictive == true) || (level.lowercased() != "high")
+            return isYellow ? "на підльоті" : "в області"
         }
 
         // Case 1: Складений формат, наприклад "1 год 16 хв" або "1 год 45 хв"
