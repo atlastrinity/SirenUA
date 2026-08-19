@@ -191,6 +191,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
             UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["sirenua_alarm_\(item.regionName)"])
         }
 
+        // Haptic feedback is handled by willPresent delegate (fires for ALL foreground notifications,
+        // both local and remote). Not triggered here to avoid double vibration.
+
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
 
         UNUserNotificationCenter.current().add(request) { error in

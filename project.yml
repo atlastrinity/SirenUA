@@ -47,6 +47,7 @@ targets:
       - path: Sources/SirenUA/warning.wav
       - path: Sources/SirenUA/vidbiy.wav
       - path: Sources/SirenUA/clearance.wav
+      - path: Sources/SirenUA/silence.wav
     entitlements:
       path: Sources/SirenUANotificationService/SirenUANotificationService.entitlements
       properties:

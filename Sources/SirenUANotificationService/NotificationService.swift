@@ -123,10 +123,12 @@ final class NotificationService: UNNotificationServiceExtension {
                 nseLogger.info("NSE: \(eventType.rawValue) → standard timeSensitive sound: \(soundFile)")
             }
         } else if vibrationEnabled {
-            // Звук вимкнений користувачем або задедуплікований, але вібрація увімкнена → використовуємо system default (вібро без обриву аудіо)
-            content.sound = UNNotificationSound.default
+            // Звук вимкнений користувачем або задедуплікований, але вібрація увімкнена →
+            // використовуємо silence.wav (тихий файл) замість .default, щоб отримати
+            // вібрацію без дефолтного iOS звуку коли телефон не на беззвучному
+            content.sound = UNNotificationSound(named: UNNotificationSoundName("silence.wav"))
             content.interruptionLevel = .timeSensitive
-            nseLogger.info("NSE: \(eventType.rawValue) → sound muted/deduplicated, vibration enabled")
+            nseLogger.info("NSE: \(eventType.rawValue) → sound muted/deduplicated, vibration via silence.wav")
         } else {
             // Звук та вібрація вимкнені повністю
             content.sound = nil

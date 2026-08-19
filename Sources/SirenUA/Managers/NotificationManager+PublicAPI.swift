@@ -1,6 +1,5 @@
 import Foundation
 import UserNotifications
-import AudioToolbox
 import UIKit
 
 // MARK: - Public API & Sound Configuration
@@ -17,8 +16,6 @@ extension NotificationManager {
         enqueue(title: fullTitle, body: body, soundName: config.soundName, regionName: regionName,
                 eventType: .alarm,
                 interruptionLevel: config.level, relevanceScore: 1.0)
-
-        triggerHaptic(.warning, pulses: 4)
     }
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
@@ -33,8 +30,6 @@ extension NotificationManager {
         enqueue(title: fullTitle, body: body, soundName: config.soundName, regionName: regionName,
                 eventType: .threat,
                 interruptionLevel: config.level, relevanceScore: config.relevance)
-
-        triggerHaptic(confidence >= 85 ? .error : .warning, pulses: 3)
     }
 
     func sendClearNotification(for regionName: String) {
@@ -45,8 +40,6 @@ extension NotificationManager {
         enqueue(title: title, body: body, soundName: config.soundName, regionName: regionName,
                 eventType: .clear,
                 interruptionLevel: config.level, relevanceScore: 0.5)
-
-        triggerHaptic(.success, pulses: 2)
     }
 
     func sendThreatClearNotification(for regionName: String) {
@@ -57,8 +50,6 @@ extension NotificationManager {
         enqueue(title: title, body: body, soundName: config.soundName, regionName: regionName,
                 eventType: .threatClear,
                 interruptionLevel: config.level, relevanceScore: 0.3)
-
-        triggerHaptic(.success, pulses: 2)
     }
 
     // MARK: - Sound Configuration Helper
@@ -109,19 +100,24 @@ extension NotificationManager {
 
     // MARK: - Haptic Feedback
 
+    /// Генерує тактильний зворотний зв'язок (Taptic Engine) з заданою кількістю пульсів.
+    ///
+    /// Використовує єдиний `UINotificationFeedbackGenerator` з попереднім `prepare()`
+    /// для надійної роботи Taptic Engine. Без AudioServicesPlaySystemSound, щоб
+    /// уникнути конфлікту між двома вібро-механізмами.
     func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType, pulses: Int = 3) {
         guard NotificationSettings.shared.shouldVibrate else { return }
+        #if os(iOS)
         DispatchQueue.main.async {
-            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            // Перший пульс після невеликої затримки, щоб Taptic Engine встиг «розігрітися»
             for i in 0..<pulses {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.35) {
-                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.prepare()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05 + Double(i) * 0.35) {
                     generator.notificationOccurred(type)
                 }
             }
-            #endif
         }
+        #endif
     }
 }
