@@ -78,6 +78,18 @@ final class NotificationService: UNNotificationServiceExtension {
             }
         }
 
+        // 2b. Перевірити Premium доступ для локальних ШІ-загроз (КАБи, ракети, БПЛА)
+        if eventType == .threat || eventType == .threatClear {
+            let isPremium = shared?.bool(forKey: "premiumEnabled") ?? false
+            guard isPremium else {
+                nseLogger.info("NSE: threat event \(eventType.rawValue) suppressed for non-premium user")
+                content.sound = nil
+                content.interruptionLevel = .passive
+                contentHandler(content)
+                return
+            }
+        }
+
         // 3. Визначити чи грати звук на основі відповідного тогла
         let shouldPlaySound: Bool
         switch eventType {

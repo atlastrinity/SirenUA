@@ -20,6 +20,9 @@ extension NotificationManager {
 
     func sendThreatNotification(for regionName: String, title: String, body: String,
                                 confidence: Int = 75) {
+        let isPremium = NotificationSettings.shared.isPremium || (UserDefaults(suiteName: NotificationSettings.suiteName)?.bool(forKey: "premiumEnabled") ?? false)
+        guard isPremium else { return }
+
         let config = soundConfig(for: .threat, confidence: confidence)
 
         var fullTitle = title
@@ -43,6 +46,9 @@ extension NotificationManager {
     }
 
     func sendThreatClearNotification(for regionName: String) {
+        let isPremium = NotificationSettings.shared.isPremium || (UserDefaults(suiteName: NotificationSettings.suiteName)?.bool(forKey: "premiumEnabled") ?? false)
+        guard isPremium else { return }
+
         let title = "🟢 Відбій загрози — \(regionName)"
         let body  = "Загрозу нейтралізовано в: \(regionName)."
         let config = soundConfig(for: .threatClear)

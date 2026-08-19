@@ -58,6 +58,7 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         static let allRegionsTracked = "allRegionsTracked"
         static let trackedRegionsString = "trackedRegionsString"
         static let allUkraineTrajectoriesEnabled = "allUkraineTrajectoriesEnabled"
+        static let isPremium = "premiumEnabled"
         /// Migration flag — чи вже мігрували з standard до shared
         static let didMigrateToAppGroup = "didMigrateToAppGroup_v1"
     }
@@ -134,6 +135,13 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         }
     }
 
+    @Published var isPremium: Bool {
+        didSet {
+            Self.sharedDefaults.set(isPremium, forKey: Keys.isPremium)
+            settingsLogger.info("isPremium changed: \(self.isPremium)")
+        }
+    }
+
     // MARK: Init
     nonisolated private init() {
         let defaults = Self.sharedDefaults
@@ -151,6 +159,7 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         self.allRegionsTracked = defaults.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
         self.trackedRegionsString = defaults.string(forKey: Keys.trackedRegionsString) ?? ""
         self.allUkraineTrajectoriesEnabled = defaults.bool(forKey: Keys.allUkraineTrajectoriesEnabled)
+        self.isPremium = defaults.bool(forKey: Keys.isPremium)
     }
 
     // MARK: Migration

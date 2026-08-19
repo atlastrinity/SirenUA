@@ -147,6 +147,8 @@ final class StoreKitManager: ObservableObject {
         
         // Sync with UserDefaults and PremiumGatekeeper for backward compatibility
         UserDefaults.standard.set(hasActivePremium, forKey: "premiumEnabled")
+        UserDefaults(suiteName: NotificationSettings.suiteName)?.set(hasActivePremium, forKey: "premiumEnabled")
+        NotificationSettings.shared.isPremium = hasActivePremium
         PremiumGatekeeper.shared.updatePremiumStatus()
     }
     

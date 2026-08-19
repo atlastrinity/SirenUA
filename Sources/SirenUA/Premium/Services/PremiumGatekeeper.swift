@@ -40,6 +40,8 @@ final class PremiumGatekeeper: ObservableObject {
 
         if isPremium != newStatus {
             isPremium = newStatus
+            UserDefaults(suiteName: NotificationSettings.suiteName)?.set(newStatus, forKey: "premiumEnabled")
+            NotificationSettings.shared.isPremium = newStatus
             gatekeeperLogger.info("PremiumGatekeeper status updated: isPremium=\(newStatus)")
         }
     }

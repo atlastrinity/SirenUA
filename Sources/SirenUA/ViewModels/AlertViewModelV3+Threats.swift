@@ -103,28 +103,31 @@ extension AlertViewModelV3 {
             }
         }
 
-        // ШІ-загроза (нова / скасована без активної офіційної сирени)
-        if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
-            if !isFirstThreatFetch {
-                let confidence = threat.confidence ?? 75
-                let isPredictive = threat.is_predictive ?? false
-                if isPredictive && confidence < 50 {
-                    vmLogger.info("Skipping notification for predictive low-confidence threat in \(regionName) (\(confidence)%)")
-                    return
+        // ШІ-загроза (нова / скасована без активної офіційної сирени — доступно лише для Premium)
+        let hasPremium = isPremium || NotificationSettings.shared.isPremium || PremiumGatekeeper.shared.isPremium
+        if hasPremium {
+            if oldThreatLevel == nil && newThreatLevel != nil && !alerts[index].isActive {
+                if !isFirstThreatFetch {
+                    let confidence = threat.confidence ?? 75
+                    let isPredictive = threat.is_predictive ?? false
+                    if isPredictive && confidence < 50 {
+                        vmLogger.info("Skipping notification for predictive low-confidence threat in \(regionName) (\(confidence)%)")
+                        return
+                    }
+                    let typeDesc = ThreatConstants.genitiveDescription(for: threat.type)
+                    let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: regionName)
+                    var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
+                    if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
+                    NotificationManager.shared.sendThreatNotification(
+                        for: regionName, title: title, body: body,
+                        confidence: confidence
+                    )
                 }
-                let typeDesc = ThreatConstants.genitiveDescription(for: threat.type)
-                let title = ThreatConstants.notificationTitle(for: threat.type, confidence: confidence, region: regionName)
-                var body = threat.detail ?? "Виявлено загрозу \(typeDesc)."
-                if let eta = threat.eta, !eta.isEmpty { body += " (Час: \(eta))" }
-                NotificationManager.shared.sendThreatNotification(
-                    for: regionName, title: title, body: body,
-                    confidence: confidence
-                )
-            }
-        } else if oldThreatLevel != nil && newThreatLevel == nil && !wasActive && !alerts[index].isActive {
-            if !isFirstThreatFetch {
-                vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering threat clear notification")
-                NotificationManager.shared.sendThreatClearNotification(for: regionName)
+            } else if oldThreatLevel != nil && newThreatLevel == nil && !wasActive && !alerts[index].isActive {
+                if !isFirstThreatFetch {
+                    vmLogger.info("Threat cleared for \(regionName) without active alarm — triggering threat clear notification")
+                    NotificationManager.shared.sendThreatClearNotification(for: regionName)
+                }
             }
         }
     }

@@ -45,6 +45,16 @@ extension NotificationManager {
             // Resolve event type using canonical EventType enum (same logic as NSE)
             let eventType = EventType.resolve(from: userInfo, title: notification.request.content.title)
 
+            // Gate threats behind Premium
+            if eventType == .threat || eventType == .threatClear {
+                let isPremium = NotificationSettings.shared.isPremium || (UserDefaults(suiteName: NotificationSettings.suiteName)?.bool(forKey: "premiumEnabled") ?? false)
+                guard isPremium else {
+                    notifLogger.info("Foreground: threat notification suppressed for non-premium user")
+                    completionHandler([])
+                    return
+                }
+            }
+
             let shouldPlaySound: Bool
             switch eventType {
             case .threat:      shouldPlaySound = NotificationSettings.shared.shouldPlayThreatSound
