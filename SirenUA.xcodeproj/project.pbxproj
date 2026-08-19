@@ -94,6 +94,7 @@
 		C722E6922DAF2FE158B70281 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30463DD6C0646A3B7A290141 /* AppDelegate.swift */; };
 		D22B1569856DA5420FBEC59D /* StyledToggleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA832B2B3714348B4565F1E7 /* StyledToggleRow.swift */; };
 		D28D3221B2944B90EC3577E9 /* AlertRegionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251C604A971EBA3C2D78BBAB /* AlertRegionDetailView.swift */; };
+		D2BC81989F5E7EDFB1C364F2 /* silence.wav in Resources */ = {isa = PBXBuildFile; fileRef = D92C57CBE868FF1DE2D6048D /* silence.wav */; };
 		D4026B67A545D30AFE20F607 /* SirenUANotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F543C9B98CDCFBCEE1AFCCE5 /* SirenUANotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D88D51A31BFD78DA3B0C008C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 449147BC6A6B83151EBC569C /* NotificationManager.swift */; };
 		DAB0109DBB6DDEE3BEFD4973 /* ShelterItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EBAD5E8706EFEEC0F927B6 /* ShelterItem.swift */; };
@@ -241,6 +242,7 @@
 		CDCB69B1A4ECD169B0E5E2F1 /* MapSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapSettingsCard.swift; sourceTree = "<group>"; };
 		CFE0BC3871D497F65492C083 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D095FF259C3F660FB4D0FB15 /* MKDirectionsTransportType+Hashable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MKDirectionsTransportType+Hashable.swift"; sourceTree = "<group>"; };
+		D92C57CBE868FF1DE2D6048D /* silence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silence.wav; sourceTree = "<group>"; };
 		D9AF2E195D0D8A85C298246E /* RegionPolygonsLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionPolygonsLayer.swift; sourceTree = "<group>"; };
 		E518FB98E1D1C0239F058B20 /* AdminRulesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminRulesTab.swift; sourceTree = "<group>"; };
 		E573AB6532B7D8E07E0D96C2 /* MainTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarView.swift; sourceTree = "<group>"; };
@@ -577,6 +579,7 @@
 				9A13E90781CE797D24F859D6 /* clearance.wav */,
 				FC3BC3D8DF3F910DA14871B1 /* GoogleService-Info.plist */,
 				C04391E80219E2B099533C21 /* Info.plist */,
+				D92C57CBE868FF1DE2D6048D /* silence.wav */,
 				8F2BECB950730B1B0C48EE56 /* siren.wav */,
 				0339979594E28EFDB0679230 /* SirenUA.entitlements */,
 				8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */,
@@ -779,6 +782,7 @@
 				0BF5F32FB26B890732259C61 /* Assets.xcassets in Resources */,
 				1D0C280BB11CFCDC3CAF26EC /* GoogleService-Info.plist in Resources */,
 				BE7F41A65C0A94AC69149859 /* clearance.wav in Resources */,
+				D2BC81989F5E7EDFB1C364F2 /* silence.wav in Resources */,
 				F9981CFEFAF1962CC2C1E43D /* siren.wav in Resources */,
 				76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */,
 				6641B169DC12DCDDC2B1AF8F /* vidbiy.wav in Resources */,
