@@ -348,30 +348,30 @@ struct AdminControlTab: View {
             
             VStack(spacing: 10) {
                 // Region picker
-                HStack {
-                    Text("Область:")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                    Spacer()
-                    Picker("", selection: $viewModel.simRegion) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Область")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Picker("Область", selection: $viewModel.simRegion) {
                         ForEach(viewModel.regionsList.isEmpty ? ["Київська область", "Сумська область", "Харківська область", "Полтавська область", "Одеська область", "Дніпропетровська область", "Львівська область"] : viewModel.regionsList, id: \.self) { r in
                             Text(r).tag(r)
                         }
                     }
                     .pickerStyle(.menu)
+                    .tint(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.03))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.04))
                 .cornerRadius(8)
                 
                 // Threat Level picker
-                HStack {
-                    Text("Рівень небезпеки:")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                    Spacer()
-                    Picker("", selection: $viewModel.simLevel) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Рівень небезпеки")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Picker("Рівень небезпеки", selection: $viewModel.simLevel) {
                         Text("🟢 Відбій (none)").tag("none")
                         Text("🟡 Жовтий (low)").tag("low")
                         Text("🟠 Помаранчевий (medium)").tag("medium")
@@ -379,28 +379,31 @@ struct AdminControlTab: View {
                         Text("🟣 Бордовий (critical)").tag("critical")
                     }
                     .pickerStyle(.menu)
+                    .tint(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.03))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.04))
                 .cornerRadius(8)
                 
                 // Threat Type picker
-                HStack {
-                    Text("Тип загрози:")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                    Spacer()
-                    Picker("", selection: $viewModel.simThreatType) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Тип загрози")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Picker("Тип загрози", selection: $viewModel.simThreatType) {
                         ForEach(ThreatConstants.all.filter { $0 != ThreatConstants.unknown }, id: \.self) { t in
                             Text("\(ThreatConstants.emoji(for: t)) \(ThreatConstants.title(for: t)) (\(t))").tag(t)
                         }
                     }
                     .pickerStyle(.menu)
+                    .tint(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.03))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.04))
                 .cornerRadius(8)
                 
                 // Confidence Slider
@@ -627,11 +630,11 @@ struct AdminControlTab: View {
             }
             
             VStack(spacing: 8) {
-                adminStatusRow(name: "1. UkraineAlarm API v3 (Tier 1)", status: viewModel.ukraineAlarmStatus)
+                adminStatusRow(name: "1. UkraineAlarm API (Tier 1)", status: viewModel.ukraineAlarmStatus)
                 adminStatusRow(name: "2. UBilling Дзеркало (Tier 2)", status: viewModel.ubillingStatus)
                 adminStatusRow(name: "3. Alerts.in.ua API (Tier 3)", status: viewModel.alertsInUaStatus)
                 adminStatusRow(name: "Сервер загроз (SirenUA Backend)", status: viewModel.threatsStatus)
-                adminStatusRow(name: "Аналізатор ШІ (Gemini 2.5 Flash)", status: viewModel.geminiStatus)
+                adminStatusRow(name: "Аналізатор ШІ (Gemini Flash Lite)", status: viewModel.geminiStatus)
             }
         }
         .padding(14)
@@ -641,18 +644,20 @@ struct AdminControlTab: View {
 
     @ViewBuilder
     private func adminStatusRow(name: String, status: String) -> some View {
-        HStack {
+        HStack(spacing: 6) {
             Text(name)
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.8))
-            Spacer()
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white.opacity(0.85))
+                .lineLimit(1)
+            Spacer(minLength: 4)
             HStack(spacing: 4) {
                 Circle()
                     .fill(statusColor(status))
-                    .frame(width: 8, height: 8)
+                    .frame(width: 6, height: 6)
                 Text(status)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(statusColor(status))
+                    .lineLimit(1)
             }
         }
         .padding(8)

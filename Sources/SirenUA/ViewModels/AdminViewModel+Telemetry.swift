@@ -108,7 +108,7 @@ extension AdminViewModel {
                 {
                     if status == "ok" {
                         let keys = json["keys_count"] as? Int ?? 1
-                        return "АКТИВНИЙ (\(keys) key)"
+                        return "АКТИВНИЙ (\(keys) keys)"
                     } else if status == "mock" {
                         return "MOCK РЕЖИМ"
                     } else {

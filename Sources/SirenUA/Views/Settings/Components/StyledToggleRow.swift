@@ -73,17 +73,19 @@ struct ServerStatusRow: View {
     @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
+                    .lineLimit(1)
                 Text(url)
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.4))
+                    .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             statusBadge
         }
@@ -98,33 +100,35 @@ struct ServerStatusRow: View {
     private var statusBadge: some View {
         switch status {
         case .checking:
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Circle()
                     .fill(Color.white.opacity(0.6))
-                    .frame(width: 7, height: 7)
+                    .frame(width: 6, height: 6)
                     .scaleEffect(pulse ? 1.3 : 0.7)
                     .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
                 Text("Перевірка...")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
             .background(Color.white.opacity(0.05))
             .clipShape(Capsule())
 
         case .online(let label):
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Circle()
                     .fill(Color(red: 0.18, green: 0.80, blue: 0.55))
-                    .frame(width: 7, height: 7)
-                    .shadow(color: Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.7), radius: 4)
+                    .frame(width: 6, height: 6)
+                    .shadow(color: Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.7), radius: 3)
                 Text(label)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(Color(red: 0.18, green: 0.80, blue: 0.55))
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
             .background(Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.12))
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Color(red: 0.18, green: 0.80, blue: 0.55).opacity(0.25), lineWidth: 1))

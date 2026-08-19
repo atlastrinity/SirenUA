@@ -90,7 +90,7 @@ struct SettingsView: View {
                    let status = json["status"] as? String {
                     if status == "ok" {
                         let keys = json["keys_count"] as? Int ?? 1
-                        return .online(label: "Активний (\(keys) key · \(ms) ms)")
+                        return .online(label: "Активний (\(keys) keys)")
                     } else if status == "mock" {
                         return .online(label: "Mock режим")
                     } else {

@@ -43,8 +43,8 @@ struct ServerDiagnosticsCard: View {
             StyledDivider()
 
             ServerStatusRow(
-                name: "Аналізатор ШІ (Gemini 2.5)",
-                url: "gemini-2.5-flash",
+                name: "Аналізатор ШІ (Gemini Flash Lite)",
+                url: "gemini-flash-lite-latest",
                 status: geminiServerStatus
             )
 
