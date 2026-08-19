@@ -5,6 +5,7 @@ import MapKit
 struct PremiumTrajectoryOverlay: MapContent {
     let targetCoordinate: CLLocationCoordinate2D
     let threatType: String?
+    let threatCount: Int
     let customOrigin: CLLocationCoordinate2D?
     let carrierOrigin: CLLocationCoordinate2D?
     let launchSector: CLLocationCoordinate2D?
@@ -18,6 +19,7 @@ struct PremiumTrajectoryOverlay: MapContent {
     init(
         targetCoordinate: CLLocationCoordinate2D,
         threatType: String?,
+        threatCount: Int = 1,
         customOrigin: CLLocationCoordinate2D? = nil,
         carrierOrigin: CLLocationCoordinate2D? = nil,
         launchSector: CLLocationCoordinate2D? = nil,
@@ -30,6 +32,7 @@ struct PremiumTrajectoryOverlay: MapContent {
     ) {
         self.targetCoordinate = targetCoordinate
         self.threatType = threatType
+        self.threatCount = max(1, threatCount)
         self.customOrigin = customOrigin
         self.carrierOrigin = carrierOrigin
         self.launchSector = launchSector
@@ -47,6 +50,7 @@ struct PremiumTrajectoryOverlay: MapContent {
             let trajectory = calculateTrajectory(
                 target: targetCoordinate,
                 threatType: threatType,
+                threatCount: threatCount,
                 customOrigin: customOrigin,
                 carrierOrigin: carrierOrigin,
                 launchSector: launchSector,
@@ -88,15 +92,19 @@ struct PremiumTrajectoryOverlay: MapContent {
                         )
                         .mapOverlayLevel(level: .aboveLabels)
 
-                    // Шар 3: Акуратна тактична стрілочка на вістрі
-                    Annotation(coordinate: trajectory.tipCoordinate) {
-                        TrajectoryArrowheadView(
-                            color: color,
-                            angle: trajectory.tipAngle,
-                            zoomScale: zoomScale
-                        )
-                    } label: {
-                        EmptyView()
+                    // Шар 3: Акуратні тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
+                    ForEach(trajectory.echelonArrowheads) { arrowhead in
+                        Annotation(coordinate: arrowhead.coordinate) {
+                            TrajectoryArrowheadView(
+                                color: color,
+                                angle: arrowhead.angle,
+                                zoomScale: zoomScale,
+                                echelonIndex: arrowhead.echelonIndex,
+                                totalEchelonCount: arrowhead.totalEchelonCount
+                            )
+                        } label: {
+                            EmptyView()
+                        }
                     }
                 }
             } else {
@@ -127,15 +135,19 @@ struct PremiumTrajectoryOverlay: MapContent {
                         .mapOverlayLevel(level: .aboveLabels)
                 }
 
-                // Шар 4: Тактична стрілочка на вістрі траєкторії
-                Annotation(coordinate: trajectory.tipCoordinate) {
-                    TrajectoryArrowheadView(
-                        color: color,
-                        angle: trajectory.tipAngle,
-                        zoomScale: zoomScale
-                    )
-                } label: {
-                    EmptyView()
+                // Шар 4: Тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
+                ForEach(trajectory.echelonArrowheads) { arrowhead in
+                    Annotation(coordinate: arrowhead.coordinate) {
+                        TrajectoryArrowheadView(
+                            color: color,
+                            angle: arrowhead.angle,
+                            zoomScale: zoomScale,
+                            echelonIndex: arrowhead.echelonIndex,
+                            totalEchelonCount: arrowhead.totalEchelonCount
+                        )
+                    } label: {
+                        EmptyView()
+                    }
                 }
             }
         }

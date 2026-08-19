@@ -100,6 +100,15 @@ struct ThreatMapContent: MapContent {
 
 
 
+// MARK: - Corridored Threat Group (Для групування загроз на одній траєкторії)
+
+struct CorridoredThreatGroup: Identifiable {
+    let id: String
+    let primaryThreat: SingleThreatInfo
+    let threatCount: Int
+    let threats: [SingleThreatInfo]
+}
+
 // MARK: - Flying Threat Map Overlay MapContent
 
 struct FlyingThreatMapOverlay: MapContent {
@@ -109,6 +118,23 @@ struct FlyingThreatMapOverlay: MapContent {
     var cameraDistance: Double = 600_000.0
     var zoomScale: CGFloat = 1.0
     let onRegionSelected: (AlertRegion) -> Void
+
+    private var groupedThreats: [CorridoredThreatGroup] {
+        var groups: [String: [SingleThreatInfo]] = [:]
+        var order: [String] = []
+        for threat in alert.activeThreats {
+            let sig = threat.trajectorySignature
+            if groups[sig] == nil {
+                groups[sig] = []
+                order.append(sig)
+            }
+            groups[sig]?.append(threat)
+        }
+        return order.compactMap { sig in
+            guard let list = groups[sig], let first = list.first else { return nil }
+            return CorridoredThreatGroup(id: sig, primaryThreat: first, threatCount: list.count, threats: list)
+        }
+    }
 
     var body: some MapContent {
         if !RegionRegistry.isPermanentlyActive(alert.name) {
@@ -122,13 +148,15 @@ struct FlyingThreatMapOverlay: MapContent {
             // MARK: - Trajectory flight vector overlay (gated by Premium & Region Scope)
             if showTrajectory {
                 if !alert.activeThreats.isEmpty {
-                    ForEach(alert.activeThreats) { threatItem in
+                    ForEach(groupedThreats) { group in
+                        let threatItem = group.primaryThreat
                         let itemType = threatItem.type ?? alert.threatType
                         let itemOrigin = threatItem.originCoordinate
                         let itemColor = threatItem.threatColor
                         PremiumTrajectoryOverlay(
                             targetCoordinate: alert.coordinate,
                             threatType: itemType,
+                            threatCount: group.threatCount,
                             customOrigin: itemOrigin,
                             carrierOrigin: threatItem.carrierOriginCoordinate,
                             launchSector: threatItem.launchSectorCoordinate,
@@ -144,6 +172,7 @@ struct FlyingThreatMapOverlay: MapContent {
                     PremiumTrajectoryOverlay(
                         targetCoordinate: alert.coordinate,
                         threatType: threatType,
+                        threatCount: 1,
                         customOrigin: customOrigin,
                         carrierOrigin: alert.currentThreat?.carrierOriginCoordinate,
                         launchSector: alert.currentThreat?.launchSectorCoordinate,

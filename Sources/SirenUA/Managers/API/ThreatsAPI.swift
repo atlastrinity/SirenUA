@@ -179,6 +179,16 @@ struct SingleThreatInfo: Codable, Identifiable, Equatable {
         ThreatConstants.color(for: type)
     }
 
+    /// Унікальний підпис коридору польоту (для групування ешелонів загроз на одній траєкторії)
+    var trajectorySignature: String {
+        let t = type ?? "threat"
+        let origLat = originCoordinate.map { String(format: "%.3f", $0.latitude) } ?? "0"
+        let origLon = originCoordinate.map { String(format: "%.3f", $0.longitude) } ?? "0"
+        let carrier = carrier_origin_name ?? ""
+        let sector = launch_sector_name ?? ""
+        return "\(t)|\(carrier)|\(sector)|\(origLat)_\(origLon)"
+    }
+
     // MARK: - Optimized Static Formatters & Regex Pool
 
     private enum DateCache {

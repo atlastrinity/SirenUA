@@ -31,23 +31,33 @@ public struct TrajectoryArrowheadView: View {
     public let color: Color
     public let angle: Double
     public var zoomScale: CGFloat = 1.0
+    public var echelonIndex: Int = 0
+    public var totalEchelonCount: Int = 1
 
     @State private var isPulsing = false
 
-    public init(color: Color, angle: Double, zoomScale: CGFloat = 1.0) {
+    public init(
+        color: Color,
+        angle: Double,
+        zoomScale: CGFloat = 1.0,
+        echelonIndex: Int = 0,
+        totalEchelonCount: Int = 1
+    ) {
         self.color = color
         self.angle = angle
         self.zoomScale = zoomScale
+        self.echelonIndex = echelonIndex
+        self.totalEchelonCount = totalEchelonCount
     }
 
     public var body: some View {
         ZStack(alignment: .center) {
             // 1. Soft pulse ring radiating from arrowhead
             Circle()
-                .stroke(color.opacity(isPulsing ? 0.0 : 0.60), lineWidth: 1.0)
+                .stroke(color.opacity(isPulsing ? 0.0 : (echelonIndex == 0 ? 0.60 : 0.40)), lineWidth: 1.0)
                 .frame(width: 20, height: 20)
                 .scaleEffect(isPulsing ? 1.5 : 0.8)
-                .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: isPulsing)
+                .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false).delay(Double(echelonIndex) * 0.25), value: isPulsing)
 
             // 2. Tactical Arrowhead Body ("як у стрілі")
             ZStack {

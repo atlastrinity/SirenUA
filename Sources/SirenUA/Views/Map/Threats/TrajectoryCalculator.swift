@@ -48,6 +48,24 @@ public struct TrajectoryTaperedSegment: Identifiable {
     }
 }
 
+// MARK: - Trajectory Arrowhead Echelon Data
+
+public struct TrajectoryArrowheadData: Identifiable, Sendable {
+    public let id: Int
+    public let coordinate: CLLocationCoordinate2D
+    public let angle: Double
+    public let echelonIndex: Int
+    public let totalEchelonCount: Int
+
+    public init(id: Int, coordinate: CLLocationCoordinate2D, angle: Double, echelonIndex: Int = 0, totalEchelonCount: Int = 1) {
+        self.id = id
+        self.coordinate = coordinate
+        self.angle = angle
+        self.echelonIndex = echelonIndex
+        self.totalEchelonCount = totalEchelonCount
+    }
+}
+
 // MARK: - Trajectory Path Data
 
 public struct TrajectoryPath {
@@ -58,6 +76,7 @@ public struct TrajectoryPath {
     public let lastCheckpointAngle: Double
     public let tipCoordinate: CLLocationCoordinate2D
     public let tipAngle: Double
+    public let echelonArrowheads: [TrajectoryArrowheadData]
     public let carrierApproachPoints: [CLLocationCoordinate2D]?
     public let carrierOriginName: String?
     public let launchSectorName: String?
@@ -70,6 +89,7 @@ public struct TrajectoryPath {
         lastCheckpointAngle: Double,
         tipCoordinate: CLLocationCoordinate2D? = nil,
         tipAngle: Double? = nil,
+        echelonArrowheads: [TrajectoryArrowheadData]? = nil,
         carrierApproachPoints: [CLLocationCoordinate2D]? = nil,
         carrierOriginName: String? = nil,
         launchSectorName: String? = nil
@@ -79,8 +99,23 @@ public struct TrajectoryPath {
         self.flowArrows = flowArrows
         self.lastCheckpointCoordinate = lastCheckpointCoordinate
         self.lastCheckpointAngle = lastCheckpointAngle
-        self.tipCoordinate = tipCoordinate ?? fullPoints.last ?? lastCheckpointCoordinate
-        self.tipAngle = tipAngle ?? lastCheckpointAngle
+        let resolvedTip = tipCoordinate ?? fullPoints.last ?? lastCheckpointCoordinate
+        let resolvedAngle = tipAngle ?? lastCheckpointAngle
+        self.tipCoordinate = resolvedTip
+        self.tipAngle = resolvedAngle
+        if let echelons = echelonArrowheads, !echelons.isEmpty {
+            self.echelonArrowheads = echelons
+        } else {
+            self.echelonArrowheads = [
+                TrajectoryArrowheadData(
+                    id: 0,
+                    coordinate: resolvedTip,
+                    angle: resolvedAngle,
+                    echelonIndex: 0,
+                    totalEchelonCount: 1
+                )
+            ]
+        }
         self.carrierApproachPoints = carrierApproachPoints
         self.carrierOriginName = carrierOriginName
         self.launchSectorName = launchSectorName
@@ -123,6 +158,7 @@ public final class TrajectoryCache: @unchecked Sendable {
 public func calculateTrajectory(
     target: CLLocationCoordinate2D,
     threatType: String?,
+    threatCount: Int = 1,
     customOrigin: CLLocationCoordinate2D? = nil,
     carrierOrigin: CLLocationCoordinate2D? = nil,
     launchSector: CLLocationCoordinate2D? = nil,
@@ -134,6 +170,7 @@ public func calculateTrajectory(
     let targetLat = Int(round(target.latitude * 1000))
     let targetLon = Int(round(target.longitude * 1000))
     let tType = threatType ?? ""
+    let tCount = max(1, threatCount)
     let originStr = customOrigin.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
     let carrierStr = carrierOrigin.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
     let sectorStr = launchSector.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
@@ -142,7 +179,7 @@ public func calculateTrajectory(
     let distBucket = Int(round(cameraDistance / 50_000.0))
     let zoomBucket = Int(round(zoomScale * 20.0))
 
-    let cacheKey = "\(targetLat)_\(targetLon)|\(tType)|\(originStr)|\(carrierStr)|\(sectorStr)|\(cName)|\(sName)|\(distBucket)|\(zoomBucket)"
+    let cacheKey = "\(targetLat)_\(targetLon)|\(tType)|\(tCount)|\(originStr)|\(carrierStr)|\(sectorStr)|\(cName)|\(sName)|\(distBucket)|\(zoomBucket)"
     
     if let cached = TrajectoryCache.shared.get(key: cacheKey) {
         return cached
@@ -475,6 +512,77 @@ public func calculateTrajectory(
         }
     }
 
+    // MARK: - Multi-Threat Echelon Formation (Відступ та стрілочки для кожної групи на траєкторії)
+    var echelonArrowheads: [TrajectoryArrowheadData] = []
+    echelonArrowheads.append(
+        TrajectoryArrowheadData(
+            id: 0,
+            coordinate: tipCoord,
+            angle: tipAngle,
+            echelonIndex: 0,
+            totalEchelonCount: max(1, threatCount)
+        )
+    )
+
+    if threatCount > 1 && fullPoints.count >= 2 {
+        func distKm(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
+            let dLat = (a.latitude - b.latitude) * 111.0
+            let dLon = (a.longitude - b.longitude) * 111.0 * cos(b.latitude * .pi / 180.0)
+            return sqrt(dLat * dLat + dLon * dLon)
+        }
+
+        var totalLengthKm = 0.0
+        for i in 0..<(fullPoints.count - 1) {
+            totalLengthKm += distKm(fullPoints[i], fullPoints[i + 1])
+        }
+
+        // Динамічний відступ між групами в колоні (~20-48 км)
+        let spacingKm = max(18.0, min(48.0, totalLengthKm / Double(threatCount + 1)))
+
+        for echIdx in 1..<min(threatCount, 6) {
+            let targetDistBack = Double(echIdx) * spacingKm
+            var accumulatedDist = 0.0
+            var foundCoord: CLLocationCoordinate2D?
+            var foundAngle = tipAngle
+
+            // Проходимо по сплайну назад від вістря
+            for i in (1..<fullPoints.count).reversed() {
+                let pNext = fullPoints[i]
+                let pPrev = fullPoints[i - 1]
+                let segLen = distKm(pNext, pPrev)
+
+                if accumulatedDist + segLen >= targetDistBack {
+                    let remain = targetDistBack - accumulatedDist
+                    let frac = remain / max(0.0001, segLen)
+                    let lat = pNext.latitude + (pPrev.latitude - pNext.latitude) * frac
+                    let lon = pNext.longitude + (pPrev.longitude - pNext.longitude) * frac
+                    foundCoord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+
+                    let dLat = pNext.latitude - pPrev.latitude
+                    let dLon = (pNext.longitude - pPrev.longitude) * cos(pNext.latitude * .pi / 180.0)
+                    let angleRad = atan2(dLon, dLat)
+                    var deg = angleRad * 180.0 / .pi
+                    if deg < 0 { deg += 360.0 }
+                    foundAngle = deg
+                    break
+                } else {
+                    accumulatedDist += segLen
+                }
+            }
+
+            let finalCoord = foundCoord ?? fullPoints.first!
+            echelonArrowheads.append(
+                TrajectoryArrowheadData(
+                    id: echIdx,
+                    coordinate: finalCoord,
+                    angle: foundAngle,
+                    echelonIndex: echIdx,
+                    totalEchelonCount: threatCount
+                )
+            )
+        }
+    }
+
     let trajectoryResult = TrajectoryPath(
         fullPoints: fullPoints,
         taperedSegments: taperedSegments,
@@ -483,6 +591,7 @@ public func calculateTrajectory(
         lastCheckpointAngle: angleDeg,
         tipCoordinate: tipCoord,
         tipAngle: tipAngle,
+        echelonArrowheads: echelonArrowheads,
         carrierApproachPoints: carrierApproachPoints,
         carrierOriginName: carrierOriginName,
         launchSectorName: launchSectorName
