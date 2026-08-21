@@ -410,11 +410,17 @@ public struct TrajectoryOriginMarkerView: View {
         if lower.contains("саки") || lower.contains("новофедор") {
             return "САКИ"
         }
+        if lower.contains("гвардій") || lower.contains("гвардей") {
+            return "ГВАРДІЙСЬКЕ"
+        }
         if lower.contains("джанкой") {
             return "ДЖАНКОЙ"
         }
         if lower.contains("бєлгород") || lower.contains("белгород") {
             return "БЄЛГОРОД"
+        }
+        if lower.contains("халін") || lower.contains("халин") {
+            return "ХАЛІНО"
         }
         if lower.contains("курськ") || lower.contains("курск") {
             return "КУРСЬК"
@@ -425,8 +431,14 @@ public struct TrajectoryOriginMarkerView: View {
         if lower.contains("орел") || lower.contains("орлов") {
             return "ОРЕЛ"
         }
+        if lower.contains("сеща") {
+            return "СЕЩА"
+        }
         if lower.contains("білорус") || lower.contains("рб") || lower.contains("гомел") {
             return "БІЛОРУСЬ"
+        }
+        if lower.contains("брест") || lower.contains("мачулищ") {
+            return "МАЧУЛИЩІ"
         }
         if lower.contains("приморськ") || lower.contains("ахтарськ") {
             return "ПРИМОРСЬКО-АХТАРСЬК"
@@ -434,11 +446,47 @@ public struct TrajectoryOriginMarkerView: View {
         if lower.contains("єйськ") {
             return "ЄЙСЬК"
         }
+        if lower.contains("міллер") || lower.contains("миллер") {
+            return "МІЛЛЄРОВО"
+        }
+        if lower.contains("морозов") {
+            return "МОРОЗОВСЬК"
+        }
+        if lower.contains("балтім") || lower.contains("балтим") || lower.contains("воронеж") {
+            return "ВОРОНЕЖ"
+        }
+        if lower.contains("бутурлин") {
+            return "БУТУРЛИНІВКА"
+        }
+        if lower.contains("кущев") {
+            return "КУЩЕВСЬКА"
+        }
+        if lower.contains("таганрог") {
+            return "ТАГАНРОГ"
+        }
+        if lower.contains("кримськ") || lower.contains("крымск") {
+            return "КРИМСЬК"
+        }
+        if lower.contains("олень") {
+            return "ОЛЕНЬЯ"
+        }
         if lower.contains("енгельс") || lower.contains("саратов") {
             return "ЕНГЕЛЬС"
         }
         if lower.contains("шайковк") {
             return "ШАЙКОВКА"
+        }
+        if lower.contains("дягіл") || lower.contains("дягил") {
+            return "ДЯГІЛЄВО"
+        }
+        if lower.contains("сольц") {
+            return "СОЛЬЦІ"
+        }
+        if lower.contains("ахтуб") {
+            return "АХТУБІНСЬК"
+        }
+        if lower.contains("липецьк") || lower.contains("липецк") {
+            return "ЛИПЕЦЬК"
         }
         if lower.contains("моздок") {
             return "МОЗДОК"
