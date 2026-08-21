@@ -382,13 +382,47 @@ public func calculateTrajectory(
         startCoord = CLLocationCoordinate2D(latitude: sLat, longitude: sLon)
     }
 
+    // MARK: - Tactical Munition Physical Range Clamping
+    var effectiveStartCoord = startCoord
+    var effectiveWaypoint = transitWaypoint
+
+    if tType == ThreatConstants.kab || tType == "kab" {
+        effectiveWaypoint = nil
+        let dLat = effectiveStartCoord.latitude - target.latitude
+        let dLon = effectiveStartCoord.longitude - target.longitude
+        let latMid = (effectiveStartCoord.latitude + target.latitude) * 0.5 * .pi / 180.0
+        let distKm = sqrt(dLat * dLat * 111.0 * 111.0 + dLon * dLon * 111.0 * 111.0 * cos(latMid) * cos(latMid))
+        let maxKabGlideKm = 65.0
+        if distKm > maxKabGlideKm && distKm > 1.0 {
+            let scale = maxKabGlideKm / distKm
+            effectiveStartCoord = CLLocationCoordinate2D(
+                latitude: target.latitude + dLat * scale,
+                longitude: target.longitude + dLon * scale
+            )
+        }
+    } else if tType == ThreatConstants.artillery || tType == ThreatConstants.mlrs || tType == "artillery" || tType == "mlrs" {
+        effectiveWaypoint = nil
+        let dLat = effectiveStartCoord.latitude - target.latitude
+        let dLon = effectiveStartCoord.longitude - target.longitude
+        let latMid = (effectiveStartCoord.latitude + target.latitude) * 0.5 * .pi / 180.0
+        let distKm = sqrt(dLat * dLat * 111.0 * 111.0 + dLon * dLon * 111.0 * 111.0 * cos(latMid) * cos(latMid))
+        let maxArtilleryKm = 40.0
+        if distKm > maxArtilleryKm && distKm > 1.0 {
+            let scale = maxArtilleryKm / distKm
+            effectiveStartCoord = CLLocationCoordinate2D(
+                latitude: target.latitude + dLat * scale,
+                longitude: target.longitude + dLon * scale
+            )
+        }
+    }
+
     // MARK: - Aerodynamic Smooth Continuous Spline Generation
     var rawPoints: [CLLocationCoordinate2D] = []
 
-    if let waypoint = transitWaypoint {
+    if let waypoint = effectiveWaypoint {
         // Multi-segment with aerodynamic turn arc (fillet curve around waypoint)
         rawPoints = generateMultiWaypointSmoothSpline(
-            start: startCoord,
+            start: effectiveStartCoord,
             waypoint: waypoint,
             target: target,
             curvature: curvature,
@@ -398,7 +432,7 @@ public func calculateTrajectory(
     } else {
         // Direct single-segment flight path
         rawPoints = generateSegment(
-            start: startCoord,
+            start: effectiveStartCoord,
             end: target,
             curvature: curvature,
             cycles: cycles,
