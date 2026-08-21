@@ -142,7 +142,7 @@ public final class TrajectoryCache: @unchecked Sendable {
     public func set(key: String, path: TrajectoryPath) {
         lock.lock()
         defer { lock.unlock() }
-        if cache.count > 200 {
+        if cache.count > 500 {
             cache.removeAll(keepingCapacity: true)
         }
         cache[key] = path
@@ -178,8 +178,9 @@ public func calculateTrajectory(
     let sectorStr = launchSector.map { "\(Int(round($0.latitude * 1000)))_\(Int(round($0.longitude * 1000)))" } ?? ""
     let cName = carrierOriginName ?? ""
     let sName = launchSectorName ?? ""
-    let distBucket = Int(round(cameraDistance / 50_000.0))
-    let zoomBucket = Int(round(zoomScale * 20.0))
+    // Responsive 10km distance quantization (5x finer than 50km) for instant smooth pinch-to-zoom
+    let distBucket = Int(round(cameraDistance / 10_000.0))
+    let zoomBucket = Int(round(zoomScale * 50.0))
 
     let cacheKey = "\(targetLat)_\(targetLon)|\(tType)|\(tCount)|\(originStr)|\(carrierStr)|\(sectorStr)|\(cName)|\(sName)|\(distBucket)|\(zoomBucket)"
     

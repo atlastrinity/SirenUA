@@ -101,10 +101,10 @@ final class MapViewModel: ObservableObject {
         guard distance > 0 else { return }
         let distRatio = abs(cameraDistance - distance) / cameraDistance
         let headingDiff = abs(cameraHeading - heading)
-        if distRatio > 0.02 {
+        if distRatio > 0.008 {
             cameraDistance = distance
         }
-        if headingDiff > 0.5 {
+        if headingDiff > 0.2 {
             cameraHeading = heading
         }
     }
@@ -112,7 +112,7 @@ final class MapViewModel: ObservableObject {
     func updateCameraDistance(_ distance: Double) {
         guard distance > 0 else { return }
         let ratio = abs(cameraDistance - distance) / cameraDistance
-        guard ratio > 0.02 else { return }
+        guard ratio > 0.008 else { return }
         cameraDistance = distance
     }
 
