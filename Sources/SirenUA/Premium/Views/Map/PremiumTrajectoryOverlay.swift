@@ -105,21 +105,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                         }
                     }
 
-                    // Шар 4: Напрямні тактичні шеврони вздовж траєкторії (Flow Direction)
-                    ForEach(trajectory.flowArrows) { flowArrow in
-                        Annotation(coordinate: flowArrow.coordinate) {
-                            TrajectoryFlowChevronView(
-                                angle: flowArrow.angle,
-                                threatIcon: ThreatConstants.sfSymbol(for: threatType),
-                                threatLabel: ThreatConstants.shortName(for: threatType),
-                                opacity: flowArrow.opacity
-                            )
-                        } label: {
-                            EmptyView()
-                        }
-                    }
-
-                    // Шар 5: Акуратні тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
+                    // Шар 4: Акуратні тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
                     ForEach(trajectory.echelonArrowheads) { arrowhead in
                         Annotation(coordinate: arrowhead.coordinate) {
                             TrajectoryArrowheadView(
@@ -175,21 +161,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                     }
                 }
 
-                // Шар 5: Напрямні тактичні шеврони вздовж траєкторії (Flow Direction)
-                ForEach(trajectory.flowArrows) { flowArrow in
-                    Annotation(coordinate: flowArrow.coordinate) {
-                        TrajectoryFlowChevronView(
-                            angle: flowArrow.angle,
-                            threatIcon: ThreatConstants.sfSymbol(for: threatType),
-                            threatLabel: ThreatConstants.shortName(for: threatType),
-                            opacity: flowArrow.opacity
-                        )
-                    } label: {
-                        EmptyView()
-                    }
-                }
-
-                // Шар 6: Тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
+                // Шар 5: Тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
                 ForEach(trajectory.echelonArrowheads) { arrowhead in
                     Annotation(coordinate: arrowhead.coordinate) {
                         TrajectoryArrowheadView(
