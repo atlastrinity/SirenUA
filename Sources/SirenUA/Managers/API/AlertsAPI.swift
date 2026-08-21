@@ -30,6 +30,9 @@ extension NetworkManager {
                     throw NetworkError.decodingFailed(error)
                 }
             } catch {
+                if Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                    throw error
+                }
                 lastError = error
                 alertsLogger.warning("Attempt \(attempt)/\(maxAttempts) failed to fetch alerts: \(error.localizedDescription)")
                 if attempt < maxAttempts {

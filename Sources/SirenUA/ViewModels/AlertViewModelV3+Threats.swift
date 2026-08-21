@@ -28,6 +28,10 @@ extension AlertViewModelV3 {
             }
             isFetching = false
         } catch {
+            if Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                isFetching = false
+                return
+            }
             vmLogger.error("Error fetching threats: \(error.localizedDescription)")
             isFetching = false
             // Fallback: якщо Threat API недоступний — отримуємо хоча б офіційні тривоги
@@ -151,6 +155,10 @@ extension AlertViewModelV3 {
                 }
             }
         } catch {
+            if Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                isLoading = false
+                return
+            }
             vmLogger.error("Error fetching alerts: \(error.localizedDescription)")
             if firstNetworkFailureDate == nil {
                 firstNetworkFailureDate = Date()
