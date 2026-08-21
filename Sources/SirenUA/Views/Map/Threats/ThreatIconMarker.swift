@@ -430,24 +430,24 @@ public struct TrajectoryOriginMarkerView: View {
             if let name = originName, !name.isEmpty {
                 HStack(spacing: 3) {
                     Image(systemName: "smallcircle.filled.circle.fill")
-                        .font(.system(size: 7, weight: .bold))
+                        .font(.system(size: 6, weight: .bold))
                         .foregroundColor(color)
 
                     Text(name.uppercased())
-                        .font(.system(size: 9.0, weight: .black, design: .rounded))
+                        .font(.system(size: 7.5, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
                 .background(
-                    RoundedRectangle(cornerRadius: 5)
+                    RoundedRectangle(cornerRadius: 4)
                         .fill(Color.black.opacity(0.88))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(color.opacity(0.85), lineWidth: 1.0)
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(color.opacity(0.85), lineWidth: 0.8)
                 )
-                .shadow(color: Color.black.opacity(0.6), radius: 4, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.6), radius: 3, x: 0, y: 1.5)
             }
         }
         .scaleEffect(zoomScale, anchor: .center)
