@@ -417,6 +417,6 @@ public struct TrajectoryOriginMarkerView: View {
                     .overlay(RoundedRectangle(cornerRadius: 3).stroke(color.opacity(0.6), lineWidth: 0.5))
             }
         }
-        .scaleEffect(max(0.75, min(1.15, zoomScale)))
+        .scaleEffect(zoomScale)
     }
 }
