@@ -391,10 +391,21 @@ public func calculateTrajectory(
                 sLat = max(50.5, target.latitude + 0.8)
                 sLon = max(36.5, target.longitude + 0.6)
             }
-        case "kab":
-            // KAB: Frontline / Border
-            sLat = target.latitude + 0.4
-            sLon = target.longitude + 0.5
+        case ThreatConstants.kab, "kab":
+            // KAB: Frontline / Border directional sector
+            if target.latitude < 47.8 {
+                // South / Left Bank / Zaporizhzhia frontline (Polohy/Tokmak/Oleshky)
+                sLat = target.latitude - 0.45
+                sLon = target.longitude + 0.35
+            } else if target.longitude > 37.0 {
+                // Donbas frontline
+                sLat = target.latitude - 0.20
+                sLon = target.longitude + 0.50
+            } else {
+                // Northern / Eastern border (Kharkiv / Sumy / Chernihiv)
+                sLat = target.latitude + 0.50
+                sLon = target.longitude + 0.40
+            }
         default:
             sLat = max(50.5, target.latitude + 0.8)
             sLon = max(35.5, target.longitude + 1.2)
