@@ -68,6 +68,30 @@ public struct TrajectoryArrowheadData: Identifiable, Sendable {
     }
 }
 
+// MARK: - Trajectory Carrier Ingress Marker Data
+
+public struct TrajectoryCarrierMarker: Identifiable, Equatable {
+    public let id: String
+    public let coordinate: CLLocationCoordinate2D
+    public let angle: Double
+    public let iconName: String
+
+    public init(id: String, coordinate: CLLocationCoordinate2D, angle: Double, iconName: String = "airplane") {
+        self.id = id
+        self.coordinate = coordinate
+        self.angle = angle
+        self.iconName = iconName
+    }
+
+    public static func == (lhs: TrajectoryCarrierMarker, rhs: TrajectoryCarrierMarker) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.coordinate.latitude == rhs.coordinate.latitude &&
+        lhs.coordinate.longitude == rhs.coordinate.longitude &&
+        lhs.angle == rhs.angle &&
+        lhs.iconName == rhs.iconName
+    }
+}
+
 // MARK: - Trajectory Path Data
 
 public struct TrajectoryPath {
@@ -80,6 +104,7 @@ public struct TrajectoryPath {
     public let tipAngle: Double
     public let echelonArrowheads: [TrajectoryArrowheadData]
     public let carrierApproachPoints: [CLLocationCoordinate2D]?
+    public let carrierApproachMarker: TrajectoryCarrierMarker?
     public let carrierOriginName: String?
     public let launchSectorName: String?
 
@@ -93,6 +118,7 @@ public struct TrajectoryPath {
         tipAngle: Double? = nil,
         echelonArrowheads: [TrajectoryArrowheadData]? = nil,
         carrierApproachPoints: [CLLocationCoordinate2D]? = nil,
+        carrierApproachMarker: TrajectoryCarrierMarker? = nil,
         carrierOriginName: String? = nil,
         launchSectorName: String? = nil
     ) {
@@ -119,6 +145,7 @@ public struct TrajectoryPath {
             ]
         }
         self.carrierApproachPoints = carrierApproachPoints
+        self.carrierApproachMarker = carrierApproachMarker
         self.carrierOriginName = carrierOriginName
         self.launchSectorName = launchSectorName
     }
@@ -533,6 +560,7 @@ public func calculateTrajectory(
 
     // Calculate Carrier Ingress Approach (Airbase -> Launch Sector / Start Coordinate)
     var carrierApproachPoints: [CLLocationCoordinate2D]? = nil
+    var carrierApproachMarker: TrajectoryCarrierMarker? = nil
     if let carrier = carrierOrigin {
         let dLatApp = (startCoord.latitude - carrier.latitude) * 111.0
         let dLonApp = (startCoord.longitude - carrier.longitude) * 111.0 * cos(carrier.latitude * .pi / 180.0)
@@ -558,7 +586,27 @@ public func calculateTrajectory(
                 let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startCoord.longitude
                 approach.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
             }
-            carrierApproachPoints = smoothPointsChaikin(points: approach, iterations: 1)
+            let smoothed = smoothPointsChaikin(points: approach, iterations: 1)
+            carrierApproachPoints = smoothed
+
+            if smoothed.count >= 3 {
+                let midIdx = smoothed.count / 2
+                let pA = smoothed[max(0, midIdx - 1)]
+                let pB = smoothed[min(smoothed.count - 1, midIdx + 1)]
+                let dLatMid = pB.latitude - pA.latitude
+                let dLonMid = (pB.longitude - pA.longitude) * cos(pA.latitude * .pi / 180.0)
+                let angleRadMid = atan2(dLonMid, dLatMid)
+                var degMid = angleRadMid * 180.0 / .pi
+                if degMid < 0 { degMid += 360.0 }
+
+                let markerIcon = (threatType == "shahed" || threatType == "reactive_uav") ? "airplane.circle.fill" : "airplane"
+                carrierApproachMarker = TrajectoryCarrierMarker(
+                    id: "carrier_\(carrier.latitude)_\(carrier.longitude)",
+                    coordinate: smoothed[midIdx],
+                    angle: degMid,
+                    iconName: markerIcon
+                )
+            }
         }
     }
     // Progressive Tapering: Generate 3 continuous segments that gracefully narrow from launch origin to target tip
@@ -679,6 +727,7 @@ public func calculateTrajectory(
         tipAngle: tipAngle,
         echelonArrowheads: echelonArrowheads,
         carrierApproachPoints: carrierApproachPoints,
+        carrierApproachMarker: carrierApproachMarker,
         carrierOriginName: carrierOriginName,
         launchSectorName: launchSectorName
     )

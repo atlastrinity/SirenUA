@@ -102,6 +102,49 @@ public struct TrajectoryArrowheadView: View {
     }
 }
 
+// MARK: - Carrier Approach Direction View (Airbase Ingress Vector Indicator)
+
+public struct CarrierApproachDirectionView: View {
+    public let angle: Double
+    public var heading: Double = 0.0
+    public var zoomScale: CGFloat = 1.0
+    public var iconName: String = "airplane"
+
+    public init(
+        angle: Double,
+        heading: Double = 0.0,
+        zoomScale: CGFloat = 1.0,
+        iconName: String = "airplane"
+    ) {
+        self.angle = angle
+        self.heading = heading
+        self.zoomScale = zoomScale
+        self.iconName = iconName
+    }
+
+    public var body: some View {
+        ZStack {
+            // Tactical frosted pill background to ensure high contrast against any terrain
+            Circle()
+                .fill(Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.85))
+                .frame(width: 18, height: 18)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.50), lineWidth: 0.9)
+                )
+                .shadow(color: Color.black.opacity(0.60), radius: 3, x: 0, y: 1)
+
+            // Carrier aircraft silhouette aligned with ingress heading
+            Image(systemName: iconName)
+                .font(.system(size: 9.5, weight: .bold))
+                .foregroundColor(Color.white.opacity(0.95))
+                .rotationEffect(.degrees(angle - heading))
+        }
+        .scaleEffect(min(1.20, max(0.85, zoomScale)))
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Trajectory Flow Chevron View (Directional Pulsing Arrow + Threat Icon)
 
 public struct TrajectoryFlowChevronView: View {

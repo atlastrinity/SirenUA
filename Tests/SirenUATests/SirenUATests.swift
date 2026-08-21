@@ -1276,6 +1276,12 @@ final class SirenUATests: XCTestCase {
         let approachLast = trajectory.carrierApproachPoints!.last!
         XCTAssertEqual(approachFirst.latitude, 48.31, accuracy: 0.01)
         XCTAssertEqual(approachLast.latitude, 46.20, accuracy: 0.01)
+
+        // 5. Carrier approach direction marker exists and points towards Azov Sea
+        XCTAssertNotNil(trajectory.carrierApproachMarker)
+        let marker = trajectory.carrierApproachMarker!
+        XCTAssertEqual(marker.iconName, "airplane")
+        XCTAssertTrue(marker.angle > 160.0 && marker.angle < 260.0, "Approach angle from Morozovsk to Azov Sea should be South-Southwest, got \(marker.angle)")
     }
 
     func testTrajectoryStandoffAndArrowheadAngle() {

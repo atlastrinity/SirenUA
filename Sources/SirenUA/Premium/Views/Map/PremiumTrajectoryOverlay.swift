@@ -78,6 +78,20 @@ struct PremiumTrajectoryOverlay: MapContent {
                         style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round, dash: [6, 6])
                     )
                     .mapOverlayLevel(level: .aboveLabels)
+
+                // Тактичний індикатор напрямку підльоту носія (Мікро-силует літака)
+                if let carrierMarker = trajectory.carrierApproachMarker {
+                    Annotation(coordinate: carrierMarker.coordinate) {
+                        CarrierApproachDirectionView(
+                            angle: carrierMarker.angle,
+                            heading: cameraHeading,
+                            zoomScale: zoomScale,
+                            iconName: carrierMarker.iconName
+                        )
+                    } label: {
+                        EmptyView()
+                    }
+                }
             }
 
             // 1. РІВЕНЬ ДЕТАЛІЗАЦІЇ (LOD Level of Detail):
