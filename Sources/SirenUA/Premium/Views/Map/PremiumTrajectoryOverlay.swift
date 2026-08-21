@@ -94,83 +94,32 @@ struct PremiumTrajectoryOverlay: MapContent {
                 }
             }
 
-            // 1. РІВЕНЬ ДЕТАЛІЗАЦІЇ (LOD Level of Detail):
-            // На оглядовому плані всієї України (> 450 км) малюємо 2 оптимізовані суцільні лінії (Glow + Core)
-            // замість циклу багатьох сегментів, що зменшує GPU draw calls на 80%.
-            if cameraDistance > 450_000.0 || trajectory.taperedSegments.isEmpty {
-                if n >= 2 {
-                    // Шар 1: Насичене основне тіло тактичного вектору (Kinetic Tactical Beam)
-                    MapPolyline(coordinates: trajectory.fullPoints)
-                        .stroke(
-                            color.opacity(0.88),
-                            style: StrokeStyle(lineWidth: 3.2, lineCap: .round, lineJoin: .round)
-                        )
-                        .mapOverlayLevel(level: .aboveLabels)
+            // 1. Тактичний неоновий вектор траєкторії (Atmospheric Aura Glow + Kinetic Tactical Beam + Razor Luminous Core)
+            // Плавний 3-шаровий вектор забезпечує однакове яскраве світіння на будь-якому масштабі карти без мерехтіння чи стрибків LOD.
+            if n >= 2 {
+                // Шар 1: М'який радарний неоновий ореол (Atmospheric Aura Glow)
+                MapPolyline(coordinates: trajectory.fullPoints)
+                    .stroke(
+                        color.opacity(0.35),
+                        style: StrokeStyle(lineWidth: 6.0, lineCap: .round, lineJoin: .round)
+                    )
+                    .mapOverlayLevel(level: .aboveLabels)
 
-                    // Шар 2: Висококонтрастне центральне ядро (Razor Luminous Core)
-                    MapPolyline(coordinates: trajectory.fullPoints)
-                        .stroke(
-                            Color(red: 1.0, green: 0.98, blue: 0.90).opacity(0.95),
-                            style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round)
-                        )
-                        .mapOverlayLevel(level: .aboveLabels)
+                // Шар 2: Насичене основне тіло тактичного вектору (Kinetic Tactical Beam)
+                MapPolyline(coordinates: trajectory.fullPoints)
+                    .stroke(
+                        color.opacity(0.92),
+                        style: StrokeStyle(lineWidth: 3.2, lineCap: .round, lineJoin: .round)
+                    )
+                    .mapOverlayLevel(level: .aboveLabels)
 
-                    // Шар 3: Тактичний маркер точки вильоту / Рубежу пуску (Origin Pulse Dot)
-                    if showOriginMarker, let originCoord = trajectory.fullPoints.first {
-                        Annotation(coordinate: originCoord) {
-                            TrajectoryOriginMarkerView(
-                                color: color,
-                                zoomScale: zoomScale,
-                                originName: launchSectorName ?? carrierOriginName
-                            )
-                        } label: {
-                            EmptyView()
-                        }
-                    }
-
-                    // Шар 4: Акуратні тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
-                    ForEach(trajectory.echelonArrowheads) { arrowhead in
-                        Annotation(coordinate: arrowhead.coordinate) {
-                            TrajectoryArrowheadView(
-                                color: color,
-                                angle: arrowhead.angle,
-                                heading: cameraHeading,
-                                zoomScale: zoomScale,
-                                echelonIndex: arrowhead.echelonIndex,
-                                totalEchelonCount: arrowhead.totalEchelonCount
-                            )
-                        } label: {
-                            EmptyView()
-                        }
-                    }
-                }
-            } else {
-                // На наближеному плані (<= 450 км): Аеродинамічне звуження через конічні сегменти
-                ForEach(trajectory.taperedSegments) { segment in
-                    // Шар 1: М'який радарний ореол розмиття (Atmospheric Aura Glow)
-                    MapPolyline(coordinates: segment.coordinates)
-                        .stroke(
-                            color.opacity(segment.glowOpacity),
-                            style: StrokeStyle(lineWidth: segment.glowWidth, lineCap: .round, lineJoin: .round)
-                        )
-                        .mapOverlayLevel(level: .aboveLabels)
-
-                    // Шар 2: Насичене основне тіло тактичного вектору (Kinetic Tactical Beam)
-                    MapPolyline(coordinates: segment.coordinates)
-                        .stroke(
-                            color.opacity(segment.beamOpacity),
-                            style: StrokeStyle(lineWidth: segment.beamWidth, lineCap: .round, lineJoin: .round)
-                        )
-                        .mapOverlayLevel(level: .aboveLabels)
-
-                    // Шар 3: Висококонтрастне центральне ядро (Razor Luminous Core)
-                    MapPolyline(coordinates: segment.coordinates)
-                        .stroke(
-                            Color(red: 1.0, green: 0.98, blue: 0.90).opacity(segment.coreOpacity),
-                            style: StrokeStyle(lineWidth: segment.coreWidth, lineCap: .round, lineJoin: .round)
-                        )
-                        .mapOverlayLevel(level: .aboveLabels)
-                }
+                // Шар 3: Висококонтрастне центральне ядро (Razor Luminous Core)
+                MapPolyline(coordinates: trajectory.fullPoints)
+                    .stroke(
+                        Color(red: 1.0, green: 0.98, blue: 0.90).opacity(0.96),
+                        style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round)
+                    )
+                    .mapOverlayLevel(level: .aboveLabels)
 
                 // Шар 4: Тактичний маркер точки вильоту / Рубежу пуску (Origin Pulse Dot)
                 if showOriginMarker, let originCoord = trajectory.fullPoints.first {

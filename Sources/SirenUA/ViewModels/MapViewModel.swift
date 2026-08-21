@@ -78,6 +78,7 @@ final class MapViewModel: ObservableObject {
         
         let clampedDist = max(closeDist, min(maxOverviewDist, cameraDistance))
         
+        let rawScale: CGFloat
         if clampedDist <= overviewDist {
             // Zooming in from overview (1000km) to city level (15km):
             // Smoothly increase scale from 1.00 up to 2.50 (+150% magnification)
@@ -85,7 +86,7 @@ final class MapViewModel: ObservableObject {
             let maxLog = log10(overviewDist)
             let curLog = log10(clampedDist)
             let t = (maxLog - curLog) / (maxLog - minLog) // 0.0 (overview) -> 1.0 (zoomed in)
-            return CGFloat(1.00 + (t * 1.50))
+            rawScale = CGFloat(1.00 + (t * 1.50))
         } else {
             // Zooming out further than standard overview (1000km -> 2500km):
             // Gentle sub-linear compacting (1.00 -> 0.90) to keep 25 regions clean
@@ -93,18 +94,20 @@ final class MapViewModel: ObservableObject {
             let maxLog = log10(maxOverviewDist)
             let curLog = log10(clampedDist)
             let outT = (curLog - minLog) / (maxLog - minLog) // 0.0 (overview) -> 1.0 (extreme zoom out)
-            return CGFloat(1.00 - (outT * 0.10))
+            rawScale = CGFloat(1.00 - (outT * 0.10))
         }
+        // Quantize scale to 0.05 increments to eliminate sub-pixel jitter & excess layout passes
+        return (rawScale * 20.0).rounded() / 20.0
     }
 
     func updateCamera(distance: Double, heading: Double) {
         guard distance > 0 else { return }
         let distRatio = abs(cameraDistance - distance) / cameraDistance
         let headingDiff = abs(cameraHeading - heading)
-        if distRatio > 0.008 {
+        if distRatio > 0.035 {
             cameraDistance = distance
         }
-        if headingDiff > 0.2 {
+        if headingDiff > 1.5 {
             cameraHeading = heading
         }
     }
@@ -112,7 +115,7 @@ final class MapViewModel: ObservableObject {
     func updateCameraDistance(_ distance: Double) {
         guard distance > 0 else { return }
         let ratio = abs(cameraDistance - distance) / cameraDistance
-        guard ratio > 0.008 else { return }
+        guard ratio > 0.035 else { return }
         cameraDistance = distance
     }
 

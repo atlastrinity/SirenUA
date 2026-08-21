@@ -1,6 +1,78 @@
 import SwiftUI
 import MapKit
 
+// MARK: - High-Performance Region Layers Cache
+
+@MainActor
+final class RegionLayersCache {
+    static let shared = RegionLayersCache()
+
+    private var cachedKey: String = ""
+    private var cachedAlertsDict: [String: AlertRegion] = [:]
+    private var cachedActiveAlerts: [RegionPolygon] = []
+    private var cachedActiveThreats: [RegionPolygon] = []
+    private var cachedSafeRegions: [RegionPolygon] = []
+
+    func getLayers(
+        alerts: [AlertRegion],
+        alertsDict: [String: AlertRegion],
+        geoRegions: [RegionPolygon],
+        isPremium: Bool
+    ) -> (
+        alertsDict: [String: AlertRegion],
+        activeAlerts: [RegionPolygon],
+        activeThreats: [RegionPolygon],
+        safeRegions: [RegionPolygon]
+    ) {
+        let key = makeFootprint(alerts: alerts, isPremium: isPremium, geoCount: geoRegions.count)
+        if key == cachedKey && !cachedAlertsDict.isEmpty {
+            return (cachedAlertsDict, cachedActiveAlerts, cachedActiveThreats, cachedSafeRegions)
+        }
+
+        let dict = !alertsDict.isEmpty ? alertsDict : Dictionary(uniqueKeysWithValues: alerts.map { ($0.name, $0) })
+        let activeAlerts = geoRegions
+            .filter { dict[$0.nameUK]?.isActive == true }
+            .sorted { r1, r2 in
+                if r1.nameUK == "м. Київ" { return false }
+                if r2.nameUK == "м. Київ" { return true }
+                return r1.nameUK < r2.nameUK
+            }
+
+        let activeThreats = YellowZonePolicy.filterActiveThreatRegions(
+            allRegions: geoRegions,
+            alertsDict: dict,
+            isPremium: isPremium
+        )
+
+        let safe = YellowZonePolicy.filterSafeRegions(
+            allRegions: geoRegions,
+            alertsDict: dict,
+            isPremium: isPremium
+        )
+
+        cachedKey = key
+        cachedAlertsDict = dict
+        cachedActiveAlerts = activeAlerts
+        cachedActiveThreats = activeThreats
+        cachedSafeRegions = safe
+
+        return (dict, activeAlerts, activeThreats, safe)
+    }
+
+    private func makeFootprint(alerts: [AlertRegion], isPremium: Bool, geoCount: Int) -> String {
+        var hasher = Hasher()
+        hasher.combine(isPremium)
+        hasher.combine(geoCount)
+        for alert in alerts {
+            hasher.combine(alert.name)
+            hasher.combine(alert.isActive)
+            hasher.combine(alert.threatLevel)
+            hasher.combine(alert.activeThreats.count)
+        }
+        return String(hasher.finalize())
+    }
+}
+
 // MARK: - Map Layers Computed Properties
 extension ContentView {
 
@@ -12,36 +84,33 @@ extension ContentView {
         }
     }
 
+    private var cachedLayers: (
+        alertsDict: [String: AlertRegion],
+        activeAlerts: [RegionPolygon],
+        activeThreats: [RegionPolygon],
+        safeRegions: [RegionPolygon]
+    ) {
+        RegionLayersCache.shared.getLayers(
+            alerts: viewModel.alerts,
+            alertsDict: viewModel.alertsDict,
+            geoRegions: geoManager.regions,
+            isPremium: viewModel.isPremium
+        )
+    }
+
     var alertsDict: [String: AlertRegion] {
-        if !viewModel.alertsDict.isEmpty {
-            return viewModel.alertsDict
-        }
-        return Dictionary(uniqueKeysWithValues: viewModel.alerts.map { ($0.name, $0) })
+        cachedLayers.alertsDict
     }
 
     var activeAlertRegions: [RegionPolygon] {
-        geoManager.regions
-            .filter { alertsDict[$0.nameUK]?.isActive == true }
-            .sorted { r1, r2 in
-                if r1.nameUK == "м. Київ" { return false }
-                if r2.nameUK == "м. Київ" { return true }
-                return r1.nameUK < r2.nameUK
-            }
+        cachedLayers.activeAlerts
     }
 
     var activeThreatRegions: [RegionPolygon] {
-        YellowZonePolicy.filterActiveThreatRegions(
-            allRegions: geoManager.regions,
-            alertsDict: alertsDict,
-            isPremium: viewModel.isPremium
-        )
+        cachedLayers.activeThreats
     }
 
     var safeRegions: [RegionPolygon] {
-        YellowZonePolicy.filterSafeRegions(
-            allRegions: geoManager.regions,
-            alertsDict: alertsDict,
-            isPremium: viewModel.isPremium
-        )
+        cachedLayers.safeRegions
     }
 }

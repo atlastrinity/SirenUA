@@ -157,20 +157,20 @@ struct FlyingThreatMapOverlay: MapContent {
                         let itemOrigin = threatItem.originCoordinate
                         let itemColor = threatItem.threatColor
 
-                        // Дедуплікація маркерів старту: якщо попередня загроза вже намалювала маркер у радіусі < 35 км, не дублюємо бейдж
+                        // Дедуплікація маркерів старту (порівняння квадратів відстаней < 35² км без повільного sqrt)
                         let shouldShowOrigin = !groupedThreats.prefix(index).contains(where: { prev in
                             guard let pCoord = prev.primaryThreat.originCoordinate, let iCoord = itemOrigin else { return false }
                             let dLat = (pCoord.latitude - iCoord.latitude) * 111.0
                             let dLon = (pCoord.longitude - iCoord.longitude) * 111.0 * cos(iCoord.latitude * .pi / 180.0)
-                            return sqrt(dLat * dLat + dLon * dLon) < 35.0
+                            return (dLat * dLat + dLon * dLon) < 1225.0
                         })
 
-                        // Дедуплікація ліній підльоту носія (штрихпунктирів): якщо той самий аеродром вже малює підліт, не накладаємо другий шар
+                        // Дедуплікація ліній підльоту носія (< 30² км без повільного sqrt)
                         let shouldShowApproach = !groupedThreats.prefix(index).contains(where: { prev in
                             guard let pCarrier = prev.primaryThreat.carrierOriginCoordinate, let iCarrier = threatItem.carrierOriginCoordinate else { return false }
                             let dLat = (pCarrier.latitude - iCarrier.latitude) * 111.0
                             let dLon = (pCarrier.longitude - iCarrier.longitude) * 111.0 * cos(iCarrier.latitude * .pi / 180.0)
-                            return sqrt(dLat * dLat + dLon * dLon) < 30.0
+                            return (dLat * dLat + dLon * dLon) < 900.0
                         })
 
                         PremiumTrajectoryOverlay(

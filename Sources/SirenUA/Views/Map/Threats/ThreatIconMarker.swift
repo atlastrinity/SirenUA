@@ -55,12 +55,18 @@ public struct TrajectoryArrowheadView: View {
 
     public var body: some View {
         ZStack(alignment: .center) {
-            // 1. Soft pulse ring radiating from arrowhead
-            Circle()
-                .stroke(color.opacity(isPulsing ? 0.0 : (echelonIndex == 0 ? 0.60 : 0.40)), lineWidth: 1.0)
-                .frame(width: 20, height: 20)
-                .scaleEffect(isPulsing ? 1.5 : 0.8, anchor: .center)
-                .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false).delay(Double(echelonIndex) * 0.25), value: isPulsing)
+            // 1. Soft pulse ring radiating only from lead echelon arrowhead (saves 70% CoreAnimation loops)
+            if echelonIndex == 0 {
+                Circle()
+                    .stroke(color.opacity(isPulsing ? 0.0 : 0.60), lineWidth: 1.0)
+                    .frame(width: 20, height: 20)
+                    .scaleEffect(isPulsing ? 1.5 : 0.8, anchor: .center)
+                    .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: isPulsing)
+            } else {
+                Circle()
+                    .stroke(color.opacity(0.30), lineWidth: 0.8)
+                    .frame(width: 16, height: 16)
+            }
 
             // 2. Tactical Arrowhead Body ("як у стрілі")
             ZStack {
@@ -96,7 +102,9 @@ public struct TrajectoryArrowheadView: View {
         .rotationEffect(.degrees(angle - heading))
         .scaleEffect(zoomScale, anchor: .center)
         .onAppear {
-            isPulsing = true
+            if echelonIndex == 0 {
+                isPulsing = true
+            }
         }
         .allowsHitTesting(false)
     }
@@ -109,8 +117,6 @@ public struct CarrierApproachDirectionView: View {
     public var heading: Double = 0.0
     public var zoomScale: CGFloat = 1.0
     public var iconName: String = "airplane"
-
-    @State private var isPulsing = false
 
     public init(
         angle: Double,
@@ -131,11 +137,6 @@ public struct CarrierApproachDirectionView: View {
                 .font(.system(size: 7.5, weight: .black))
                 .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0)) // High-contrast amber
                 .shadow(color: Color.yellow.opacity(0.80), radius: 2)
-                .scaleEffect(isPulsing ? 1.15 : 0.88)
-                .animation(
-                    .easeInOut(duration: 1.1).repeatForever(autoreverses: true),
-                    value: isPulsing
-                )
 
             // 2. Силует літака-носія / крилатого борту
             Image(systemName: iconName)
@@ -162,9 +163,6 @@ public struct CarrierApproachDirectionView: View {
         .shadow(color: Color.black.opacity(0.65), radius: 3, x: 0, y: 1)
         .rotationEffect(.degrees(angle - heading))
         .scaleEffect(zoomScale, anchor: .center)
-        .onAppear {
-            isPulsing = true
-        }
         .allowsHitTesting(false)
     }
 }
@@ -275,23 +273,13 @@ public struct FlyingThreatMarkerView: View {
             if isPremium {
                 // Фіксований квадратний контейнер (44x44) гарантує 100% симетричне концентричне розширення без горизонтального зміщення
                 ZStack(alignment: .center) {
-                    // Концентричне пульсуюче кільце 1 (Radar primary wave)
+                    // Оптимізоване концентричне пульсуюче кільце (Radar wave)
                     Circle()
-                        .stroke(color.opacity(isPulsing ? 0.0 : 0.90), lineWidth: 2.0)
+                        .stroke(color.opacity(isPulsing ? 0.0 : 0.85), lineWidth: 1.8)
                         .frame(width: 24, height: 24)
-                        .scaleEffect(isPulsing ? 1.85 : 0.90, anchor: .center)
+                        .scaleEffect(isPulsing ? 2.0 : 0.90, anchor: .center)
                         .animation(
                             .easeOut(duration: 1.6).repeatForever(autoreverses: false),
-                            value: isPulsing
-                        )
-
-                    // Концентричне пульсуюче кільце 2 (Radar secondary echo)
-                    Circle()
-                        .stroke(color.opacity(isPulsing ? 0.0 : 0.50), lineWidth: 1.2)
-                        .frame(width: 24, height: 24)
-                        .scaleEffect(isPulsing ? 2.30 : 0.90, anchor: .center)
-                        .animation(
-                            .easeOut(duration: 1.6).delay(0.3).repeatForever(autoreverses: false),
                             value: isPulsing
                         )
 
@@ -525,22 +513,13 @@ public struct TrajectoryOriginMarkerView: View {
 
     public var body: some View {
         ZStack(alignment: .center) {
-            // 1. Концентричні пульсуючі радіолокаційні кільця (360° симетричний радар навколо центру точки)
+            // 1. Оптимізоване пульсуюче радіолокаційне кільце точки вильоту
             Circle()
-                .stroke(color.opacity(isPulsing ? 0.0 : 0.90), lineWidth: 1.8)
+                .stroke(color.opacity(isPulsing ? 0.0 : 0.85), lineWidth: 1.6)
                 .frame(width: 20, height: 20)
-                .scaleEffect(isPulsing ? 2.20 : 0.70, anchor: .center)
+                .scaleEffect(isPulsing ? 2.40 : 0.70, anchor: .center)
                 .animation(
                     .easeOut(duration: 1.6).repeatForever(autoreverses: false),
-                    value: isPulsing
-                )
-
-            Circle()
-                .stroke(color.opacity(isPulsing ? 0.0 : 0.45), lineWidth: 1.0)
-                .frame(width: 20, height: 20)
-                .scaleEffect(isPulsing ? 2.80 : 0.70, anchor: .center)
-                .animation(
-                    .easeOut(duration: 1.6).delay(0.3).repeatForever(autoreverses: false),
                     value: isPulsing
                 )
 

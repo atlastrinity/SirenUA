@@ -459,7 +459,10 @@ struct ContentView: View {
     }
 
     private func handleTimerTick() {
-        timeRefreshTrigger = Date()
+        let hasActive = !activeAlertRegions.isEmpty || !activeThreatRegions.isEmpty
+        if hasActive {
+            timeRefreshTrigger = Date()
+        }
         if activeThreatTrackedRegions.count > 1 {
             withAnimation(.easeInOut(duration: 0.5)) {
                 currentHeroEventIndex = (currentHeroEventIndex + 1) % activeThreatTrackedRegions.count
