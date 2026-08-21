@@ -773,8 +773,6 @@ final class SirenUATests: XCTestCase {
     }
 
     func testShelterRadiusFilterAndDistanceExclusionLogic() {
-        let userLat = 50.4501
-        let userLon = 30.5234
         let preferredRadiusMeters = 1500.0 // 1.5 km
         let maxSearchRadiusMeters = 5000.0 // 5.0 km
 
@@ -807,7 +805,6 @@ final class SirenUATests: XCTestCase {
 
     func testProgressiveShelterCascadeForRuralVillages() {
         // Simulating user in Uhersko village where local shelter is 350m (Lyceum) and district shelter is 5.4km (Stryi)
-        let userCoord = CLLocation(latitude: 49.3005, longitude: 23.8966)
         let lyceumShelter = ShelterItem(id: "uhersko_1", name: "Угерський ліцей (Найпростіше укриття)", address: "вул. Івана Франка 2", lat: 49.3005, lon: 23.8966, distance_m: 0.0, type: "school_shelter", capacity: 350, accessible: true, source: "gov", is_primary: false, is_night_accessible: false, is_vehicle_accessible: false)
         let stryiShelter = ShelterItem(id: "stryi_1", name: "Стрийська лікарня (Сховище)", address: "вул. Басараб 15, м. Стрий", lat: 49.2620, lon: 23.8650, distance_m: 5400.0, type: "radiation_shelter", capacity: 600, accessible: true, source: "gov", is_primary: true, is_night_accessible: true, is_vehicle_accessible: false)
 
@@ -839,8 +836,6 @@ final class SirenUATests: XCTestCase {
 
     func testEmulatedKyivMallParkingSearch_NightScenario() {
         // 1. Emulated Coordinate: Kyiv Vinogradar near Retroville Mall (50.5050, 30.4150)
-        let emulatedUser = CLLocation(latitude: 50.5050, longitude: 30.4150)
-
         let retrovilleParking = ShelterItem(
             id: "m1",
             name: "Підземний та відкритий паркінг ТРЦ «Retroville» (Цілодобово для авто)",
