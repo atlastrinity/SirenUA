@@ -165,6 +165,14 @@ struct FlyingThreatMapOverlay: MapContent {
                             return sqrt(dLat * dLat + dLon * dLon) < 35.0
                         })
 
+                        // Дедуплікація ліній підльоту носія (штрихпунктирів): якщо той самий аеродром вже малює підліт, не накладаємо другий шар
+                        let shouldShowApproach = !groupedThreats.prefix(index).contains(where: { prev in
+                            guard let pCarrier = prev.primaryThreat.carrierOriginCoordinate, let iCarrier = threatItem.carrierOriginCoordinate else { return false }
+                            let dLat = (pCarrier.latitude - iCarrier.latitude) * 111.0
+                            let dLon = (pCarrier.longitude - iCarrier.longitude) * 111.0 * cos(iCarrier.latitude * .pi / 180.0)
+                            return sqrt(dLat * dLat + dLon * dLon) < 30.0
+                        })
+
                         PremiumTrajectoryOverlay(
                             targetCoordinate: alert.coordinate,
                             threatType: itemType,
@@ -175,6 +183,7 @@ struct FlyingThreatMapOverlay: MapContent {
                             carrierOriginName: threatItem.carrier_origin_name,
                             launchSectorName: threatItem.launch_sector_name,
                             showOriginMarker: shouldShowOrigin,
+                            showApproachLine: shouldShowApproach,
                             color: itemColor,
                             cameraDistance: cameraDistance,
                             cameraHeading: cameraHeading,

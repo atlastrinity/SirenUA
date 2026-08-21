@@ -16,6 +16,7 @@ struct PremiumTrajectoryOverlay: MapContent {
     var cameraHeading: Double = 0.0
     var zoomScale: CGFloat = 1.0
     let showOriginMarker: Bool
+    let showApproachLine: Bool
     let isPremium: Bool
 
     init(
@@ -28,6 +29,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         carrierOriginName: String? = nil,
         launchSectorName: String? = nil,
         showOriginMarker: Bool = true,
+        showApproachLine: Bool = true,
         color: Color = .yellow,
         cameraDistance: Double = 600_000.0,
         cameraHeading: Double = 0.0,
@@ -43,6 +45,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         self.carrierOriginName = carrierOriginName
         self.launchSectorName = launchSectorName
         self.showOriginMarker = showOriginMarker
+        self.showApproachLine = showApproachLine
         self.color = color
         self.cameraDistance = cameraDistance
         self.cameraHeading = cameraHeading
@@ -68,10 +71,10 @@ struct PremiumTrajectoryOverlay: MapContent {
             let n = trajectory.fullPoints.count
 
             // 0. Стратегічний шар підльоту носія (Пунктир від аеродрому до рубежу пуску)
-            if let approach = trajectory.carrierApproachPoints, approach.count >= 2 {
+            if showApproachLine, let approach = trajectory.carrierApproachPoints, approach.count >= 2 {
                 MapPolyline(coordinates: approach)
                     .stroke(
-                        Color.white.opacity(0.45),
+                        Color.white.opacity(0.55),
                         style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round, dash: [6, 6])
                     )
                     .mapOverlayLevel(level: .aboveLabels)
