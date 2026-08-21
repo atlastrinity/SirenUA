@@ -56,7 +56,7 @@ public struct TrajectoryArrowheadView: View {
             Circle()
                 .stroke(color.opacity(isPulsing ? 0.0 : (echelonIndex == 0 ? 0.60 : 0.40)), lineWidth: 1.0)
                 .frame(width: 20, height: 20)
-                .scaleEffect(isPulsing ? 1.5 : 0.8)
+                .scaleEffect(isPulsing ? 1.5 : 0.8, anchor: .center)
                 .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false).delay(Double(echelonIndex) * 0.25), value: isPulsing)
 
             // 2. Tactical Arrowhead Body ("як у стрілі")
@@ -89,9 +89,9 @@ public struct TrajectoryArrowheadView: View {
             .shadow(color: color.opacity(0.95), radius: 4, x: 0, y: 0)
             .shadow(color: .black.opacity(0.70), radius: 3, x: 0, y: 1)
         }
-        .frame(width: 28, height: 28, alignment: .center)
+        .frame(width: 36, height: 36, alignment: .center)
         .rotationEffect(.degrees(angle))
-        .scaleEffect(zoomScale)
+        .scaleEffect(zoomScale, anchor: .center)
         .onAppear {
             isPulsing = true
         }
@@ -384,39 +384,73 @@ public struct TrajectoryOriginMarkerView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 2) {
+        VStack(alignment: .center, spacing: 3) {
+            // Фіксований квадратний контейнер (44x44) гарантує 100% концентричне розширення хвиль без горизонтального зсуву
             ZStack(alignment: .center) {
-                // Пульсуюче кільце вильоту
+                // Концентричне пульсуюче кільце 1 (Radar primary wave)
                 Circle()
-                    .stroke(color.opacity(isPulsing ? 0.0 : 0.85), lineWidth: 1.5)
+                    .stroke(color.opacity(isPulsing ? 0.0 : 0.90), lineWidth: 1.8)
                     .frame(width: 18, height: 18)
-                    .scaleEffect(isPulsing ? 1.9 : 0.6)
-                    .animation(.easeOut(duration: 1.8).repeatForever(autoreverses: false), value: isPulsing)
+                    .scaleEffect(isPulsing ? 2.10 : 0.80, anchor: .center)
+                    .animation(
+                        .easeOut(duration: 1.6).repeatForever(autoreverses: false),
+                        value: isPulsing
+                    )
 
-                // Тактичне біле кільце
+                // Концентричне пульсуюче кільце 2 (Radar secondary echo)
                 Circle()
-                    .stroke(Color.white.opacity(0.9), lineWidth: 1.2)
-                    .frame(width: 10, height: 10)
+                    .stroke(color.opacity(isPulsing ? 0.0 : 0.50), lineWidth: 1.0)
+                    .frame(width: 18, height: 18)
+                    .scaleEffect(isPulsing ? 2.60 : 0.80, anchor: .center)
+                    .animation(
+                        .easeOut(duration: 1.6).delay(0.3).repeatForever(autoreverses: false),
+                        value: isPulsing
+                    )
+
+                // Тактичне біле контрастне кільце
+                Circle()
+                    .stroke(Color.white.opacity(0.95), lineWidth: 1.4)
+                    .frame(width: 12, height: 12)
 
                 // Центральна контрастна точка вильоту
                 Circle()
-                    .fill(color)
-                    .frame(width: 6, height: 6)
+                    .fill(
+                        LinearGradient(
+                            colors: [color, color.opacity(0.85)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 8, height: 8)
+                    .shadow(color: color.opacity(0.9), radius: 4)
             }
-            .frame(width: 24, height: 24)
+            .frame(width: 44, height: 44, alignment: .center)
             .onAppear { isPulsing = true }
 
             if let name = originName, !name.isEmpty {
-                Text(name.uppercased())
-                    .font(.system(size: 6.5, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1.5)
-                    .background(Color.black.opacity(0.85))
-                    .cornerRadius(3)
-                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(color.opacity(0.6), lineWidth: 0.5))
+                HStack(spacing: 3) {
+                    Image(systemName: "smallcircle.filled.circle.fill")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundColor(color)
+
+                    Text(name.uppercased())
+                        .font(.system(size: 9.0, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.black.opacity(0.88))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(color.opacity(0.85), lineWidth: 1.0)
+                )
+                .shadow(color: Color.black.opacity(0.6), radius: 4, x: 0, y: 2)
             }
         }
-        .scaleEffect(zoomScale)
+        .scaleEffect(zoomScale, anchor: .center)
+        .allowsHitTesting(false)
     }
 }
