@@ -110,6 +110,8 @@ public struct CarrierApproachDirectionView: View {
     public var zoomScale: CGFloat = 1.0
     public var iconName: String = "airplane"
 
+    @State private var isPulsing = false
+
     public init(
         angle: Double,
         heading: Double = 0.0,
@@ -123,24 +125,46 @@ public struct CarrierApproachDirectionView: View {
     }
 
     public var body: some View {
-        ZStack {
-            // Tactical frosted pill background to ensure high contrast against any terrain
-            Circle()
-                .fill(Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.85))
-                .frame(width: 18, height: 18)
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.50), lineWidth: 0.9)
+        VStack(spacing: 2) {
+            // 1. Тактична стрілочка напрямку руху по штрихпунктирному коридору підльоту
+            Image(systemName: "arrowtriangle.up.fill")
+                .font(.system(size: 7.5, weight: .black))
+                .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0)) // High-contrast amber
+                .shadow(color: Color.yellow.opacity(0.80), radius: 2)
+                .scaleEffect(isPulsing ? 1.15 : 0.88)
+                .animation(
+                    .easeInOut(duration: 1.1).repeatForever(autoreverses: true),
+                    value: isPulsing
                 )
-                .shadow(color: Color.black.opacity(0.60), radius: 3, x: 0, y: 1)
 
-            // Carrier aircraft silhouette aligned with ingress heading
+            // 2. Силует літака-носія / крилатого борту
             Image(systemName: iconName)
-                .font(.system(size: 9.5, weight: .bold))
+                .font(.system(size: 10.5, weight: .bold))
                 .foregroundColor(Color.white.opacity(0.95))
-                .rotationEffect(.degrees(angle - heading))
         }
-        .scaleEffect(min(1.20, max(0.85, zoomScale)))
+        .padding(.horizontal, 5)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(Color(red: 0.04, green: 0.08, blue: 0.18).opacity(0.90))
+                .overlay(
+                    Capsule()
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.80), Color.yellow.opacity(0.60)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1.0
+                        )
+                )
+        )
+        .shadow(color: Color.black.opacity(0.65), radius: 3, x: 0, y: 1)
+        .rotationEffect(.degrees(angle - heading))
+        .scaleEffect(zoomScale, anchor: .center)
+        .onAppear {
+            isPulsing = true
+        }
         .allowsHitTesting(false)
     }
 }

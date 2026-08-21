@@ -1280,7 +1280,7 @@ final class SirenUATests: XCTestCase {
         // 5. Carrier approach direction marker exists and points towards Azov Sea
         XCTAssertNotNil(trajectory.carrierApproachMarker)
         let marker = trajectory.carrierApproachMarker!
-        XCTAssertEqual(marker.iconName, "airplane")
+        XCTAssertEqual(marker.iconName, "airplane.circle.fill")
         XCTAssertTrue(marker.angle > 160.0 && marker.angle < 260.0, "Approach angle from Morozovsk to Azov Sea should be South-Southwest, got \(marker.angle)")
     }
 
@@ -1332,6 +1332,37 @@ final class SirenUATests: XCTestCase {
             let next = trajectory.taperedSegments[i + 1]
             XCTAssertGreaterThanOrEqual(current.beamWidth, next.beamWidth, "Beam width must smoothly decrease or remain monotonic")
         }
+    }
+
+    func testCarrierApproachMidpointAndDirectionCalculation() {
+        // Engels-2 airbase to Caspian Sea launch sector for Tu-95MS
+        let engelsAirbase = CLLocationCoordinate2D(latitude: 51.48, longitude: 46.20)
+        let caspianSector = CLLocationCoordinate2D(latitude: 44.50, longitude: 49.50)
+        let kyivTarget = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
+
+        let trajectory = calculateTrajectory(
+            target: kyivTarget,
+            threatType: "tu95",
+            carrierOrigin: engelsAirbase,
+            launchSector: caspianSector,
+            carrierOriginName: "Авіабаза Енгельс-2",
+            launchSectorName: "Каспійське море",
+            zoomScale: 1.5
+        )
+
+        XCTAssertNotNil(trajectory.carrierApproachPoints)
+        XCTAssertNotNil(trajectory.carrierApproachMarker)
+
+        let marker = trajectory.carrierApproachMarker!
+        XCTAssertEqual(marker.iconName, "airplane")
+        // Engels to Caspian is South-Southeast (~140°-170°)
+        XCTAssertTrue(marker.angle >= 130.0 && marker.angle <= 180.0, "Approach angle should be SSE, got \(marker.angle)")
+
+        // Midpoint should lie roughly halfway between Engels and Caspian
+        let midLatExpected = (engelsAirbase.latitude + caspianSector.latitude) / 2.0
+        let midLonExpected = (engelsAirbase.longitude + caspianSector.longitude) / 2.0
+        XCTAssertEqual(marker.coordinate.latitude, midLatExpected, accuracy: 0.5)
+        XCTAssertEqual(marker.coordinate.longitude, midLonExpected, accuracy: 0.5)
     }
 }
 
