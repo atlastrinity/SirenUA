@@ -13,6 +13,7 @@ struct PremiumTrajectoryOverlay: MapContent {
     let launchSectorName: String?
     let color: Color
     var cameraDistance: Double = 600_000.0
+    var cameraHeading: Double = 0.0
     var zoomScale: CGFloat = 1.0
     let isPremium: Bool
 
@@ -27,6 +28,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         launchSectorName: String? = nil,
         color: Color = .yellow,
         cameraDistance: Double = 600_000.0,
+        cameraHeading: Double = 0.0,
         zoomScale: CGFloat = 1.0,
         isPremium: Bool
     ) {
@@ -40,6 +42,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         self.launchSectorName = launchSectorName
         self.color = color
         self.cameraDistance = cameraDistance
+        self.cameraHeading = cameraHeading
         self.zoomScale = zoomScale
         self.isPremium = isPremium
     }
@@ -111,6 +114,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                             TrajectoryArrowheadView(
                                 color: color,
                                 angle: arrowhead.angle,
+                                heading: cameraHeading,
                                 zoomScale: zoomScale,
                                 echelonIndex: arrowhead.echelonIndex,
                                 totalEchelonCount: arrowhead.totalEchelonCount
@@ -167,6 +171,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                         TrajectoryArrowheadView(
                             color: color,
                             angle: arrowhead.angle,
+                            heading: cameraHeading,
                             zoomScale: zoomScale,
                             echelonIndex: arrowhead.echelonIndex,
                             totalEchelonCount: arrowhead.totalEchelonCount

@@ -15,6 +15,7 @@ struct ThreatMapContent: MapContent {
     let timeRefreshTrigger: Date
     let currentUserCoordinate: CLLocationCoordinate2D
     var cameraDistance: Double = 600_000.0
+    var cameraHeading: Double = 0.0
     var zoomScale: CGFloat = 1.0
     var allUkraineTrajectories: Bool = false
     var isTrackedRegion: ((String) -> Bool)? = nil
@@ -69,6 +70,7 @@ struct ThreatMapContent: MapContent {
                     isPremium: isPremium,
                     showTrajectory: showTrajectory,
                     cameraDistance: cameraDistance,
+                    cameraHeading: cameraHeading,
                     zoomScale: zoomScale,
                     onRegionSelected: onRegionSelected
                 )
@@ -116,6 +118,7 @@ struct FlyingThreatMapOverlay: MapContent {
     let isPremium: Bool
     var showTrajectory: Bool = true
     var cameraDistance: Double = 600_000.0
+    var cameraHeading: Double = 0.0
     var zoomScale: CGFloat = 1.0
     let onRegionSelected: (AlertRegion) -> Void
 
@@ -164,6 +167,7 @@ struct FlyingThreatMapOverlay: MapContent {
                             launchSectorName: threatItem.launch_sector_name,
                             color: itemColor,
                             cameraDistance: cameraDistance,
+                            cameraHeading: cameraHeading,
                             zoomScale: zoomScale,
                             isPremium: isPremium
                         )
@@ -180,6 +184,7 @@ struct FlyingThreatMapOverlay: MapContent {
                         launchSectorName: alert.currentThreat?.launch_sector_name,
                         color: color,
                         cameraDistance: cameraDistance,
+                        cameraHeading: cameraHeading,
                         zoomScale: zoomScale,
                         isPremium: isPremium
                     )

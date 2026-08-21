@@ -66,6 +66,7 @@ final class MapViewModel: ObservableObject {
 
     // Dynamic Camera Scale & Distance Tracking for iPhone Map Responsiveness
     @Published var cameraDistance: Double = 600_000.0
+    @Published var cameraHeading: Double = 0.0
 
     /// Sub-linear scale factor for UI elements (badges, tablets, chevrons, icons).
     /// Scales up gracefully by +150% when zooming in from standard overview baseline (1.00 -> 2.50)
@@ -93,6 +94,18 @@ final class MapViewModel: ObservableObject {
             let curLog = log10(clampedDist)
             let outT = (curLog - minLog) / (maxLog - minLog) // 0.0 (overview) -> 1.0 (extreme zoom out)
             return CGFloat(1.00 - (outT * 0.10))
+        }
+    }
+
+    func updateCamera(distance: Double, heading: Double) {
+        guard distance > 0 else { return }
+        let distRatio = abs(cameraDistance - distance) / cameraDistance
+        let headingDiff = abs(cameraHeading - heading)
+        if distRatio > 0.02 {
+            cameraDistance = distance
+        }
+        if headingDiff > 0.5 {
+            cameraHeading = heading
         }
     }
 

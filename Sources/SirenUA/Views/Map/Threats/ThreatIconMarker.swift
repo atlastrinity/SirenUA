@@ -30,6 +30,7 @@ public struct ArrowheadShape: Shape {
 public struct TrajectoryArrowheadView: View {
     public let color: Color
     public let angle: Double
+    public var heading: Double = 0.0
     public var zoomScale: CGFloat = 1.0
     public var echelonIndex: Int = 0
     public var totalEchelonCount: Int = 1
@@ -39,12 +40,14 @@ public struct TrajectoryArrowheadView: View {
     public init(
         color: Color,
         angle: Double,
+        heading: Double = 0.0,
         zoomScale: CGFloat = 1.0,
         echelonIndex: Int = 0,
         totalEchelonCount: Int = 1
     ) {
         self.color = color
         self.angle = angle
+        self.heading = heading
         self.zoomScale = zoomScale
         self.echelonIndex = echelonIndex
         self.totalEchelonCount = totalEchelonCount
@@ -90,7 +93,7 @@ public struct TrajectoryArrowheadView: View {
             .shadow(color: .black.opacity(0.70), radius: 3, x: 0, y: 1)
         }
         .frame(width: 36, height: 36, alignment: .center)
-        .rotationEffect(.degrees(angle))
+        .rotationEffect(.degrees(angle - heading))
         .scaleEffect(zoomScale, anchor: .center)
         .onAppear {
             isPulsing = true
@@ -103,14 +106,16 @@ public struct TrajectoryArrowheadView: View {
 
 public struct TrajectoryFlowChevronView: View {
     public let angle: Double
+    public var heading: Double = 0.0
     public let threatIcon: String
     public let threatLabel: String
     public let opacity: Double
     
     @State private var isPulsing = false
 
-    public init(angle: Double, threatIcon: String, threatLabel: String, opacity: Double) {
+    public init(angle: Double, heading: Double = 0.0, threatIcon: String, threatLabel: String, opacity: Double) {
         self.angle = angle
+        self.heading = heading
         self.threatIcon = threatIcon
         self.threatLabel = threatLabel
         self.opacity = opacity
@@ -142,7 +147,7 @@ public struct TrajectoryFlowChevronView: View {
                 Image(systemName: threatIcon)
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white)
-                    .rotationEffect(.degrees(angle - 90))
+                    .rotationEffect(.degrees(angle - heading - 90))
             }
             .frame(width: 40, height: 40, alignment: .center)
             

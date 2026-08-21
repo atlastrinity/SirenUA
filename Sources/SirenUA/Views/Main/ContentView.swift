@@ -184,6 +184,7 @@ struct ContentView: View {
                     timeRefreshTrigger: timeRefreshTrigger,
                     currentUserCoordinate: currentUserCoordinate,
                     cameraDistance: mapViewModel.cameraDistance,
+                    cameraHeading: mapViewModel.cameraHeading,
                     zoomScale: mapViewModel.elementZoomScale,
                     allUkraineTrajectories: settings.allUkraineTrajectoriesEnabled,
                     isTrackedRegion: isRegionTracked,
@@ -191,7 +192,7 @@ struct ContentView: View {
                 )
             }
             .onMapCameraChange(frequency: .continuous) { context in
-                mapViewModel.updateCameraDistance(context.camera.distance)
+                mapViewModel.updateCamera(distance: context.camera.distance, heading: context.camera.heading)
             }
             .mapStyle(selectedMapStyle)
             .colorScheme(.dark)
