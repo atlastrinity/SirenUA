@@ -15,6 +15,7 @@ struct PremiumTrajectoryOverlay: MapContent {
     var cameraDistance: Double = 600_000.0
     var cameraHeading: Double = 0.0
     var zoomScale: CGFloat = 1.0
+    let showOriginMarker: Bool
     let isPremium: Bool
 
     init(
@@ -26,6 +27,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         launchSector: CLLocationCoordinate2D? = nil,
         carrierOriginName: String? = nil,
         launchSectorName: String? = nil,
+        showOriginMarker: Bool = true,
         color: Color = .yellow,
         cameraDistance: Double = 600_000.0,
         cameraHeading: Double = 0.0,
@@ -40,6 +42,7 @@ struct PremiumTrajectoryOverlay: MapContent {
         self.launchSector = launchSector
         self.carrierOriginName = carrierOriginName
         self.launchSectorName = launchSectorName
+        self.showOriginMarker = showOriginMarker
         self.color = color
         self.cameraDistance = cameraDistance
         self.cameraHeading = cameraHeading
@@ -96,7 +99,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                         .mapOverlayLevel(level: .aboveLabels)
 
                     // Шар 3: Тактичний маркер точки вильоту / Рубежу пуску (Origin Pulse Dot)
-                    if let originCoord = trajectory.fullPoints.first {
+                    if showOriginMarker, let originCoord = trajectory.fullPoints.first {
                         Annotation(coordinate: originCoord) {
                             TrajectoryOriginMarkerView(
                                 color: color,
@@ -153,7 +156,7 @@ struct PremiumTrajectoryOverlay: MapContent {
                 }
 
                 // Шар 4: Тактичний маркер точки вильоту / Рубежу пуску (Origin Pulse Dot)
-                if let originCoord = trajectory.fullPoints.first {
+                if showOriginMarker, let originCoord = trajectory.fullPoints.first {
                     Annotation(coordinate: originCoord) {
                         TrajectoryOriginMarkerView(
                             color: color,

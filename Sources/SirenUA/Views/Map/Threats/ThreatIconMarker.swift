@@ -421,37 +421,29 @@ public struct TrajectoryOriginMarkerView: View {
         if lower.contains("джанкой") {
             return "ДЖАНКОЙ"
         }
-        if lower.contains("рубіж") || lower.contains("рубеж") || lower.contains("коридор") {
-            if lower.contains("курськ") || lower.contains("курск") {
-                return "КУРСЬКИЙ РУБІЖ"
-            }
-            if lower.contains("бєлгород") || lower.contains("белгород") {
-                return "БЄЛГОРОДСЬКИЙ РУБІЖ"
-            }
-            if lower.contains("брянськ") || lower.contains("брянск") {
-                return "БРЯНСЬКИЙ РУБІЖ"
-            }
-            if lower.contains("воронеж") {
-                return "ВОРОНЕЗЬКИЙ РУБІЖ"
-            }
-        }
-        if lower.contains("бєлгород") || lower.contains("белгород") {
-            return "БЄЛГОРОД"
-        }
         if lower.contains("халін") || lower.contains("халин") {
             return "ХАЛІНО"
         }
+        if lower.contains("сеща") {
+            return "СЕЩА"
+        }
+        if lower.contains("шайковк") {
+            return "ШАЙКОВКА"
+        }
         if lower.contains("курськ") || lower.contains("курск") {
-            return "КУРСЬК"
+            return "КУРСЬКА ОБЛ."
+        }
+        if lower.contains("бєлгород") || lower.contains("белгород") {
+            return "БЄЛГОРОДСЬКА ОБЛ."
         }
         if lower.contains("брянськ") || lower.contains("брянск") {
-            return "БРЯНСЬК"
+            return "БРЯНСЬКА ОБЛ."
+        }
+        if lower.contains("воронеж") || lower.contains("балтім") || lower.contains("балтим") {
+            return "ВОРОНЕЗЬКА ОБЛ."
         }
         if lower.contains("орел") || lower.contains("орлов") {
             return "ОРЕЛ"
-        }
-        if lower.contains("сеща") {
-            return "СЕЩА"
         }
         if lower.contains("білорус") || lower.contains("рб") || lower.contains("гомел") {
             return "БІЛОРУСЬ"

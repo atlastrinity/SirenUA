@@ -151,11 +151,20 @@ struct FlyingThreatMapOverlay: MapContent {
             // MARK: - Trajectory flight vector overlay (gated by Premium & Region Scope)
             if showTrajectory {
                 if !alert.activeThreats.isEmpty {
-                    ForEach(groupedThreats) { group in
+                    ForEach(Array(groupedThreats.enumerated()), id: \.element.id) { index, group in
                         let threatItem = group.primaryThreat
                         let itemType = threatItem.type ?? alert.threatType
                         let itemOrigin = threatItem.originCoordinate
                         let itemColor = threatItem.threatColor
+
+                        // Дедуплікація маркерів старту: якщо попередня загроза вже намалювала маркер у радіусі < 35 км, не дублюємо бейдж
+                        let shouldShowOrigin = !groupedThreats.prefix(index).contains(where: { prev in
+                            guard let pCoord = prev.primaryThreat.originCoordinate, let iCoord = itemOrigin else { return false }
+                            let dLat = (pCoord.latitude - iCoord.latitude) * 111.0
+                            let dLon = (pCoord.longitude - iCoord.longitude) * 111.0 * cos(iCoord.latitude * .pi / 180.0)
+                            return sqrt(dLat * dLat + dLon * dLon) < 35.0
+                        })
+
                         PremiumTrajectoryOverlay(
                             targetCoordinate: alert.coordinate,
                             threatType: itemType,
@@ -165,6 +174,7 @@ struct FlyingThreatMapOverlay: MapContent {
                             launchSector: threatItem.launchSectorCoordinate,
                             carrierOriginName: threatItem.carrier_origin_name,
                             launchSectorName: threatItem.launch_sector_name,
+                            showOriginMarker: shouldShowOrigin,
                             color: itemColor,
                             cameraDistance: cameraDistance,
                             cameraHeading: cameraHeading,
