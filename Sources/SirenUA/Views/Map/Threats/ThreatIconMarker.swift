@@ -416,6 +416,20 @@ public struct TrajectoryOriginMarkerView: View {
         if lower.contains("джанкой") {
             return "ДЖАНКОЙ"
         }
+        if lower.contains("рубіж") || lower.contains("рубеж") || lower.contains("коридор") {
+            if lower.contains("курськ") || lower.contains("курск") {
+                return "КУРСЬКИЙ РУБІЖ"
+            }
+            if lower.contains("бєлгород") || lower.contains("белгород") {
+                return "БЄЛГОРОДСЬКИЙ РУБІЖ"
+            }
+            if lower.contains("брянськ") || lower.contains("брянск") {
+                return "БРЯНСЬКИЙ РУБІЖ"
+            }
+            if lower.contains("воронеж") {
+                return "ВОРОНЕЗЬКИЙ РУБІЖ"
+            }
+        }
         if lower.contains("бєлгород") || lower.contains("белгород") {
             return "БЄЛГОРОД"
         }
