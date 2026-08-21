@@ -391,132 +391,68 @@ public struct TrajectoryOriginMarkerView: View {
     /// Короткий тактичний підпис локації для компактного та рівномірного відображення на карті
     private var tacticalShortName: String? {
         guard let raw = originName?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
-        var name = raw
+        let lower = raw.lowercased()
         
-        let lower = name.lowercased()
-        if lower.contains("чорн") && lower.contains("мор") {
-            return "ЧОРНЕ МОРЕ"
-        }
-        if lower.contains("азов") && lower.contains("мор") {
-            return "АЗОВСЬКЕ МОРЕ"
-        }
-        if lower.contains("каспій") {
-            return "КАСПІЙ"
-        }
-        if lower.contains("чауд") {
-            return "МИС ЧАУДА"
-        }
-        if lower.contains("тарханкут") {
-            return "МИС ТАРХАНКУТ"
-        }
-        if lower.contains("севастопол") || lower.contains("бельбек") {
-            return "БЕЛЬБЕК"
-        }
-        if lower.contains("саки") || lower.contains("новофедор") {
-            return "САКИ"
-        }
-        if lower.contains("гвардій") || lower.contains("гвардей") {
-            return "ГВАРДІЙСЬКЕ"
-        }
-        if lower.contains("джанкой") {
-            return "ДЖАНКОЙ"
-        }
-        if lower.contains("халін") || lower.contains("халин") {
-            return "ХАЛІНО"
-        }
-        if lower.contains("сеща") {
-            return "СЕЩА"
-        }
-        if lower.contains("шайковк") {
-            return "ШАЙКОВКА"
-        }
-        if lower.contains("курськ") || lower.contains("курск") {
-            return "КУРСЬКА ОБЛ."
-        }
-        if lower.contains("бєлгород") || lower.contains("белгород") {
-            return "БЄЛГОРОДСЬКА ОБЛ."
-        }
-        if lower.contains("брянськ") || lower.contains("брянск") {
-            return "БРЯНСЬКА ОБЛ."
-        }
-        if lower.contains("воронеж") || lower.contains("балтім") || lower.contains("балтим") {
-            return "ВОРОНЕЗЬКА ОБЛ."
-        }
-        if lower.contains("орел") || lower.contains("орлов") {
-            return "ОРЕЛ"
-        }
-        if lower.contains("білорус") || lower.contains("рб") || lower.contains("гомел") {
-            return "БІЛОРУСЬ"
-        }
-        if lower.contains("брест") || lower.contains("мачулищ") {
-            return "МАЧУЛИЩІ"
-        }
-        if lower.contains("приморськ") || lower.contains("ахтарськ") {
-            return "ПРИМОРСЬКО-АХТАРСЬК"
-        }
-        if lower.contains("єйськ") {
-            return "ЄЙСЬК"
-        }
-        if lower.contains("міллер") || lower.contains("миллер") {
-            return "МІЛЛЄРОВО"
-        }
-        if lower.contains("морозов") {
-            return "МОРОЗОВСЬК"
-        }
-        if lower.contains("балтім") || lower.contains("балтим") || lower.contains("воронеж") {
-            return "ВОРОНЕЖ"
-        }
-        if lower.contains("бутурлин") {
-            return "БУТУРЛИНІВКА"
-        }
-        if lower.contains("кущев") {
-            return "КУЩЕВСЬКА"
-        }
-        if lower.contains("таганрог") {
-            return "ТАГАНРОГ"
-        }
-        if lower.contains("кримськ") || lower.contains("крымск") {
-            return "КРИМСЬК"
-        }
-        if lower.contains("олень") {
-            return "ОЛЕНЬЯ"
-        }
-        if lower.contains("енгельс") || lower.contains("саратов") {
-            return "ЕНГЕЛЬС"
-        }
-        if lower.contains("шайковк") {
-            return "ШАЙКОВКА"
-        }
-        if lower.contains("дягіл") || lower.contains("дягил") {
-            return "ДЯГІЛЄВО"
-        }
-        if lower.contains("сольц") {
-            return "СОЛЬЦІ"
-        }
-        if lower.contains("ахтуб") {
-            return "АХТУБІНСЬК"
-        }
-        if lower.contains("липецьк") || lower.contains("липецк") {
-            return "ЛИПЕЦЬК"
-        }
-        if lower.contains("моздок") {
-            return "МОЗДОК"
-        }
-        if lower.contains("саваслейк") {
-            return "САВАСЛЕЙКА"
-        }
-        if lower.contains("рязань") || lower.contains("тула") {
-            return "РЯЗАНЬ / ТУЛА"
-        }
+        // 1. Морські та стратегічні акваторії
+        if lower.contains("чорн") && lower.contains("мор") { return "ЧОРНЕ МОРЕ" }
+        if lower.contains("азов") && lower.contains("мор") { return "АЗОВСЬКЕ МОРЕ" }
+        if lower.contains("каспій") { return "КАСПІЙ" }
+        
+        // 2. Стаціонарні полігони, позиції та миси
+        if lower.contains("чауд") { return "МИС ЧАУДА" }
+        if lower.contains("тарханкут") { return "МИС ТАРХАНКУТ" }
+        if lower.contains("капустін") { return "КАПУСТІН ЯР" }
+        if lower.contains("кінбурн") { return "КІНБУРНСЬКА КОСА" }
 
-        // Очищення довгих описів у дужках
+        // 3. Стаціонарні авіабази та майданчики базування
+        if lower.contains("халін") || lower.contains("халин") { return "ХАЛІНО" }
+        if lower.contains("сеща") { return "СЕЩА" }
+        if lower.contains("шайковк") { return "ШАЙКОВКА" }
+        if lower.contains("енгельс") || lower.contains("саратов") { return "ЕНГЕЛЬС" }
+        if lower.contains("олень") { return "ОЛЕНЬЯ" }
+        if lower.contains("саваслейк") { return "САВАСЛЕЙКА" }
+        if lower.contains("моздок") { return "МОЗДОК" }
+        if lower.contains("ахтуб") { return "АХТУБІНСЬК" }
+        if lower.contains("балтім") || lower.contains("балтим") { return "БАЛТИМОР" }
+        if lower.contains("бутурлин") { return "БУТУРЛИНІВКА" }
+        if lower.contains("дягіл") || lower.contains("дягил") { return "ДЯГІЛЄВО" }
+        if lower.contains("сольц") { return "СОЛЬЦІ" }
+        if lower.contains("липецьк") || lower.contains("липецк") { return "ЛИПЕЦЬК" }
+        if lower.contains("морозов") { return "МОРОЗОВСЬК" }
+        if lower.contains("приморськ") || lower.contains("ахтарськ") { return "ПРИМОРСЬКО-АХТАРСЬК" }
+        if lower.contains("єйськ") || lower.contains("ейск") { return "ЄЙСЬК" }
+        if lower.contains("міллер") || lower.contains("миллер") { return "МІЛЛЄРОВО" }
+        if lower.contains("кущев") { return "КУЩЕВСЬКА" }
+        if lower.contains("таганрог") { return "ТАГАНРОГ" }
+        if lower.contains("кримськ") || lower.contains("крымск") { return "КРИМСЬК" }
+        if lower.contains("севастопол") || lower.contains("бельбек") { return "БЕЛЬБЕК" }
+        if lower.contains("саки") || lower.contains("новофедор") { return "САКИ" }
+        if lower.contains("гвардій") || lower.contains("гвардей") { return "ГВАРДІЙСЬКЕ" }
+        if lower.contains("джанкой") { return "ДЖАНКОЙ" }
+        if lower.contains("мачулищ") { return "МАЧУЛИЩІ" }
+        if lower.contains("білорус") || lower.contains("рб") || lower.contains("гомел") { return "БІЛОРУСЬ" }
+
+        // 4. Прикордонні та тактичні пускові рубежі
+        if lower.contains("курськ") || lower.contains("курск") { return "КУРСЬКИЙ РУБІЖ" }
+        if lower.contains("бєлгород") || lower.contains("белгород") { return "БЄЛГОРОДСЬКИЙ РУБІЖ" }
+        if lower.contains("брянськ") || lower.contains("брянск") { return "БРЯНСЬКИЙ РУБІЖ" }
+        if lower.contains("воронеж") { return "ВОРОНЕЗЬКИЙ РУБІЖ" }
+        if lower.contains("ростов") { return "РОСТОВСЬКИЙ РУБІЖ" }
+        if lower.contains("орел") || lower.contains("орлов") { return "ОРЛОВСЬКИЙ РУБІЖ" }
+        if lower.contains("рязань") || lower.contains("тула") { return "РУБІЖ РЯЗАНЬ / ТУЛА" }
+        if lower.contains("запоріз") { return "РУБІЖ ТОТ ЗАПОРІЖЖЯ" }
+        if lower.contains("херсон") { return "РУБІЖ ТОТ ХЕРСОН" }
+        if lower.contains("донец") || lower.contains("донецьк") { return "РУБІЖ ТОТ ДОНЕЧЧИНА" }
+        if lower.contains("луган") { return "РУБІЖ ТОТ ЛУГАНЩИНА" }
+
+        // 5. Очищення дужок для універсального виводу
+        var name = raw
         if let parenRange = name.range(of: "\\s*\\(.*\\)", options: .regularExpression) {
             let withoutParen = name.replacingCharacters(in: parenRange, with: "").trimmingCharacters(in: .whitespaces)
             if !withoutParen.isEmpty {
                 name = withoutParen
             }
         }
-        
         return name.uppercased()
     }
 

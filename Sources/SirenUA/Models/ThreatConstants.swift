@@ -504,11 +504,11 @@ public enum ThreatConstants {
     // 10. База тактичних аеродромів, полігонів та носіїв (Джерело)
     public static func carrierOrigin(for threatType: String?, detail: String? = nil) -> String? {
         let det = detail?.lowercased() ?? ""
-        if det.contains("саваслейк") { return "Аеродром Саваслейка (Нижньогородська обл. РФ)" }
-        if det.contains("олень") { return "Аеродром Оленья (Мурманська обл. РФ)" }
-        if det.contains("енгельс") { return "Аеродром Енгельс-2 (Саратовська обл. РФ)" }
-        if det.contains("шайковк") { return "Аеродром Шайковка (Калузька обл. РФ)" }
-        if det.contains("моздок") { return "Аеродром Моздок (Північна Осетія РФ)" }
+        if det.contains("саваслейк") { return "Авіабаза Саваслейка (Нижньогородська обл. РФ)" }
+        if det.contains("олень") { return "Авіабаза Оленья (Мурманська обл. РФ)" }
+        if det.contains("енгельс") { return "Авіабаза Енгельс-2 (Саратовська обл. РФ)" }
+        if det.contains("шайковк") { return "Авіабаза Шайковка (Калузька обл. РФ)" }
+        if det.contains("моздок") { return "Авіабаза Моздок (Північна Осетія РФ)" }
         if det.contains("ахтубінськ") { return "Авіабаза Ахтубінськ (Астраханська обл. РФ)" }
         if det.contains("дягілєв") { return "Аеродром Дягілєво (Рязанська обл. РФ)" }
         if det.contains("сольці") { return "Аеродром Сольці (Новгородська обл. РФ)" }
@@ -537,24 +537,18 @@ public enum ThreatConstants {
         if det.contains("єйськ") || det.contains("ейск") { return "Єйськ (Краснодарський край РФ)" }
         if det.contains("міллерово") { return "Міллерово (Ростовська обл. РФ)" }
         if det.contains("орел") || det.contains("орьол") { return "Полігон Південний / Орел (РФ)" }
-        if det.contains("чауд") { return "Мис Чауда (ТОТ Крим)" }
+        if det.contains("чауд") { return "Полігон мис Чауда (ТОТ Крим)" }
         if det.contains("кінбурн") {
-            return "Вогневі позиції Кінбурнська коса (ТОТ Херсон/Миколаїв)"
+            return "Кінбурнська коса (ТОТ Херсон/Миколаїв)"
         }
-        if det.contains("енергодар") {
-            return "Вогневі позиції ТОТ Запорізької обл. (Енергодар / Кам'янка)"
+        if det.contains("курськ") || det.contains("курск") {
+            return "Курський рубіж (Курська обл. РФ)"
         }
-        if det.contains("олешки") || det.contains("каховк") {
-            return "Вогневі позиції ТОТ Херсонської обл. (Олешки / Каховка)"
+        if det.contains("бєлгород") || det.contains("белгород") {
+            return "Бєлгородський рубіж (Бєлгородська обл. РФ)"
         }
-        if det.contains("горлівк") || det.contains("донецьк арт") {
-            return "Вогневі позиції ТОТ Донецької обл."
-        }
-        if det.contains("шебекіно") || det.contains("грайворон") {
-            return "Вогневі позиції Бєлгородська обл. РФ"
-        }
-        if det.contains("тьоткіно") || det.contains("глушково") {
-            return "Вогневі позиції Курська обл. РФ"
+        if det.contains("брянськ") || det.contains("брянск") {
+            return "Брянський рубіж (Брянська обл. РФ)"
         }
         if det.contains("заес") { return "Зона ризику ЗАЕС (м. Енергодар)" }
 
