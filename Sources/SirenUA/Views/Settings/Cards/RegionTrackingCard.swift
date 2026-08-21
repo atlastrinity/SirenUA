@@ -22,10 +22,24 @@ struct RegionTrackingCard: View {
                     set: { newVal in
                         onHaptic(.light)
                         settings.allRegionsTracked = newVal
-                        settings.trackedRegionsString = newVal ? allRegionsList.joined(separator: ";") : ""
+                        if newVal {
+                            settings.trackedRegionsString = allRegionsList.joined(separator: ";")
+                        } else {
+                            if settings.trackedRegionsString.isEmpty {
+                                settings.trackedRegionsString = allRegionsList.joined(separator: ";")
+                            }
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                isRegionsExpanded = true
+                            }
+                        }
                     }
                 )
             )
+
+            if !settings.allRegionsTracked {
+                StyledDivider()
+                regionsPickerSection
+            }
 
             StyledDivider()
 
@@ -45,11 +59,6 @@ struct RegionTrackingCard: View {
                 }
             )
             .onChange(of: settings.allUkraineTrajectoriesEnabled) { _, _ in onHaptic(.light) }
-
-            if !settings.allRegionsTracked {
-                StyledDivider()
-                regionsPickerSection
-            }
         }
         .sheet(isPresented: $showPaywallSheet) {
             PremiumPaywallSheet()

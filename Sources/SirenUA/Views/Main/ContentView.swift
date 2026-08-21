@@ -62,15 +62,13 @@ struct ContentView: View {
         return Date().timeIntervalSince(timestamp) < 60
     }
     
-    @AppStorage("allRegionsTracked", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var allRegionsTracked = true
-    @AppStorage("trackedRegionsString", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var trackedRegionsString = ""
-    @AppStorage("allUkraineTrajectoriesEnabled", store: UserDefaults(suiteName: "group.com.sirenua.shared")) var allUkraineTrajectoriesEnabled = false
+    @ObservedObject private var settings = NotificationSettings.shared
     @State var showRegionPickerSheet = false
     @State private var showBottomOperationalToast = false
     @State var showLocationPermissionAlert = false
 
     private func isRegionTracked(_ name: String) -> Bool {
-        if allRegionsTracked { return true }
+        if settings.allRegionsTracked { return true }
         return trackedRegionsSet.contains(name)
     }
 
@@ -96,58 +94,37 @@ struct ContentView: View {
     private var allRegionsList: [String] { RegionRegistry.allRegions }
 
     private var trackedRegionsSet: Set<String> {
-        Set(trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
+        Set(settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty })
     }
 
     private func selectAllRegions() {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-            allRegionsTracked = true
+            settings.allRegionsTracked = true
+            settings.trackedRegionsString = allRegionsList.joined(separator: ";")
         }
-        NotificationManager.shared.syncTopicSubscriptions()
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     private func toggleTrackedRegion(_ name: String) {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-            var currentList = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-            
-            if allRegionsTracked {
-                allRegionsTracked = false
-                currentList = [name]
-            } else {
-                if currentList.contains(name) {
-                    currentList.removeAll { $0 == name }
-                } else {
-                    currentList.append(name)
-                }
-            }
-            
-            if currentList.count == allRegionsList.count {
-                allRegionsTracked = true
-            } else {
-                allRegionsTracked = false
-            }
-            
-            trackedRegionsString = currentList.joined(separator: ";")
+            settings.setTracked(name, isOn: !trackedRegionsSet.contains(name))
         }
-        NotificationManager.shared.syncTopicSubscriptions()
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     func handleConfirmRegionSelection() {
-        NotificationManager.shared.syncTopicSubscriptions()
-        let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-        if !allRegionsTracked && list.count == 1 {
+        let list = settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        if !settings.allRegionsTracked && list.count == 1 {
             mapViewModel.focusOnSingleRegion(regionName: list[0], geoManager: geoManager, alerts: viewModel.alerts)
         }
     }
 
     private var primaryHeaderRegionLabel: String {
-        if allRegionsTracked {
+        if settings.allRegionsTracked {
             let activeOrLast = primaryThreatRegion?.name ?? viewModel.lastAlertedRegionName ?? "м. Київ"
             return "УСІ ОБЛАСТІ • \(activeOrLast)"
         } else {
-            let list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+            let list = settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
             if list.count == 1 {
                 return "ОБРАНА: \(list[0])"
             } else if list.count > 1 {
@@ -208,7 +185,7 @@ struct ContentView: View {
                     currentUserCoordinate: currentUserCoordinate,
                     cameraDistance: mapViewModel.cameraDistance,
                     zoomScale: mapViewModel.elementZoomScale,
-                    allUkraineTrajectories: allUkraineTrajectoriesEnabled,
+                    allUkraineTrajectories: settings.allUkraineTrajectoriesEnabled,
                     isTrackedRegion: isRegionTracked,
                     onRegionSelected: handleRegionSelection
                 )
@@ -362,8 +339,8 @@ struct ContentView: View {
             Color.clear
                 .sheet(isPresented: $showRegionPickerSheet) {
                     RegionSelectionSheet(
-                        allRegionsTracked: $allRegionsTracked,
-                        trackedRegionsString: $trackedRegionsString,
+                        allRegionsTracked: $settings.allRegionsTracked,
+                        trackedRegionsString: $settings.trackedRegionsString,
                         onConfirm: { handleConfirmRegionSelection() }
                     )
                 }
@@ -385,10 +362,10 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .refreshAlerts)) { _ in
             viewModel.refreshAlerts()
         }
-        .onChange(of: trackedRegionsString) { _, _ in
+        .onChange(of: settings.trackedRegionsString) { _, _ in
             NotificationManager.shared.syncTopicSubscriptions()
         }
-        .onChange(of: allRegionsTracked) { _, _ in
+        .onChange(of: settings.allRegionsTracked) { _, _ in
             NotificationManager.shared.syncTopicSubscriptions()
         }
         .onChange(of: viewModel.lastAlertedRegionName) { _, _ in
@@ -540,9 +517,9 @@ struct ContentView: View {
                 threatType: primaryThreatType,
                 confidence: primaryThreatConfidence,
                 eta: primaryThreatETA,
-                isTrackedOnly: !allRegionsTracked,
+                isTrackedOnly: !settings.allRegionsTracked,
                 trackedRegionsSet: trackedRegionsSet,
-                allRegionsTracked: allRegionsTracked,
+                allRegionsTracked: settings.allRegionsTracked,
                 onOpenRegionPicker: { showRegionPickerSheet = true },
                 onCardTap: {
                     if let targetRegion = primaryThreatRegion?.name {

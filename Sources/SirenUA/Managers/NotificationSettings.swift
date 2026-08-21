@@ -259,13 +259,35 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         return trackedList.contains(regionName)
     }
 
+    func reloadFromUserDefaults() {
+        let defaults = Self.sharedDefaults
+        self.notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
+        self.criticalAlertsEnabled = defaults.object(forKey: Keys.criticalAlertsEnabled) as? Bool ?? true
+        self.muteAlarmsSound = defaults.bool(forKey: Keys.muteAlarmsSound)
+        self.muteThreatsSound = defaults.bool(forKey: Keys.muteThreatsSound)
+        self.muteClearSound = defaults.bool(forKey: Keys.muteClearSound)
+        self.muteThreatClearSound = defaults.bool(forKey: Keys.muteThreatClearSound)
+        self.vibrationEnabled = defaults.object(forKey: Keys.vibrationEnabled) as? Bool ?? true
+        self.allRegionsTracked = defaults.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
+        self.trackedRegionsString = defaults.string(forKey: Keys.trackedRegionsString) ?? ""
+        self.allUkraineTrajectoriesEnabled = defaults.bool(forKey: Keys.allUkraineTrajectoriesEnabled)
+        self.isPremium = defaults.bool(forKey: Keys.isPremium)
+    }
+
     func setTracked(_ regionName: String, isOn: Bool) {
-        var list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        var list: [String]
+        if allRegionsTracked {
+            list = RegionRegistry.allRegions
+        } else {
+            list = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        }
+
         if isOn {
             if !list.contains(regionName) { list.append(regionName) }
         } else {
             list.removeAll { $0 == regionName }
         }
+
         trackedRegionsString = list.joined(separator: ";")
         if list.count == RegionRegistry.allRegions.count {
             allRegionsTracked = true
