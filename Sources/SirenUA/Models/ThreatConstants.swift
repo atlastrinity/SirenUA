@@ -240,7 +240,7 @@ public enum ThreatConstants {
         guard let threatType = threatType?.lowercased() else { return "⚠️" }
         switch threatType {
         case shahed: return "🛩"
-        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return "🛩"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone", "shahed_238", "shahed-238": return "⚡️"
         case cruiseMissile: return "🚀"
         case ballistic, zircon: return "💥"
         case mig31k: return "✈️"
@@ -265,7 +265,7 @@ public enum ThreatConstants {
         }
         switch threatType {
         case shahed: return "airplane.circle.fill"
-        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return "airplane.circle.fill"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone", "shahed_238", "shahed-238": return "flame.circle.fill"
         case cruiseMissile: return "paperplane.fill"
         case ballistic: return "flame.fill"
         case mig31k: return "bolt.fill"
