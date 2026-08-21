@@ -383,57 +383,130 @@ public struct TrajectoryOriginMarkerView: View {
         self.originName = originName
     }
 
-    public var body: some View {
-        VStack(alignment: .center, spacing: 3) {
-            // Фіксований квадратний контейнер (44x44) гарантує 100% концентричне розширення хвиль без горизонтального зсуву
-            ZStack(alignment: .center) {
-                // Концентричне пульсуюче кільце 1 (Radar primary wave)
-                Circle()
-                    .stroke(color.opacity(isPulsing ? 0.0 : 0.90), lineWidth: 1.8)
-                    .frame(width: 18, height: 18)
-                    .scaleEffect(isPulsing ? 2.10 : 0.80, anchor: .center)
-                    .animation(
-                        .easeOut(duration: 1.6).repeatForever(autoreverses: false),
-                        value: isPulsing
-                    )
+    /// Короткий тактичний підпис локації для компактного та рівномірного відображення на карті
+    private var tacticalShortName: String? {
+        guard let raw = originName?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+        var name = raw
+        
+        let lower = name.lowercased()
+        if lower.contains("чорн") && lower.contains("мор") {
+            return "ЧОРНЕ МОРЕ"
+        }
+        if lower.contains("азов") && lower.contains("мор") {
+            return "АЗОВСЬКЕ МОРЕ"
+        }
+        if lower.contains("каспій") {
+            return "КАСПІЙ"
+        }
+        if lower.contains("чауд") {
+            return "МИС ЧАУДА"
+        }
+        if lower.contains("тарханкут") {
+            return "МИС ТАРХАНКУТ"
+        }
+        if lower.contains("севастопол") || lower.contains("бельбек") {
+            return "БЕЛЬБЕК"
+        }
+        if lower.contains("саки") || lower.contains("новофедор") {
+            return "САКИ"
+        }
+        if lower.contains("джанкой") {
+            return "ДЖАНКОЙ"
+        }
+        if lower.contains("бєлгород") || lower.contains("белгород") {
+            return "БЄЛГОРОД"
+        }
+        if lower.contains("курськ") || lower.contains("курск") {
+            return "КУРСЬК"
+        }
+        if lower.contains("брянськ") || lower.contains("брянск") {
+            return "БРЯНСЬК"
+        }
+        if lower.contains("орел") || lower.contains("орлов") {
+            return "ОРЕЛ"
+        }
+        if lower.contains("білорус") || lower.contains("рб") || lower.contains("гомел") {
+            return "БІЛОРУСЬ"
+        }
+        if lower.contains("приморськ") || lower.contains("ахтарськ") {
+            return "ПРИМОРСЬКО-АХТАРСЬК"
+        }
+        if lower.contains("єйськ") {
+            return "ЄЙСЬК"
+        }
+        if lower.contains("енгельс") || lower.contains("саратов") {
+            return "ЕНГЕЛЬС"
+        }
+        if lower.contains("шайковк") {
+            return "ШАЙКОВКА"
+        }
+        if lower.contains("моздок") {
+            return "МОЗДОК"
+        }
+        if lower.contains("саваслейк") {
+            return "САВАСЛЕЙКА"
+        }
+        if lower.contains("рязань") || lower.contains("тула") {
+            return "РЯЗАНЬ / ТУЛА"
+        }
 
-                // Концентричне пульсуюче кільце 2 (Radar secondary echo)
-                Circle()
-                    .stroke(color.opacity(isPulsing ? 0.0 : 0.50), lineWidth: 1.0)
-                    .frame(width: 18, height: 18)
-                    .scaleEffect(isPulsing ? 2.60 : 0.80, anchor: .center)
-                    .animation(
-                        .easeOut(duration: 1.6).delay(0.3).repeatForever(autoreverses: false),
-                        value: isPulsing
-                    )
-
-                // Тактичне біле контрастне кільце
-                Circle()
-                    .stroke(Color.white.opacity(0.95), lineWidth: 1.4)
-                    .frame(width: 12, height: 12)
-
-                // Центральна контрастна точка вильоту
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [color, color.opacity(0.85)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 8, height: 8)
-                    .shadow(color: color.opacity(0.9), radius: 4)
+        // Очищення довгих описів у дужках
+        if let parenRange = name.range(of: "\\s*\\(.*\\)", options: .regularExpression) {
+            let withoutParen = name.replacingCharacters(in: parenRange, with: "").trimmingCharacters(in: .whitespaces)
+            if !withoutParen.isEmpty {
+                name = withoutParen
             }
-            .frame(width: 44, height: 44, alignment: .center)
-            .onAppear { isPulsing = true }
+        }
+        
+        return name.uppercased()
+    }
 
-            if let name = originName, !name.isEmpty {
+    public var body: some View {
+        ZStack(alignment: .center) {
+            // 1. Концентричні пульсуючі радіолокаційні кільця (360° симетричний радар навколо центру точки)
+            Circle()
+                .stroke(color.opacity(isPulsing ? 0.0 : 0.90), lineWidth: 1.8)
+                .frame(width: 20, height: 20)
+                .scaleEffect(isPulsing ? 2.20 : 0.70, anchor: .center)
+                .animation(
+                    .easeOut(duration: 1.6).repeatForever(autoreverses: false),
+                    value: isPulsing
+                )
+
+            Circle()
+                .stroke(color.opacity(isPulsing ? 0.0 : 0.45), lineWidth: 1.0)
+                .frame(width: 20, height: 20)
+                .scaleEffect(isPulsing ? 2.80 : 0.70, anchor: .center)
+                .animation(
+                    .easeOut(duration: 1.6).delay(0.3).repeatForever(autoreverses: false),
+                    value: isPulsing
+                )
+
+            // 2. Біле тактичне контрастне кільце
+            Circle()
+                .stroke(Color.white.opacity(0.95), lineWidth: 1.4)
+                .frame(width: 12, height: 12)
+
+            // 3. Центральна контрастна точка вильоту
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white, color],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 8, height: 8)
+                .shadow(color: color.opacity(0.95), radius: 4)
+
+            // 4. Текстовий бейдж з назвою локації (розміщений під точкою без зміщення геометричного центру точки)
+            if let shortName = tacticalShortName {
                 HStack(spacing: 3) {
                     Image(systemName: "smallcircle.filled.circle.fill")
                         .font(.system(size: 6, weight: .bold))
                         .foregroundColor(color)
 
-                    Text(name.uppercased())
+                    Text(shortName)
                         .font(.system(size: 7.5, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                 }
@@ -448,9 +521,13 @@ public struct TrajectoryOriginMarkerView: View {
                         .stroke(color.opacity(0.85), lineWidth: 0.8)
                 )
                 .shadow(color: Color.black.opacity(0.6), radius: 3, x: 0, y: 1.5)
+                .offset(y: 19)
+                .fixedSize()
             }
         }
+        .frame(width: 32, height: 32, alignment: .center)
         .scaleEffect(zoomScale, anchor: .center)
+        .onAppear { isPulsing = true }
         .allowsHitTesting(false)
     }
 }
