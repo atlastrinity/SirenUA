@@ -191,36 +191,51 @@ public func calculateTrajectory(
     
     switch threatType {
     case ThreatConstants.shahed:
-        curvature = -0.20 // Base aerodynamic arc
-        cycles = 3.5      // 3.5 weaving S-curves (змійка)
-        waveAmplitude = 0.045 // Realistic lateral evasion amplitude
+        // Shahed-136: повільний маневруючий дрон — виражена змійка оминання ППО
+        curvature = -0.20
+        cycles = 3.5      // 3.5 S-curves (змійка)
+        waveAmplitude = 0.045
+    case ThreatConstants.reactiveUav, "reactive_uav", "jet_shahed", "shahed_238":
+        // Реактивний дрон (Shahed-238): швидкісний політ 500 км/год, згладжена траєкторія
+        curvature = -0.16
+        cycles = 2.0
+        waveAmplitude = 0.022
     case ThreatConstants.cruiseMissile, ThreatConstants.tu95:
+        // Крилата ракета (Х-101/Калібр): низьковисотна огинаюча траєкторія
         curvature = 0.18
-        cycles = 2.5      // 2.5 tactical waypoint weaves
+        cycles = 2.5      // Waypoint weaves
         waveAmplitude = 0.038
     case ThreatConstants.tu22m3:
-        // Ту-22М3: надзвукова Х-22/Х-32 — майже пряма балістична дуга, мінімальне відхилення
+        // Ту-22М3: надзвукова Х-22/Х-32 — майже пряма балістична дуга
         curvature = -0.15
-        cycles = 1.0      // Supersonic — minor terminal correction only
+        cycles = 1.0
         waveAmplitude = 0.012
     case ThreatConstants.mig31k, "kinzhal", "kh47m2":
-        // МіГ-31К / Кинджал: гіперзвукова аеробалістична траєкторія Х-47М2 з мінімальним відхиленням
+        // МіГ-31К / Кинджал: гіперзвукова аеробалістична траєкторія Х-47М2
         curvature = -0.10
         cycles = 1.0      // Aeroballistic quasi-straight hypersonic ingress
-        waveAmplitude = 0.010
+        waveAmplitude = 0.008
     case ThreatConstants.ballistic, ThreatConstants.iskander, ThreatConstants.zircon:
+        // Іскандер-М / Балістика / Циркон: висока параболічна дуга
         curvature = -0.12
-        cycles = 1.2      // Minor terminal trajectory wobble
-        waveAmplitude = 0.020
-    case ThreatConstants.kab:
-        curvature = 0.12
-        cycles = 1.8      // Wind drift glide weaving
-        waveAmplitude = 0.028
-    case ThreatConstants.artillery, ThreatConstants.mlrs:
-        curvature = 0.05
         cycles = 1.0
         waveAmplitude = 0.010
-    case ThreatConstants.fpv, ThreatConstants.recon, ThreatConstants.reconUAV:
+    case ThreatConstants.kab:
+        // КАБ (УМПК / УМПБ): плануюча аеродинамічна глісада без хвиль і змійок
+        curvature = 0.05
+        cycles = 0.8
+        waveAmplitude = 0.005
+    case ThreatConstants.artillery, ThreatConstants.mlrs:
+        // Артилерія / РСЗВ: коротка пряма балістична дуга
+        curvature = 0.04
+        cycles = 1.0
+        waveAmplitude = 0.004
+    case ThreatConstants.fpv:
+        // FPV: тактичний радіус ~20 км
+        curvature = 0.08
+        cycles = 1.2
+        waveAmplitude = 0.012
+    case ThreatConstants.recon, ThreatConstants.reconUAV:
         curvature = 0.10
         cycles = 2.2
         waveAmplitude = 0.025
@@ -409,6 +424,20 @@ public func calculateTrajectory(
         let maxArtilleryKm = 40.0
         if distKm > maxArtilleryKm && distKm > 1.0 {
             let scale = maxArtilleryKm / distKm
+            effectiveStartCoord = CLLocationCoordinate2D(
+                latitude: target.latitude + dLat * scale,
+                longitude: target.longitude + dLon * scale
+            )
+        }
+    } else if tType == ThreatConstants.fpv || tType == "fpv" {
+        effectiveWaypoint = nil
+        let dLat = effectiveStartCoord.latitude - target.latitude
+        let dLon = effectiveStartCoord.longitude - target.longitude
+        let latMid = (effectiveStartCoord.latitude + target.latitude) * 0.5 * .pi / 180.0
+        let distKm = sqrt(dLat * dLat * 111.0 * 111.0 + dLon * dLon * 111.0 * 111.0 * cos(latMid) * cos(latMid))
+        let maxFpvKm = 25.0
+        if distKm > maxFpvKm && distKm > 1.0 {
+            let scale = maxFpvKm / distKm
             effectiveStartCoord = CLLocationCoordinate2D(
                 latitude: target.latitude + dLat * scale,
                 longitude: target.longitude + dLon * scale
