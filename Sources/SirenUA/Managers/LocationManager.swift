@@ -93,7 +93,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     
     func requestPermission() {
         locLogger.debug("Checking location permission status: \(String(describing: self.authorizationStatus))")
-        switch manager.authorizationStatus {
+        switch self.authorizationStatus {
         case .notDetermined:
             locLogger.info("Requesting when-in-use authorization")
             manager.requestWhenInUseAuthorization()
