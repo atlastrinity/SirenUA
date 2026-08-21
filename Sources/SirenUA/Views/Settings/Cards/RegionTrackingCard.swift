@@ -25,9 +25,7 @@ struct RegionTrackingCard: View {
                         if newVal {
                             settings.trackedRegionsString = allRegionsList.joined(separator: ";")
                         } else {
-                            if settings.trackedRegionsString.isEmpty {
-                                settings.trackedRegionsString = allRegionsList.joined(separator: ";")
-                            }
+                            settings.trackedRegionsString = ""
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 isRegionsExpanded = true
                             }
