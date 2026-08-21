@@ -533,28 +533,32 @@ public func calculateTrajectory(
     // Calculate Carrier Ingress Approach (Airbase -> Launch Sector / Start Coordinate)
     var carrierApproachPoints: [CLLocationCoordinate2D]? = nil
     if let carrier = carrierOrigin {
-        var approach: [CLLocationCoordinate2D] = []
-        let appSteps = 24
-        let appMidLat = (carrier.latitude + startCoord.latitude) / 2.0
-        let appMidLon = (carrier.longitude + startCoord.longitude) / 2.0
         let dLatApp = (startCoord.latitude - carrier.latitude) * 111.0
         let dLonApp = (startCoord.longitude - carrier.longitude) * 111.0 * cos(carrier.latitude * .pi / 180.0)
-        let appDist = max(0.1, sqrt(dLatApp * dLatApp + dLonApp * dLonApp))
-        let appCurvatureScale = min(0.25, max(0.05, appDist * 0.0003))
+        let appDist = sqrt(dLatApp * dLatApp + dLonApp * dLonApp)
         
-        let appNormalLat = -(startCoord.longitude - carrier.longitude) / max(0.01, sqrt(pow(startCoord.latitude - carrier.latitude, 2) + pow(startCoord.longitude - carrier.longitude, 2)))
-        let appNormalLon = (startCoord.latitude - carrier.latitude) / max(0.01, sqrt(pow(startCoord.latitude - carrier.latitude, 2) + pow(startCoord.longitude - carrier.longitude, 2)))
-        let appControlLat = appMidLat + appNormalLat * appCurvatureScale
-        let appControlLon = appMidLon + appNormalLon * appCurvatureScale
+        // Only draw carrier approach if the airbase/base and the launch line are physically distinct (> 25 km)
+        if appDist >= 25.0 {
+            var approach: [CLLocationCoordinate2D] = []
+            let appSteps = 24
+            let appMidLat = (carrier.latitude + startCoord.latitude) / 2.0
+            let appMidLon = (carrier.longitude + startCoord.longitude) / 2.0
+            let appCurvatureScale = min(0.25, max(0.05, appDist * 0.0003))
+            
+            let appNormalLat = -(startCoord.longitude - carrier.longitude) / max(0.01, sqrt(pow(startCoord.latitude - carrier.latitude, 2) + pow(startCoord.longitude - carrier.longitude, 2)))
+            let appNormalLon = (startCoord.latitude - carrier.latitude) / max(0.01, sqrt(pow(startCoord.latitude - carrier.latitude, 2) + pow(startCoord.longitude - carrier.longitude, 2)))
+            let appControlLat = appMidLat + appNormalLat * appCurvatureScale
+            let appControlLon = appMidLon + appNormalLon * appCurvatureScale
 
-        for i in 0...appSteps {
-            let t = Double(i) / Double(appSteps)
-            let invT = 1.0 - t
-            let lat = invT * invT * carrier.latitude + 2.0 * invT * t * appControlLat + t * t * startCoord.latitude
-            let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startCoord.longitude
-            approach.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+            for i in 0...appSteps {
+                let t = Double(i) / Double(appSteps)
+                let invT = 1.0 - t
+                let lat = invT * invT * carrier.latitude + 2.0 * invT * t * appControlLat + t * t * startCoord.latitude
+                let lon = invT * invT * carrier.longitude + 2.0 * invT * t * appControlLon + t * t * startCoord.longitude
+                approach.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+            }
+            carrierApproachPoints = smoothPointsChaikin(points: approach, iterations: 1)
         }
-        carrierApproachPoints = smoothPointsChaikin(points: approach, iterations: 1)
     }
     // Progressive Tapering: Generate 3 continuous segments that gracefully narrow from launch origin to target tip
     var taperedSegments: [TrajectoryTaperedSegment] = []
