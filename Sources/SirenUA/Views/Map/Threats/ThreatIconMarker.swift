@@ -367,3 +367,56 @@ public struct LastTelemetryCheckpointView: View {
         .frame(alignment: .center)
     }
 }
+
+// MARK: - Trajectory Origin Marker (Точка вильоту / Рубіж пуску)
+
+public struct TrajectoryOriginMarkerView: View {
+    public let color: Color
+    public var zoomScale: CGFloat = 1.0
+    public var originName: String? = nil
+
+    @State private var isPulsing = false
+
+    public init(color: Color, zoomScale: CGFloat = 1.0, originName: String? = nil) {
+        self.color = color
+        self.zoomScale = zoomScale
+        self.originName = originName
+    }
+
+    public var body: some View {
+        VStack(spacing: 2) {
+            ZStack(alignment: .center) {
+                // Пульсуюче кільце вильоту
+                Circle()
+                    .stroke(color.opacity(isPulsing ? 0.0 : 0.85), lineWidth: 1.5)
+                    .frame(width: 18, height: 18)
+                    .scaleEffect(isPulsing ? 1.9 : 0.6)
+                    .animation(.easeOut(duration: 1.8).repeatForever(autoreverses: false), value: isPulsing)
+
+                // Тактичне біле кільце
+                Circle()
+                    .stroke(Color.white.opacity(0.9), lineWidth: 1.2)
+                    .frame(width: 10, height: 10)
+
+                // Центральна контрастна точка вильоту
+                Circle()
+                    .fill(color)
+                    .frame(width: 6, height: 6)
+            }
+            .frame(width: 24, height: 24)
+            .onAppear { isPulsing = true }
+
+            if let name = originName, !name.isEmpty {
+                Text(name.uppercased())
+                    .font(.system(size: 6.5, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1.5)
+                    .background(Color.black.opacity(0.85))
+                    .cornerRadius(3)
+                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(color.opacity(0.6), lineWidth: 0.5))
+            }
+        }
+        .scaleEffect(max(0.75, min(1.15, zoomScale)))
+    }
+}

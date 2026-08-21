@@ -92,7 +92,34 @@ struct PremiumTrajectoryOverlay: MapContent {
                         )
                         .mapOverlayLevel(level: .aboveLabels)
 
-                    // Шар 3: Акуратні тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
+                    // Шар 3: Тактичний маркер точки вильоту / Рубежу пуску (Origin Pulse Dot)
+                    if let originCoord = trajectory.fullPoints.first {
+                        Annotation(coordinate: originCoord) {
+                            TrajectoryOriginMarkerView(
+                                color: color,
+                                zoomScale: zoomScale,
+                                originName: launchSectorName ?? carrierOriginName
+                            )
+                        } label: {
+                            EmptyView()
+                        }
+                    }
+
+                    // Шар 4: Напрямні тактичні шеврони вздовж траєкторії (Flow Direction)
+                    ForEach(trajectory.flowArrows) { flowArrow in
+                        Annotation(coordinate: flowArrow.coordinate) {
+                            TrajectoryFlowChevronView(
+                                angle: flowArrow.angle,
+                                threatIcon: ThreatConstants.sfSymbol(for: threatType),
+                                threatLabel: ThreatConstants.shortName(for: threatType),
+                                opacity: flowArrow.opacity
+                            )
+                        } label: {
+                            EmptyView()
+                        }
+                    }
+
+                    // Шар 5: Акуратні тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
                     ForEach(trajectory.echelonArrowheads) { arrowhead in
                         Annotation(coordinate: arrowhead.coordinate) {
                             TrajectoryArrowheadView(
@@ -135,7 +162,34 @@ struct PremiumTrajectoryOverlay: MapContent {
                         .mapOverlayLevel(level: .aboveLabels)
                 }
 
-                // Шар 4: Тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
+                // Шар 4: Тактичний маркер точки вильоту / Рубежу пуску (Origin Pulse Dot)
+                if let originCoord = trajectory.fullPoints.first {
+                    Annotation(coordinate: originCoord) {
+                        TrajectoryOriginMarkerView(
+                            color: color,
+                            zoomScale: zoomScale,
+                            originName: launchSectorName ?? carrierOriginName
+                        )
+                    } label: {
+                        EmptyView()
+                    }
+                }
+
+                // Шар 5: Напрямні тактичні шеврони вздовж траєкторії (Flow Direction)
+                ForEach(trajectory.flowArrows) { flowArrow in
+                    Annotation(coordinate: flowArrow.coordinate) {
+                        TrajectoryFlowChevronView(
+                            angle: flowArrow.angle,
+                            threatIcon: ThreatConstants.sfSymbol(for: threatType),
+                            threatLabel: ThreatConstants.shortName(for: threatType),
+                            opacity: flowArrow.opacity
+                        )
+                    } label: {
+                        EmptyView()
+                    }
+                }
+
+                // Шар 6: Тактичні стрілочки (головна на вістрі + ешелон загроз у колоні)
                 ForEach(trajectory.echelonArrowheads) { arrowhead in
                     Annotation(coordinate: arrowhead.coordinate) {
                         TrajectoryArrowheadView(

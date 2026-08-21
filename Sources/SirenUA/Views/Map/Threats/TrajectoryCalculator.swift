@@ -3,12 +3,14 @@ import CoreLocation
 
 // MARK: - Trajectory Flow Arrow Data
 
-public struct TrajectoryFlowArrow {
+public struct TrajectoryFlowArrow: Identifiable {
+    public let id: Int
     public let coordinate: CLLocationCoordinate2D
     public let angle: Double
     public let opacity: Double
 
-    public init(coordinate: CLLocationCoordinate2D, angle: Double, opacity: Double) {
+    public init(id: Int, coordinate: CLLocationCoordinate2D, angle: Double, opacity: Double) {
+        self.id = id
         self.coordinate = coordinate
         self.angle = angle
         self.opacity = opacity
@@ -514,7 +516,7 @@ public func calculateTrajectory(
             let aAngleDeg = aAngleRad * 180.0 / .pi
             let progress = Double(stepIdx) / Double(steps)
             let arrowOpacity = 0.50 + (progress * 0.50)
-            flowArrows.append(TrajectoryFlowArrow(coordinate: ap1, angle: aAngleDeg, opacity: arrowOpacity))
+            flowArrows.append(TrajectoryFlowArrow(id: stepIdx, coordinate: ap1, angle: aAngleDeg, opacity: arrowOpacity))
         }
     }
 
