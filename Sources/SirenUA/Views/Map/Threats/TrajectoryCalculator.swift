@@ -230,6 +230,11 @@ public func calculateTrajectory(
         curvature = 0.04
         cycles = 1.0
         waveAmplitude = 0.004
+    case ThreatConstants.su35, ThreatConstants.su35Alt, "su35_su57", "su34", "su35", "tactical_aviation":
+        // Тактична авіація (Су-34/Су-35): патрулювання та вихід на рубежі пусків
+        curvature = 0.12
+        cycles = 1.5
+        waveAmplitude = 0.015
     case ThreatConstants.fpv:
         // FPV: тактичний радіус ~20 км
         curvature = 0.08
