@@ -5,6 +5,8 @@ import SwiftUI
 public enum ThreatConstants {
     // 1. Строкові ідентифікатори загроз (Single Source of Truth)
     public static let shahed = "shahed"
+    public static let reactiveUav = "reactive_uav"
+    public static let jetShahed = "jet_shahed"
     public static let cruiseMissile = "cruise_missile"
     public static let ballistic = "ballistic"
     public static let mig31k = "mig31k"
@@ -29,6 +31,8 @@ public enum ThreatConstants {
 
     public static let all: [String] = [
         shahed,
+        reactiveUav,
+        jetShahed,
         cruiseMissile,
         ballistic,
         mig31k,
@@ -56,8 +60,8 @@ public enum ThreatConstants {
         switch threatType {
         case shahed, "shahed_136", "shahed_131", "geran", "drone", "uav", "kamikaze_drone":
             return "БПЛА Shahed-136"
-        case "reactive_uav", "jet_shahed", "jet_drone":
-            return "Реактивний ударний БпЛА"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone", "shahed_238", "shahed-238":
+            return "Реактивний ударний БпЛА (Shahed-238)"
         case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69",
             "kh_69":
             return "Крилаті ракети"
@@ -104,7 +108,7 @@ public enum ThreatConstants {
         switch threatType {
         case shahed, "shahed_136", "shahed_131", "geran", "drone", "uav", "kamikaze_drone":
             return "БпЛА"
-        case "reactive_uav", "jet_shahed", "jet_drone":
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone", "shahed_238", "shahed-238":
             return "реактивний БпЛА"
         case cruiseMissile, "kalibr", "kh101", "kh_101", "kh555", "kh_555", "kh59", "kh_59", "kh69",
             "kh_69":
@@ -154,6 +158,8 @@ public enum ThreatConstants {
         switch type {
         case shahed:
             return "Відбій загрози: БпЛА «Шахед»"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone":
+            return "Відбій загрози: Реактивний БпЛА"
         case cruiseMissile:
             return "Відбій загрози: Крилаті ракети"
         case ballistic:
@@ -190,6 +196,8 @@ public enum ThreatConstants {
             if !detailLower.isEmpty {
                 if detailLower.contains("балістик") {
                     return "Відбій загрози: Балістика"
+                } else if detailLower.contains("реактивн") {
+                    return "Відбій загрози: Реактивний БпЛА"
                 } else if detailLower.contains("шахед") || detailLower.contains("бпла")
                     || detailLower.contains("дрон")
                 {
@@ -209,6 +217,8 @@ public enum ThreatConstants {
             if !detailLower.isEmpty {
                 if detailLower.contains("балістик") {
                     return "Відбій загрози: Балістика"
+                } else if detailLower.contains("реактивн") {
+                    return "Відбій загрози: Реактивний БпЛА"
                 } else if detailLower.contains("шахед") || detailLower.contains("бпла")
                     || detailLower.contains("дрон")
                 {
@@ -230,6 +240,7 @@ public enum ThreatConstants {
         guard let threatType = threatType?.lowercased() else { return "⚠️" }
         switch threatType {
         case shahed: return "🛩"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return "🛩"
         case cruiseMissile: return "🚀"
         case ballistic, zircon: return "💥"
         case mig31k: return "✈️"
@@ -254,6 +265,7 @@ public enum ThreatConstants {
         }
         switch threatType {
         case shahed: return "airplane.circle.fill"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return "airplane.circle.fill"
         case cruiseMissile: return "paperplane.fill"
         case ballistic: return "flame.fill"
         case mig31k: return "bolt.fill"
@@ -280,6 +292,7 @@ public enum ThreatConstants {
         guard let threatType = threatType?.lowercased() else { return .orange }
         switch threatType {
         case shahed: return .yellow
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return .yellow
         case cruiseMissile: return .red
         case ballistic, iskander, mig31k, zircon: return .purple
         case kab, mlrs: return .orange
@@ -301,6 +314,7 @@ public enum ThreatConstants {
         guard let threatType = threatType?.lowercased() else { return 300.0 }
         switch threatType {
         case shahed: return 165.0
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone", "shahed_238", "shahed-238": return 500.0
         case cruiseMissile: return 850.0
         case ballistic, iskander: return 5500.0
         case mig31k: return 2500.0
@@ -326,6 +340,7 @@ public enum ThreatConstants {
         guard let threatType = threatType?.lowercased() else { return 3600 }
         switch threatType {
         case shahed: return 10800
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return isRegex ? 3600 : 2700
         case cruiseMissile: return isRegex ? 3600 : 2700
         case ballistic: return isRegex ? 1800 : 600
         case mig31k: return isRegex ? 2700 : 1800
@@ -352,6 +367,7 @@ public enum ThreatConstants {
         guard let threatType = threatType?.lowercased() else { return "до 30 хв" }
         switch threatType {
         case shahed: return isRegex ? "до 1.5 год" : "до 3 год"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return isRegex ? "до 25 хв" : "до 40 хв"
         case cruiseMissile: return isRegex ? "до 30 хв" : "до 55 хв"
         case ballistic: return isRegex ? "до 5 хв" : "до 15 хв"
         case mig31k: return isRegex ? "до 40 хв" : "до 40 хв"
@@ -379,6 +395,7 @@ public enum ThreatConstants {
         switch threatType {
         case mig31k: return "атаки аеробалістичними ракетами Кинджал"
         case shahed: return "ударних безпілотників Шахед"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": return "реактивних ударних безпілотників (Shahed-238)"
         case cruiseMissile: return "крилатих ракет"
         case kab: return "ударів керованими авіабомбами (КАБ)"
         case ballistic: return "балістичних ракет"
@@ -407,6 +424,7 @@ public enum ThreatConstants {
         switch threatType?.lowercased() {
         case ballistic: threatName = "Балістична загроза"
         case shahed: threatName = "Загроза БпЛА Shahed"
+        case reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone": threatName = "Загроза реактивного БпЛА"
         case cruiseMissile: threatName = "Загроза крилатих ракет"
         case kab: threatName = "Загроза КАБ"
         case mig31k: threatName = "Зліт МіГ-31К (Кинджал)"
@@ -552,7 +570,7 @@ public enum ThreatConstants {
             return "Аеродроми базування тактичної авіації РФ"
         case kab, "uab", "fab", "umpb", "odab", "rbk":
             return "Су-34/Су-35 (Тактична авіація РФ)"
-        case shahed, "shahed_136", "reactive_uav":
+        case shahed, "shahed_136", reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone":
             if det.contains("чорн") || det.contains("мор") || det.contains("одес")
                 || det.contains("миколаїв")
             {
@@ -749,7 +767,7 @@ public enum ThreatConstants {
             return "Міська забудова зони бойових дій"
         case nuclear, chemical:
             return "Зона підвищеного техногенного / радіаційного ризику"
-        case shahed, "shahed_136":
+        case shahed, "shahed_136", reactiveUav, jetShahed, "reactive_uav", "jet_shahed", "jet_drone", "reactive_drone":
             if reg.contains("одес") || reg.contains("миколаїв") || reg.contains("херсон")
                 || reg.contains("вінниц") || reg.contains("чернів")
             {
