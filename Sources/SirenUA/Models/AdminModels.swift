@@ -298,8 +298,12 @@ struct AdminChronologyV2Response: Codable {
 // MARK: - Palantir Intelligence Decodables
 
 struct PalantirCorridor: Codable, Identifiable {
-    var id: String {
-        "\(data_source ?? "c")_\(source ?? "")_\(target ?? "")_\(threat_type ?? "")_\(count ?? 0)_\(avg_confidence ?? accuracy ?? 0)_\(route_description ?? "")"
+    var id: UUID = UUID()
+
+    private enum CodingKeys: String, CodingKey {
+        case source, target, source_lat, source_lon, target_lat, target_lon
+        case source_coords, target_coords, route_description, count
+        case threat_type, avg_confidence, accuracy, avg_speed, data_source
     }
     let source: String?
     let target: String?
