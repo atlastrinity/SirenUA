@@ -444,6 +444,7 @@ class AdminViewModel: ObservableObject {
                 self.palantirReportsList = decoded.reports
             }
         } catch {
+            guard !Task.isCancelled, (error as? URLError)?.code != .cancelled, (error as NSError).code != -999 else { return }
             adminLogger.error("Failed in fetchPalantirOverview: \(error)")
         }
     }
