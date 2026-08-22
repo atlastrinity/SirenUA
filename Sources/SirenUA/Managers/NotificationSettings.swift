@@ -250,13 +250,128 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         isNotificationsEnabled && isVibrationEnabled
     }
 
-    nonisolated func isTracked(_ regionName: String) -> Bool {
+    nonisolated func isTracked(_ regionName: String, district: String? = nil) -> Bool {
         let allTracked = Self.sharedDefaults.object(forKey: Keys.allRegionsTracked) as? Bool ?? true
         guard !allTracked else { return true }
         let trackedString = Self.sharedDefaults.string(forKey: Keys.trackedRegionsString) ?? ""
         guard !trackedString.isEmpty else { return false }
-        let trackedList = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
-        return trackedList.contains(regionName)
+        
+        let entries = trackedString.components(separatedBy: ";").filter { !$0.isEmpty }
+        for entry in entries {
+            if entry == regionName {
+                // Вся область обрана
+                return true
+            } else if entry.hasPrefix(regionName + ":") {
+                // Обрано конкретні райони
+                guard let targetDistrict = district else {
+                    return true // Якщо район не уточнено — реагуємо на загрозу в області
+                }
+                let districtsStr = String(entry.dropFirst(regionName.count + 1))
+                let selectedDistricts = districtsStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                return selectedDistricts.contains(targetDistrict)
+            }
+        }
+        return false
+    }
+
+    func isDistrictSelected(region: String, district: String) -> Bool {
+        if allRegionsTracked { return true }
+        guard !trackedRegionsString.isEmpty else { return false }
+        let entries = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        for entry in entries {
+            if entry == region {
+                return true
+            } else if entry.hasPrefix(region + ":") {
+                let districtsStr = String(entry.dropFirst(region.count + 1))
+                let selectedDistricts = districtsStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                return selectedDistricts.contains(district)
+            }
+        }
+        return false
+    }
+
+    func isRegionFullySelected(_ regionName: String) -> Bool {
+        if allRegionsTracked { return true }
+        guard !trackedRegionsString.isEmpty else { return false }
+        let entries = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        for entry in entries {
+            if entry == regionName {
+                return true
+            } else if entry.hasPrefix(regionName + ":") {
+                let districtsStr = String(entry.dropFirst(regionName.count + 1))
+                let selectedDistricts = Set(districtsStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) })
+                let allDistricts = Set(DistrictRegistry.districts(for: regionName))
+                return !allDistricts.isEmpty && selectedDistricts == allDistricts
+            }
+        }
+        return false
+    }
+
+    func selectedDistricts(for regionName: String) -> Set<String> {
+        let allForRegion = Set(DistrictRegistry.districts(for: regionName))
+        if allRegionsTracked { return allForRegion }
+        guard !trackedRegionsString.isEmpty else { return [] }
+        let entries = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+        for entry in entries {
+            if entry == regionName {
+                return allForRegion
+            } else if entry.hasPrefix(regionName + ":") {
+                let districtsStr = String(entry.dropFirst(regionName.count + 1))
+                return Set(districtsStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) })
+            }
+        }
+        return []
+    }
+
+    func setRegionSelection(region: String, isWholeRegion: Bool, districts: Set<String>) {
+        var map: [String: Set<String>?] = [:]
+        let allRegionsList = RegionRegistry.allRegions
+
+        if allRegionsTracked {
+            for r in allRegionsList {
+                map[r] = nil // nil означає вся область
+            }
+        } else {
+            let entries = trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
+            for entry in entries {
+                if let colonIdx = entry.firstIndex(of: ":") {
+                    let rName = String(entry[..<colonIdx])
+                    let dStr = String(entry[entry.index(after: colonIdx)...])
+                    let dSet = Set(dStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) })
+                    map[rName] = dSet
+                } else {
+                    map[entry] = nil
+                }
+            }
+        }
+
+        let allDistrictsForRegion = Set(DistrictRegistry.districts(for: region))
+        if isWholeRegion || (allDistrictsForRegion.count > 0 && districts == allDistrictsForRegion) {
+            map[region] = nil // Вся область
+        } else if districts.isEmpty {
+            map.removeValue(forKey: region) // Нічого не обрано
+        } else {
+            map[region] = districts // Тільки вибрані райони
+        }
+
+        // Побудова серіалізованого рядка
+        var serializedEntries: [String] = []
+        for (r, distSetOpt) in map {
+            if let distSet = distSetOpt {
+                if !distSet.isEmpty {
+                    serializedEntries.append("\(r):\(distSet.joined(separator: ","))")
+                }
+            } else {
+                serializedEntries.append(r)
+            }
+        }
+
+        trackedRegionsString = serializedEntries.joined(separator: ";")
+        if map.count == allRegionsList.count && map.values.allSatisfy({ $0 == nil }) {
+            allRegionsTracked = true
+        } else {
+            allRegionsTracked = false
+        }
     }
 
     func reloadFromUserDefaults() {
@@ -283,13 +398,14 @@ final class NotificationSettings: ObservableObject, @unchecked Sendable {
         }
 
         if isOn {
-            if !list.contains(regionName) { list.append(regionName) }
+            list.removeAll { $0 == regionName || $0.hasPrefix(regionName + ":") }
+            list.append(regionName)
         } else {
-            list.removeAll { $0 == regionName }
+            list.removeAll { $0 == regionName || $0.hasPrefix(regionName + ":") }
         }
 
         trackedRegionsString = list.joined(separator: ";")
-        if list.count == RegionRegistry.allRegions.count {
+        if list.count == RegionRegistry.allRegions.count && !list.contains(where: { $0.contains(":") }) {
             allRegionsTracked = true
         } else {
             allRegionsTracked = false

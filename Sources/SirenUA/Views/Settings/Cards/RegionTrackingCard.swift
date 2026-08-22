@@ -5,6 +5,7 @@ struct RegionTrackingCard: View {
     @Binding var isRegionsExpanded: Bool
     let onHaptic: (UIImpactFeedbackGenerator.FeedbackStyle) -> Void
 
+    @State private var showRegionPickerSheet: Bool = false
     @State private var showPaywallSheet: Bool = false
 
     /// Канонічний список регіонів з єдиного реєстру
@@ -63,29 +64,37 @@ struct RegionTrackingCard: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showRegionPickerSheet) {
+            RegionSelectionSheet(
+                allRegionsTracked: $settings.allRegionsTracked,
+                trackedRegionsString: $settings.trackedRegionsString,
+                onConfirm: {
+                    NotificationManager.shared.syncTopicSubscriptions()
+                }
+            )
+        }
     }
 
     private var regionsPickerSection: some View {
         let trackedList = settings.trackedRegionsString.components(separatedBy: ";").filter { !$0.isEmpty }
-        let trackedSet = Set(trackedList)
         let count = trackedList.count
 
-        return VStack(spacing: 0) {
+        return VStack(spacing: 8) {
+            // Кнопка відкриття повноцінного модального вікна вибору районів
             Button(action: {
-                withAnimation(.spring(response: 0.3)) {
-                    isRegionsExpanded.toggle()
-                }
+                onHaptic(.light)
+                showRegionPickerSheet = true
             }) {
                 HStack {
-                    Image(systemName: isRegionsExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                    Image(systemName: "slider.horizontal.3")
                         .foregroundColor(.siGold)
-                        .font(.system(size: 16))
-                    Text("Вибрати регіони вручну")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.75))
+                        .font(.system(size: 15))
+                    Text("Налаштувати області та райони...")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
                     Spacer()
                     if count > 0 {
-                        Text("\(count)")
+                        Text("\(count) обл.")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.black)
                             .padding(.horizontal, 8)
@@ -94,6 +103,29 @@ struct RegionTrackingCard: View {
                             .clipShape(Capsule())
                     }
                 }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 10)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Швидкий список областей
+            Button(action: {
+                withAnimation(.spring(response: 0.3)) {
+                    isRegionsExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: isRegionsExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 15))
+                    Text(isRegionsExpanded ? "Приховати список" : "Швидкий список областей")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.65))
+                    Spacer()
+                }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -101,13 +133,34 @@ struct RegionTrackingCard: View {
             if isRegionsExpanded {
                 VStack(spacing: 0) {
                     ForEach(allRegionsList, id: \.self) { region in
+                        let isFullySelected = settings.isRegionFullySelected(region)
+                        let selectedDistricts = settings.selectedDistricts(for: region)
+                        let allDistricts = DistrictRegistry.districts(for: region)
+                        let isPartiallySelected = !isFullySelected && !selectedDistricts.isEmpty
+
                         HStack {
-                            Text(region)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(region)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white)
+
+                                if !allDistricts.isEmpty && region != "м. Київ" {
+                                    if isFullySelected {
+                                        Text("Уся область (\(allDistricts.count) районів)")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.siGold.opacity(0.8))
+                                    } else if isPartiallySelected {
+                                        Text("Обрано \(selectedDistricts.count) з \(allDistricts.count) районів")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(Color.orange)
+                                    }
+                                }
+                            }
+
                             Spacer()
+
                             Toggle("", isOn: Binding(
-                                get: { trackedSet.contains(region) },
+                                get: { isFullySelected || isPartiallySelected },
                                 set: { isOn in
                                     onHaptic(.light)
                                     settings.setTracked(region, isOn: isOn)
@@ -116,7 +169,7 @@ struct RegionTrackingCard: View {
                             .labelsHidden()
                             .tint(.siGold)
                         }
-                        .padding(.vertical, 9)
+                        .padding(.vertical, 8)
                         .padding(.horizontal, 4)
 
                         if region != allRegionsList.last {
@@ -124,7 +177,7 @@ struct RegionTrackingCard: View {
                         }
                     }
                 }
-                .padding(.top, 10)
+                .padding(.top, 4)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

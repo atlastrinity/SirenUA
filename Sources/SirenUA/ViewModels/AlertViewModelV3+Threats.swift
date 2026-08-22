@@ -84,12 +84,26 @@ extension AlertViewModelV3 {
             alerts[index].selectedThreatIndex = 0
         }
 
+        alerts[index].activeDistricts = threat.active_districts ?? []
+        alerts[index].officialAlertType = threat.official_alert_type
+
         let isOfficial = threat.is_active ?? false
         alerts[index].isActive = isOfficial
         alerts[index].level = isOfficial ? 3 : 0
 
         if isOfficial {
-            alerts[index].description = "Повітряна тривога!"
+            let offType = threat.official_alert_type?.lowercased()
+            if offType == "artillery" || offType == "art" {
+                alerts[index].description = "Загроза артобстрілу!"
+            } else if offType == "chemical" || offType == "chem" {
+                alerts[index].description = "Хімічна небезпека!"
+            } else if offType == "nuclear" || offType == "nuc" {
+                alerts[index].description = "Радіаційна небезпека!"
+            } else if offType == "urban_fights" || offType == "urban" {
+                alerts[index].description = "Вуличні бої!"
+            } else {
+                alerts[index].description = "Повітряна тривога!"
+            }
         } else if newThreatLevel != nil {
             alerts[index].description = "Загроза"
         } else {

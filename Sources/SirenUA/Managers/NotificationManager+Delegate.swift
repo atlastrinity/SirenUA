@@ -25,9 +25,11 @@ extension NotificationManager {
 
             let userInfo = notification.request.content.userInfo
             var regionName: String? = userInfo["region"] as? String ?? userInfo["regionName"] as? String
-            if regionName == nil, let aps = userInfo["aps"] as? [String: Any],
+            var districtName: String? = userInfo["district"] as? String ?? userInfo["districtName"] as? String
+            if let aps = userInfo["aps"] as? [String: Any],
                let custom = aps["custom_data"] as? [String: Any] {
-                regionName = custom["region"] as? String
+                if regionName == nil { regionName = custom["region"] as? String }
+                if districtName == nil { districtName = custom["district"] as? String }
             }
 
             // Миттєво сигналізуємо ViewModel оновити та перемалювати карту
@@ -37,7 +39,7 @@ extension NotificationManager {
                 userInfo: userInfo
             )
 
-            if let region = regionName, !NotificationSettings.shared.isTracked(region) {
+            if let region = regionName, !NotificationSettings.shared.isTracked(region, district: districtName) {
                 completionHandler([])
                 return
             }

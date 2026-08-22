@@ -47,7 +47,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
     var threatConfidence: Int? // 0-100% AI confidence score
     var threatETA: String?     // "~20-40 хв" expected arrival time
     var isThreatPredictive: Bool = false // true if AI-predicted route
+    var officialAlertType: String? = nil // "artillery" | "urban_fights" | "chemical" | "nuclear" | "air"
     var activeThreats: [SingleThreatInfo] = [] // Масив усіх активних загроз
+    var activeDistricts: [String] = []       // Масив районів у зоні тривоги
     var selectedThreatIndex: Int = 0             // Індекс вибраної загрози для UI
 
     /// Поточна вибрана загроза для відображення у картці
@@ -74,6 +76,9 @@ struct AlertRegion: Identifiable, Codable, Equatable {
 
     var icon: String {
         if isActive {
+            if let offType = officialAlertType?.lowercased(), offType != "air" && !offType.isEmpty {
+                return ThreatConstants.sfSymbol(for: offType)
+            }
             switch level {
             case 1: return "exclamationmark.triangle.fill"
             case 2: return "bell.fill"

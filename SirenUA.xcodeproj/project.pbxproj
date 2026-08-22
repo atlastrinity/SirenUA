@@ -39,6 +39,7 @@
 		3FEB076CAE81DF7D859DFAC9 /* AdminChronologyTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D32938646948B52EFBF900 /* AdminChronologyTab.swift */; };
 		4010CED26430FF0CDDA343A8 /* NotificationManager+Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CE742F7BA367F0E82468B4 /* NotificationManager+Subscriptions.swift */; };
 		4315A830BC873F1654AB0FC1 /* RegionPolygonsLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9AF2E195D0D8A85C298246E /* RegionPolygonsLayer.swift */; };
+		447FF66784501A8A47B4B499 /* DistrictRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072FBEE04EAFD692F174A999 /* DistrictRegistry.swift */; };
 		447FF66784501A8A47B4B4DF /* RegionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072FBEE04EAFD692F174A987 /* RegionRegistry.swift */; };
 		4558A3FD3CE2270D4C42CAD1 /* PremiumThreatToggleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7B837F3B025960ED2541C8 /* PremiumThreatToggleRow.swift */; };
 		45E6FA46EDCBC1C0EF106B06 /* ShelterRouteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3D295EA6449D5AFD708FBC /* ShelterRouteService.swift */; };
@@ -156,6 +157,7 @@
 		0339979594E28EFDB0679230 /* SirenUA.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirenUA.entitlements; sourceTree = "<group>"; };
 		06CE742F7BA367F0E82468B4 /* NotificationManager+Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationManager+Subscriptions.swift"; sourceTree = "<group>"; };
 		06F0F73C781ABB4E72AA6837 /* ContentView+MapLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MapLayers.swift"; sourceTree = "<group>"; };
+		072FBEE04EAFD692F174A999 /* DistrictRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistrictRegistry.swift; sourceTree = "<group>"; };
 		072FBEE04EAFD692F174A987 /* RegionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionRegistry.swift; sourceTree = "<group>"; };
 		0D1C04F235F954251FC35E70 /* PremiumViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumViewModifiers.swift; sourceTree = "<group>"; };
 		0E949423A90B5821D63FE831 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
@@ -514,6 +516,7 @@
 		86EDDCA4BB9D01F516E5E2A2 /* Constants */ = {
 			isa = PBXGroup;
 			children = (
+				072FBEE04EAFD692F174A999 /* DistrictRegistry.swift */,
 				072FBEE04EAFD692F174A987 /* RegionRegistry.swift */,
 			);
 			path = Constants;
@@ -884,6 +887,7 @@
 				8DE395A72A39F9861D44A3EC /* RegionHistoryView.swift in Sources */,
 				F65C4B4155B49045B12818C7 /* RegionOnboardingView.swift in Sources */,
 				4315A830BC873F1654AB0FC1 /* RegionPolygonsLayer.swift in Sources */,
+				447FF66784501A8A47B4B499 /* DistrictRegistry.swift in Sources */,
 				447FF66784501A8A47B4B4DF /* RegionRegistry.swift in Sources */,
 				F334337B1EF85930F8796224 /* RegionSelectionSheet.swift in Sources */,
 				489D0CBA44F4F7F24F0C13EC /* RegionStatusBadgeAnnotation.swift in Sources */,

@@ -54,6 +54,8 @@ struct ThreatInfo: Codable {
     let eta: String?        // "~20-40 хв" expected arrival time
     let is_predictive: Bool? // true if AI-predicted (not confirmed)
     let is_active: Bool?     // true if official air alarm is active
+    let official_alert_type: String? // "artillery" | "urban_fights" | "chemical" | "nuclear" | "air"
+    let active_districts: [String]? // Масив активних районів у тривозі
     let active_threats: [SingleThreatInfo]?  // Масив усіх активних загроз
 }
 
