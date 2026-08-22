@@ -66,6 +66,7 @@ final class RegionLayersCache {
         for alert in alerts {
             hasher.combine(alert.name)
             hasher.combine(alert.isActive)
+            hasher.combine(alert.activeDistricts)
             hasher.combine(alert.threatLevel)
             hasher.combine(alert.activeThreats.count)
         }

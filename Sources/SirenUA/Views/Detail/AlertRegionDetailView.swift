@@ -487,6 +487,61 @@ struct AlertRegionDetailView: View {
                     }
                     .buttonStyle(.plain)
 
+                    // Card: Райони області та їхній поточний стан
+                    let regionDistricts = DistrictRegistry.districts(for: liveRegion.name)
+                    if !regionDistricts.isEmpty && regionDistricts != ["м. Київ"] {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "square.grid.2x2.fill")
+                                    .foregroundStyle(themeColor)
+                                    .font(.system(size: 14))
+                                Text("Райони області (\(regionDistricts.count))")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                if liveRegion.isActive && !liveRegion.activeDistricts.isEmpty {
+                                    Text("У тривозі: \(liveRegion.activeDistricts.count)")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.35))
+                                }
+                            }
+
+                            VStack(spacing: 7) {
+                                ForEach(regionDistricts, id: \.self) { districtName in
+                                    let isAct = liveRegion.isDistrictActive(districtName)
+                                    HStack {
+                                        Circle()
+                                            .fill(isAct ? Color.red : Color.green.opacity(0.8))
+                                            .frame(width: 8, height: 8)
+                                        Text(districtName)
+                                            .font(.system(size: 13, weight: isAct ? .bold : .medium))
+                                            .foregroundStyle(isAct ? .white : .white.opacity(0.85))
+                                        Spacer()
+                                        Text(isAct ? "Тривога" : "Без тривоги")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(isAct ? Color.red : Color.green.opacity(0.8))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background((isAct ? Color.red : Color.green).opacity(0.12))
+                                            .cornerRadius(6)
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.04))
+                                    .cornerRadius(8)
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(themeColor.opacity(0.2), lineWidth: 1)
+                        )
+                    }
+
                     // Warning card
                     if (region.isActive || isThreatActive) && !isConfirmed {
                         VStack(alignment: .leading, spacing: 16) {
