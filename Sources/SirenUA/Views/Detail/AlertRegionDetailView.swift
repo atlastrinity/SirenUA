@@ -267,9 +267,22 @@ struct AlertRegionDetailView: View {
                             if isThreatActive {
                                 Text(threatTypeEmoji)
                                     .font(.system(size: 18))
+                            } else if let offType = liveRegion.officialAlertType, !offType.isEmpty {
+                                Text(ThreatConstants.emoji(for: offType))
+                                    .font(.system(size: 18))
                             }
                             let displayLevel = selectedThreat?.level.uppercased() ?? liveRegion.threatLevel?.uppercased() ?? "LOW"
-                            Text(isThreatActive ? "Загроза: \(displayLevel)" : "Рівень \(liveRegion.level)")
+                            let alertLabel: String = {
+                                if isThreatActive { return "Загроза: \(displayLevel)" }
+                                if let offType = liveRegion.officialAlertType?.lowercased() {
+                                    if offType == "artillery" || offType == "art" { return "Артобстріл" }
+                                    if offType == "chemical" || offType == "chem" { return "Хімічна загроза" }
+                                    if offType == "nuclear" || offType == "nuc" { return "Радіація" }
+                                    if offType == "urban_fights" || offType == "urban" { return "Вуличні бої" }
+                                }
+                                return "Рівень \(liveRegion.level)"
+                            }()
+                            Text(alertLabel)
                                 .font(.system(size: 16, weight: .bold))
                         }
                         .padding(.horizontal, 16)
@@ -310,16 +323,53 @@ struct AlertRegionDetailView: View {
                             feature: .threatDetails
                         )
                     } else if liveRegion.isActive {
+                        let offType = liveRegion.officialAlertType?.lowercased()
+                        let iconName: String = {
+                            if offType == "artillery" || offType == "art" { return "burst.fill" }
+                            if offType == "chemical" || offType == "chem" { return "smoke.fill" }
+                            if offType == "nuclear" || offType == "nuc" { return "atom" }
+                            if offType == "urban_fights" || offType == "urban" { return "shield.slash.fill" }
+                            return "bell.badge.fill"
+                        }()
+                        let headerTitle: String = {
+                            if offType == "artillery" || offType == "art" { return "Загроза артобстрілу" }
+                            if offType == "chemical" || offType == "chem" { return "Хімічна небезпека" }
+                            if offType == "nuclear" || offType == "nuc" { return "Радіаційна небезпека" }
+                            if offType == "urban_fights" || offType == "urban" { return "Вуличні бої" }
+                            return "Інформація про тривогу"
+                        }()
+                        let bodyText: String = {
+                            if offType == "artillery" || offType == "art" {
+                                if !liveRegion.activeDistricts.isEmpty {
+                                    return "У регіоні \(liveRegion.name) (\(liveRegion.activeDistricts.joined(separator: ", "))) оголошено загрозу артилерійського обстрілу. Перебувайте в укриттях або відійдіть від вікон!"
+                                }
+                                return "У регіоні \(liveRegion.name) оголошено загрозу артилерійського обстрілу. Перебувайте в укриттях!"
+                            }
+                            if offType == "chemical" || offType == "chem" {
+                                return "У регіоні \(liveRegion.name) оголошено хімічну небезпеку. Закрийте вікна та дотримуйтесь інструкцій ДСНС!"
+                            }
+                            if offType == "nuclear" || offType == "nuc" {
+                                return "У регіоні \(liveRegion.name) оголошено радіаційну небезпеку. Перебувайте у герметичних приміщеннях!"
+                            }
+                            if offType == "urban_fights" || offType == "urban" {
+                                return "У регіоні \(liveRegion.name) зафіксовано загрозу вуличних боїв. Не виходьте на вулицю!"
+                            }
+                            if !liveRegion.activeDistricts.isEmpty {
+                                return "У регіоні \(liveRegion.name) (\(liveRegion.activeDistricts.joined(separator: ", "))) оголошено офіційну повітряну тривогу."
+                            }
+                            return "У регіоні \(liveRegion.name) оголошено офіційну повітряну тривогу. AI-моніторинг обробляє оперативні джерела та вектори загроз."
+                        }()
+
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Image(systemName: "bell.badge.fill")
+                                Image(systemName: iconName)
                                     .foregroundStyle(themeColor)
                                     .font(.system(size: 14))
-                                Text("Інформація про тривогу")
+                                Text(headerTitle)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.secondary)
                             }
-                            Text("У регіоні \(liveRegion.name) оголошено офіційну повітряну тривогу. AI-моніторинг обробляє оперативні джерела та вектори загроз.")
+                            Text(bodyText)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.white.opacity(0.85))
                                 .lineSpacing(4)
