@@ -1250,11 +1250,11 @@ final class SirenUATests: XCTestCase {
         XCTAssertEqual(firstPt.latitude, 46.20, accuracy: 0.01)
         XCTAssertEqual(firstPt.longitude, 36.50, accuracy: 0.01)
         
-        // Assert standoff gap between tip and target coordinate (12 - 25 km)
+        // Assert standoff gap between tip and target coordinate (~9-15 km at default 600,000m overview)
         let dLatTip = (trajectory.tipCoordinate.latitude - mykolaivTarget.latitude) * 111.0
         let dLonTip = (trajectory.tipCoordinate.longitude - mykolaivTarget.longitude) * 111.0 * cos(mykolaivTarget.latitude * .pi / 180.0)
         let standoffDist = sqrt(dLatTip * dLatTip + dLonTip * dLonTip)
-        XCTAssertTrue(standoffDist >= 12.0 && standoffDist <= 25.0, "Standoff distance should be 12-25 km, got \(standoffDist) km")
+        XCTAssertTrue(standoffDist >= 7.0 && standoffDist <= 18.0, "Standoff distance should be 7-18 km, got \(standoffDist) km")
         XCTAssertEqual(lastPt.latitude, trajectory.tipCoordinate.latitude, accuracy: 0.0001)
         XCTAssertEqual(lastPt.longitude, trajectory.tipCoordinate.longitude, accuracy: 0.0001)
 
@@ -1288,10 +1288,12 @@ final class SirenUATests: XCTestCase {
         let kyivTarget = CLLocationCoordinate2D(latitude: 50.4501, longitude: 30.5234)
         let kurskOrigin = CLLocationCoordinate2D(latitude: 51.70, longitude: 35.50)
 
+        // Default 600,000m overview (whole Ukraine)
         let trajectory = calculateTrajectory(
             target: kyivTarget,
             threatType: "shahed",
-            customOrigin: kurskOrigin
+            customOrigin: kurskOrigin,
+            cameraDistance: 600_000.0
         )
 
         XCTAssertFalse(trajectory.fullPoints.isEmpty)
@@ -1300,9 +1302,22 @@ final class SirenUATests: XCTestCase {
         let dLon = (tip.longitude - kyivTarget.longitude) * 111.0 * cos(kyivTarget.latitude * .pi / 180.0)
         let dist = sqrt(dLat * dLat + dLon * dLon)
 
-        XCTAssertTrue(dist >= 12.0 && dist <= 26.0, "Standoff distance should be around 22 km, got \(dist) km")
+        XCTAssertTrue(dist >= 7.0 && dist <= 15.0, "Standoff distance at 600,000m should be 7-15 km, got \(dist) km")
         // Direction from Kursk to Kyiv is West-Southwest (~240°-270°)
         XCTAssertTrue(trajectory.tipAngle > 180.0 && trajectory.tipAngle < 300.0, "Tip angle should point towards Kyiv, got \(trajectory.tipAngle)")
+
+        // Dynamic close zoom (120,000m) test
+        let closeTrajectory = calculateTrajectory(
+            target: kyivTarget,
+            threatType: "shahed",
+            customOrigin: kurskOrigin,
+            cameraDistance: 120_000.0
+        )
+        let closeTip = closeTrajectory.tipCoordinate
+        let closeDLat = (closeTip.latitude - kyivTarget.latitude) * 111.0
+        let closeDLon = (closeTip.longitude - kyivTarget.longitude) * 111.0 * cos(kyivTarget.latitude * .pi / 180.0)
+        let closeDist = sqrt(closeDLat * closeDLat + closeDLon * closeDLon)
+        XCTAssertTrue(closeDist >= 1.0 && closeDist <= 4.0, "Standoff distance at 120,000m zoom should scale down to 1-4 km, got \(closeDist) km")
     }
 
     func testTrajectoryTaperingProgression() {

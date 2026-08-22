@@ -206,8 +206,17 @@ public func calculateTrajectory(
     let cName = carrierOriginName ?? ""
     let sName = launchSectorName ?? ""
 
-    // Стабільний географічний ключ кешу (не залежить від висоти камери, щоб уникнути мерехтіння Metal-буферів)
-    let cacheKey = "\(targetLat)_\(targetLon)|\(tType)|\(tCount)|\(originStr)|\(carrierStr)|\(sectorStr)|\(cName)|\(sName)"
+    // Динамічний розрахунок відступу від кружка області (Standoff):
+    // Стрілочка ЗАВЖДИ залишається на фіксованій екранній відстані (~26 pt / 2-3 мм від кільця)
+    // незалежно від наближення карти (cameraDistance / zoomScale).
+    // При наближенні лише подовжується траєкторія.
+    let targetScreenStandoffPoints: Double = max(18.0, 26.0 * Double(zoomScale))
+    let metersPerPoint = max(10.0, (cameraDistance * 0.5359) / 852.0)
+    let dynamicStandoffKm = max(0.3, min(40.0, (targetScreenStandoffPoints * metersPerPoint) / 1000.0))
+
+    // Логарифмічне квантування висоти камери для стабільного кешування без мерехтіння Metal-буферів
+    let zoomBracket = Int(round(log2(max(1000.0, cameraDistance)) * 4.0))
+    let cacheKey = "\(targetLat)_\(targetLon)|\(tType)|\(tCount)|\(originStr)|\(carrierStr)|\(sectorStr)|\(cName)|\(sName)|\(zoomBracket)"
     
     if let cached = TrajectoryCache.shared.get(key: cacheKey) {
         return cached
@@ -519,10 +528,11 @@ public func calculateTrajectory(
     // Apply Chaikin corner smoothing to ensure 100% C1/C2 smooth curvature without sharp angles
     let smoothedPoints = smoothPointsChaikin(points: rawPoints, iterations: 2)
 
-    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~6 km)
+    // Apply standoff trimming so trajectory stops cleanly before entering target region circle (~26 pt screen distance)
     let (fullPoints, tipCoord, tipAngle) = trimTrajectoryForStandoff(
         points: smoothedPoints,
-        target: target
+        target: target,
+        standoffKm: dynamicStandoffKm
     )
 
     let steps = fullPoints.count - 1
@@ -896,9 +906,9 @@ private func smoothPointsChaikin(points: [CLLocationCoordinate2D], iterations: I
 
 // MARK: - Standoff Trimming Algorithm
 
-/// Trims the spline before the target coordinate, leaving a clean standoff gap for the arrowhead and target marker.
-/// The standoff distance is constant in geographic space (~14 km) so that polyline coordinates stay 100% stable
-/// without triggering Metal buffer re-allocations or dark flickering during map zoom gestures.
+/// Trims the spline before the target coordinate, leaving a dynamic standoff gap for the arrowhead and target marker.
+/// The standoff distance is scaled dynamically to screen points (~26 pt / 2-3 mm from the badge ring),
+/// so that the arrowhead stays statically positioned next to the region circle across all map zoom levels.
 private func trimTrajectoryForStandoff(
     points: [CLLocationCoordinate2D],
     target: CLLocationCoordinate2D,
@@ -917,8 +927,8 @@ private func trimTrajectoryForStandoff(
 
     let totalDist = distKm(points.first!, target)
 
-    // Ensure standoff never exceeds 35% of total trajectory length
-    let effectiveStandoff = min(max(4.0, totalDist * 0.06), standoffKm)
+    // Ensure standoff never exceeds 45% of total trajectory length so short trajectories remain visible
+    let effectiveStandoff = min(max(0.15, totalDist * 0.45), standoffKm)
 
     var tipCoord = points.last!
     var tipAngle = 0.0

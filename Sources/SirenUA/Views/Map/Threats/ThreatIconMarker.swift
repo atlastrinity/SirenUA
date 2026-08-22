@@ -269,9 +269,9 @@ public struct FlyingThreatMarkerView: View {
     }
     
     public var body: some View {
-        VStack(alignment: .center, spacing: 2) {
+        ZStack(alignment: .center) {
             if isPremium {
-                // Фіксований квадратний контейнер (44x44) гарантує 100% симетричне концентричне розширення без горизонтального зміщення
+                // Фіксований квадратний контейнер (44x44) чітко по центру Annotation coordinate (0, 0)
                 ZStack(alignment: .center) {
                     // Оптимізоване концентричне пульсуюче кільце (Radar wave)
                     Circle()
@@ -301,13 +301,13 @@ public struct FlyingThreatMarkerView: View {
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                 }
-                .frame(width: 56, height: 56, alignment: .center)
+                .frame(width: 44, height: 44, alignment: .center)
                 .onAppear {
                     isPulsing = true
                 }
             }
 
-            // Інформаційна плашка з назвою та деталями загрози
+            // Інформаційна плашка з назвою та деталями загрози (винесена вниз під маяк)
             VStack(alignment: .center, spacing: 2) {
                 Text(regionName)
                     .font(.system(size: 9, weight: .bold))
@@ -354,8 +354,9 @@ public struct FlyingThreatMarkerView: View {
                 RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.8), lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 2)
+            .offset(y: 32) // Зміщення інформаційної плашки вниз, щоб центр Annotation залишався строго на кружку (0, 0)
         }
-        .frame(alignment: .center)
+        .frame(width: 44, height: 44, alignment: .center)
     }
 }
 

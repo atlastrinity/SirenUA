@@ -24,7 +24,7 @@ final class NetworkManager: Sendable {
     static let alertsBaseURL  = "https://ubilling.net.ua/aerialalerts/"
     static let userAgent      = "ios-sirenua/4.2"
     static let premiumAgent   = "ios-sirenua-premium/4.2"
-    static let defaultTimeout: TimeInterval = 8.0
+    static let defaultTimeout: TimeInterval = 15.0
 
     private let session: URLSession
 
