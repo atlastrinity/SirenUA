@@ -48,6 +48,16 @@ struct RegionStatusBadgeAnnotation: MapContent {
                             .font(.system(size: isPremium ? 9 : 10, weight: .bold))
                             .foregroundColor(.white)
 
+                        if alert.isActive && !alert.activeDistricts.isEmpty {
+                            let districtsText = alert.activeDistricts.count <= 2
+                                ? alert.activeDistricts.joined(separator: ", ")
+                                : "\(alert.activeDistricts[0]) +\(alert.activeDistricts.count - 1)"
+                            Text("📍 " + districtsText)
+                                .font(.system(size: 7.5, weight: .semibold))
+                                .foregroundColor(Color(red: 1.0, green: 0.35, blue: 0.35))
+                                .lineLimit(1)
+                        }
+
                         if isPremium {
                             if isThreatActive {
                                 let type = alert.currentThreat?.type ?? alert.threatType

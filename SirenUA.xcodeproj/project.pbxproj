@@ -62,6 +62,7 @@
 		6D3593270AF03FE811A547D4 /* BottomDashboardV4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CEFC7F09656C89CEA9E0972 /* BottomDashboardV4.swift */; };
 		70F0E935C5B499A74D89BBD8 /* warning.wav in Resources */ = {isa = PBXBuildFile; fileRef = EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */; };
 		76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */; };
+		76125A2F5230A43D69AC7E8D /* ukraine_districts.geojson in Resources */ = {isa = PBXBuildFile; fileRef = 8601EC2B196450F8EC9C782F /* ukraine_districts.geojson */; };
 		77911458D26F128B6595C4CB /* AdminErrorsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE58E39146F997321AEBD3B /* AdminErrorsTab.swift */; };
 		83057B5FDFB3876C6B2842B4 /* HistoryAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4BEC6E3AD19979050C66D29 /* HistoryAPI.swift */; };
 		835749ACCAA2AB2C0F25ED6C /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E64D5D56FBB6E54F397F43 /* AdminDashboardView.swift */; };
@@ -206,6 +207,7 @@
 		83317973B3F38750FEC97E3E /* ContentView+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Theme.swift"; sourceTree = "<group>"; };
 		838EFD6D57BCF7BC4B5521B4 /* MapViewModel+ShelterSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MapViewModel+ShelterSearch.swift"; sourceTree = "<group>"; };
 		8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_regions.geojson; sourceTree = "<group>"; };
+		8601EC2B196450F8EC9C782F /* ukraine_districts.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = ukraine_districts.geojson; sourceTree = "<group>"; };
 		8B33387695CB0CE00D86B8F2 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		8B93847811D7F44E3D2C2EC3 /* AdminDashboardTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardTab.swift; sourceTree = "<group>"; };
 		8BA16504A891512121DBF64D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -597,6 +599,7 @@
 				8F2BECB950730B1B0C48EE56 /* siren.wav */,
 				0339979594E28EFDB0679230 /* SirenUA.entitlements */,
 				8601EC2B196450F8EC9C782E /* ukraine_regions.geojson */,
+				8601EC2B196450F8EC9C782F /* ukraine_districts.geojson */,
 				53632C2C3EF10CCFEBFEFEF9 /* vidbiy.wav */,
 				EFD7AABBBDBB2CA5C7BE4BEA /* warning.wav */,
 				86EDDCA4BB9D01F516E5E2A2 /* Constants */,
@@ -799,6 +802,7 @@
 				D2BC81989F5E7EDFB1C364F2 /* silence.wav in Resources */,
 				F9981CFEFAF1962CC2C1E43D /* siren.wav in Resources */,
 				76125A2F5230A43D69AC7E8C /* ukraine_regions.geojson in Resources */,
+				76125A2F5230A43D69AC7E8D /* ukraine_districts.geojson in Resources */,
 				6641B169DC12DCDDC2B1AF8F /* vidbiy.wav in Resources */,
 				70F0E935C5B499A74D89BBD8 /* warning.wav in Resources */,
 			);

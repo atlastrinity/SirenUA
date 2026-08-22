@@ -2,6 +2,7 @@ import SwiftUI
 import MapKit
 
 struct ThreatMapContent: MapContent {
+    var districts: [DistrictPolygon] = []
     let safeRegions: [RegionPolygon]
     let activeThreatRegions: [RegionPolygon]
     let activeAlertRegions: [RegionPolygon]
@@ -40,6 +41,7 @@ struct ThreatMapContent: MapContent {
     var body: some MapContent {
         // Isolated static polygon layer (safe, threat, and active alert region fills)
         RegionPolygonsLayer(
+            districts: districts,
             safeRegions: safeRegions,
             activeThreatRegions: activeThreatRegions,
             activeAlertRegions: activeAlertRegions,

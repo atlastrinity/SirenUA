@@ -118,6 +118,30 @@ struct AlertRegion: Identifiable, Codable, Equatable {
         return .blue
     }
 
+    /// Перевіряє, чи активна тривога в конкретному районі цієї області
+    func isDistrictActive(_ districtName: String) -> Bool {
+        guard isActive else { return false }
+        if activeDistricts.isEmpty {
+            // Якщо список районів порожній — тривога оголошена по всій області
+            return true
+        }
+        let cleanName = districtName.lowercased().replacingOccurrences(of: " район", with: "").trimmingCharacters(in: .whitespaces)
+        return activeDistricts.contains { d in
+            let dClean = d.lowercased().replacingOccurrences(of: " район", with: "").trimmingCharacters(in: .whitespaces)
+            return dClean == cleanName || dClean.contains(cleanName) || cleanName.contains(dClean)
+        }
+    }
+
+    /// Колір заливки для конкретного району
+    func districtColor(for districtName: String) -> Color {
+        if isDistrictActive(districtName) {
+            return .red
+        } else if threatLevel != nil || !activeThreats.isEmpty {
+            return self.color
+        }
+        return Color(red: 0.04, green: 0.14, blue: 0.38).opacity(0.32)
+    }
+
     init(id: Int, name: String, isActive: Bool, level: Int, description: String, coordinate: CLLocationCoordinate2D, lastChanged: String? = nil, threatLevel: String? = nil, threatType: String? = nil, threatDetail: String? = nil) {
         self.id = id
         self.name = name

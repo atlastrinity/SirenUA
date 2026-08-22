@@ -171,6 +171,7 @@ struct ContentView: View {
                 selection: $mapViewModel.selectedShelter
             ) {
                 ThreatMapContent(
+                    districts: geoManager.districts,
                     safeRegions: safeRegions,
                     activeThreatRegions: activeThreatRegions,
                     activeAlertRegions: activeAlertRegions,

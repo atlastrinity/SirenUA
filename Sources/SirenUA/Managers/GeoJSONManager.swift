@@ -59,12 +59,61 @@ struct RegionPolygon: Identifiable, Equatable {
     }
 }
 
+struct DistrictPolygon: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let nameUK: String
+    let parentRegion: String
+    let polygons: [[CLLocationCoordinate2D]]
+    let mkPolygons: [MKPolygon]
+    let identifiablePolygons: [IdentifiableMKPolygon]
+    let center: CLLocationCoordinate2D
+    let minLat: Double
+    let maxLat: Double
+    let minLon: Double
+    let maxLon: Double
+
+    init(
+        id: String,
+        name: String,
+        nameUK: String,
+        parentRegion: String,
+        polygons: [[CLLocationCoordinate2D]],
+        mkPolygons: [MKPolygon],
+        identifiablePolygons: [IdentifiableMKPolygon],
+        center: CLLocationCoordinate2D,
+        minLat: Double = 0.0,
+        maxLat: Double = 0.0,
+        minLon: Double = 0.0,
+        maxLon: Double = 0.0
+    ) {
+        self.id = id
+        self.name = name
+        self.nameUK = nameUK
+        self.parentRegion = parentRegion
+        self.polygons = polygons
+        self.mkPolygons = mkPolygons
+        self.identifiablePolygons = identifiablePolygons
+        self.center = center
+        self.minLat = minLat
+        self.maxLat = maxLat
+        self.minLon = minLon
+        self.maxLon = maxLon
+    }
+
+    static func == (lhs: DistrictPolygon, rhs: DistrictPolygon) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 // MARK: - GeoJSONManager
 
 @MainActor
 final class GeoJSONManager: ObservableObject {
 
     @Published private(set) var regions: [RegionPolygon] = []
+    @Published private(set) var districts: [DistrictPolygon] = []
+    @Published private(set) var districtsByRegion: [String: [DistrictPolygon]] = [:]
     @Published private(set) var isLoaded = false
 
     private nonisolated static let fallbackCenter = CLLocationCoordinate2D(latitude: 48.3794, longitude: 31.1656)
@@ -76,30 +125,49 @@ final class GeoJSONManager: ObservableObject {
     // MARK: - Loading
 
     private func loadGeoJSON() async {
-        geoLogger.info("Loading ukraine_regions.geojson...")
+        geoLogger.info("Loading ukraine_regions.geojson and ukraine_districts.geojson...")
 
-        guard let url = Bundle.main.url(forResource: "ukraine_regions", withExtension: "geojson") else {
-            geoLogger.error("ukraine_regions.geojson not found in bundle")
-            return
+        var loadedRegions: [RegionPolygon] = []
+        var loadedDistricts: [DistrictPolygon] = []
+
+        if let regionsUrl = Bundle.main.url(forResource: "ukraine_regions", withExtension: "geojson") {
+            do {
+                let data = try Data(contentsOf: regionsUrl)
+                loadedRegions = try await Task.detached(priority: .userInitiated) {
+                    try Self.parseRegions(data: data)
+                }.value
+                geoLogger.info("Loaded \(loadedRegions.count) regions from GeoJSON")
+            } catch {
+                geoLogger.error("Regions GeoJSON load failed: \(error.localizedDescription)")
+            }
         }
 
-        do {
-            let data = try Data(contentsOf: url)
-            let parsed = try await Task.detached(priority: .userInitiated) {
-                try Self.parse(data: data)
-            }.value
-
-            regions = parsed
-            isLoaded = true
-            geoLogger.info("Loaded \(parsed.count) regions from GeoJSON")
-        } catch {
-            geoLogger.error("GeoJSON load failed: \(error.localizedDescription)")
+        if let districtsUrl = Bundle.main.url(forResource: "ukraine_districts", withExtension: "geojson") {
+            do {
+                let data = try Data(contentsOf: districtsUrl)
+                loadedDistricts = try await Task.detached(priority: .userInitiated) {
+                    try Self.parseDistricts(data: data)
+                }.value
+                geoLogger.info("Loaded \(loadedDistricts.count) districts from GeoJSON")
+            } catch {
+                geoLogger.error("Districts GeoJSON load failed: \(error.localizedDescription)")
+            }
         }
+
+        var grouped: [String: [DistrictPolygon]] = [:]
+        for d in loadedDistricts {
+            grouped[d.parentRegion, default: []].append(d)
+        }
+
+        regions = loadedRegions
+        districts = loadedDistricts
+        districtsByRegion = grouped
+        isLoaded = !loadedRegions.isEmpty
     }
 
-    // MARK: - Parsing (off main thread)
+    // MARK: - Parsing Regions (off main thread)
 
-    private nonisolated static func parse(data: Data) throws -> [RegionPolygon] {
+    private nonisolated static func parseRegions(data: Data) throws -> [RegionPolygon] {
         let decoder = MKGeoJSONDecoder()
         let objects = try decoder.decode(data)
 
@@ -133,6 +201,56 @@ final class GeoJSONManager: ObservableObject {
         }
 
         return result
+    }
+
+    // MARK: - Parsing Districts (off main thread)
+
+    private nonisolated static func parseDistricts(data: Data) throws -> [DistrictPolygon] {
+        let decoder = MKGeoJSONDecoder()
+        let objects = try decoder.decode(data)
+
+        var result: [DistrictPolygon] = []
+
+        for object in objects {
+            guard let feature = object as? MKGeoJSONFeature else { continue }
+
+            let (nameEn, nameUk, parent) = extractDistrictProperties(from: feature)
+            let (polygons, mkPolygons) = extractPolygons(from: feature)
+            let bounds = computeBounds(from: polygons)
+            let center = bounds.map { CLLocationCoordinate2D(latitude: ($0.minLat + $0.maxLat) / 2.0, longitude: ($0.minLon + $0.maxLon) / 2.0) } ?? fallbackCenter
+
+            let identifiable = mkPolygons.enumerated().map { idx, poly in
+                IdentifiableMKPolygon(id: "\(nameUk)_\(idx)", polygon: poly)
+            }
+            let district = DistrictPolygon(
+                id: "\(parent)_\(nameUk)",
+                name: nameEn,
+                nameUK: nameUk,
+                parentRegion: parent,
+                polygons: polygons,
+                mkPolygons: mkPolygons,
+                identifiablePolygons: identifiable,
+                center: center,
+                minLat: bounds?.minLat ?? center.latitude,
+                maxLat: bounds?.maxLat ?? center.latitude,
+                minLon: bounds?.minLon ?? center.longitude,
+                maxLon: bounds?.maxLon ?? center.longitude
+            )
+            result.append(district)
+        }
+
+        return result
+    }
+
+    private nonisolated static func extractDistrictProperties(from feature: MKGeoJSONFeature) -> (en: String, uk: String, parent: String) {
+        guard let propertiesData = feature.properties,
+              let properties = try? JSONSerialization.jsonObject(with: propertiesData) as? [String: Any]
+        else { return ("Unknown", "Unknown", "Unknown") }
+
+        let nameEn = properties["name:en"] as? String ?? properties["name"] as? String ?? "Unknown"
+        let nameUk = properties["name_uk"] as? String ?? properties["name:uk"] as? String ?? properties["name"] as? String ?? "Unknown"
+        let parent = properties["parent_region"] as? String ?? properties["parent"] as? String ?? "Unknown"
+        return (nameEn, nameUk, parent)
     }
 
     private nonisolated static func extractNames(from feature: MKGeoJSONFeature) -> (en: String, uk: String) {
